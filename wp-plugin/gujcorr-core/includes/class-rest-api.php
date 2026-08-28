@@ -52,8 +52,20 @@ class GUJCORR_REST_API {
         ));
 
         register_rest_route($namespace, '/booths', array(
+            'methods' => 'POST',
+            'callback' => array(__CLASS__, 'reserve_booth'),
+            'permission_callback' => '__return_true'
+        ));
+
+        register_rest_route($namespace, '/booths', array(
             'methods' => 'GET',
             'callback' => array(__CLASS__, 'get_booths'),
+            'permission_callback' => '__return_true'
+        ));
+
+        register_rest_route($namespace, '/exhibitors', array(
+            'methods' => array('GET', 'POST'),
+            'callback' => array(__CLASS__, 'reserve_booth'),
             'permission_callback' => '__return_true'
         ));
 
@@ -244,22 +256,49 @@ class GUJCORR_REST_API {
 
     public static function reserve_booth($request) {
         global $wpdb;
-        $params = $request->get_json_params();
+        $params = $request->get_json_params() ?: $_POST;
         $table = $wpdb->prefix . 'gujcorr_booths';
 
+        $booth_number = sanitize_text_field($params['boothNumber'] ?? $params['stallNumber'] ?? $params['preferredBooth'] ?? 'S-01');
+        $company_name = sanitize_text_field($params['companyName'] ?? '');
+        $contact_person = sanitize_text_field($params['contactPerson'] ?? '');
+        $designation = sanitize_text_field($params['designation'] ?? '');
+        $email = sanitize_email($params['email'] ?? '');
+        $mobile = sanitize_text_field($params['mobile'] ?? $params['mobileNumber'] ?? '');
+        $fascia_name = sanitize_text_field($params['fasciaName'] ?? strtoupper($company_name));
+        $gstin = sanitize_text_field($params['gstin'] ?? '');
+        $booth_size = sanitize_text_field($params['boothSize'] ?? $params['stallType'] ?? '9 sqm');
+        $base_price = floatval($params['basePrice'] ?? 95000);
+        $gst_amount = floatval($params['gstAmount'] ?? 17100);
+        $total_price = floatval($params['totalPrice'] ?? 112100);
+        $status = sanitize_text_field($params['status'] ?? $params['paymentStatus'] ?? 'Reserved');
+
         $inserted = $wpdb->insert($table, array(
-            'booth_number' => sanitize_text_field($params['boothNumber']),
-            'company_name' => sanitize_text_field($params['companyName']),
-            'contact_person' => sanitize_text_field($params['contactPerson']),
-            'email' => sanitize_email($params['email']),
-            'mobile_number' => sanitize_text_field($params['mobile']),
-            'fascia_name' => sanitize_text_field($params['fasciaName'] ?? ''),
-            'gstin' => sanitize_text_field($params['gstin'] ?? ''),
-            'status' => 'Reserved',
+            'booth_number' => $booth_number,
+            'company_name' => $company_name,
+            'contact_person' => $contact_person,
+            'designation' => $designation,
+            'email' => $email,
+            'mobile_number' => $mobile,
+            'fascia_name' => $fascia_name,
+            'gstin' => $gstin,
+            'booth_size' => $booth_size,
+            'base_price' => $base_price,
+            'gst_amount' => $gst_amount,
+            'total_price' => $total_price,
+            'status' => $status,
             'created_at' => current_time('mysql')
         ));
 
-        return rest_ensure_response(array('success' => true, 'message' => 'Booth reservation confirmed.'));
+        return rest_ensure_response(array(
+            'success' => true,
+            'message' => 'Booth reservation confirmed and saved in WordPress database.',
+            'data' => array(
+                'boothNumber' => $booth_number,
+                'companyName' => $company_name,
+                'status' => $status
+            )
+        ));
     }
 
     public static function get_booths($request) {

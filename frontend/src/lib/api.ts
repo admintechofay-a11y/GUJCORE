@@ -91,7 +91,84 @@ export const api = {
     };
   },
 
-  // 3. Submit Exhibitor Booth Inquiry
+  // 3. Submit & Sync Exhibitor Booth Reservation (Dual WordPress & localStorage)
+  async reserveBooth(data: {
+    boothNumber: string;
+    stallNumber?: string;
+    stallType?: string;
+    companyName: string;
+    contactPerson: string;
+    designation?: string;
+    email: string;
+    mobile: string;
+    fasciaName?: string;
+    gstin?: string;
+    boothSize?: string;
+    basePrice?: number;
+    gstAmount?: number;
+    totalPrice?: number;
+    paymentStatus?: string;
+    status?: string;
+  }): Promise<{ success: boolean; message: string }> {
+    const boothRecord = {
+      ...data,
+      id: 'EXH-' + Date.now(),
+      submittedAt: new Date().toISOString()
+    };
+
+    try {
+      const res = await fetch(`${WP_API_BASE}/booths/reserve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(boothRecord),
+        signal: AbortSignal.timeout(4000)
+      });
+      if (res.ok) {
+        const json = await res.json();
+        return { success: true, message: json.message || 'Exhibitor booth saved to WordPress!' };
+      }
+    } catch {
+      // Fallback to local storage if WordPress is offline
+    }
+
+    if (typeof window !== 'undefined') {
+      const existing = JSON.parse(localStorage.getItem(STORAGE_KEYS.EXHIBITORS) || '[]');
+      existing.push(boothRecord);
+      localStorage.setItem(STORAGE_KEYS.EXHIBITORS, JSON.stringify(existing));
+    }
+
+    return {
+      success: true,
+      message: 'Exhibition stall reserved successfully.'
+    };
+  },
+
+  async getBooths(): Promise<{ success: boolean; data: any[] }> {
+    try {
+      const res = await fetch(`${WP_API_BASE}/booths`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(4000)
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data && Array.isArray(json.data) && json.data.length > 0) {
+          return { success: true, data: json.data };
+        }
+      }
+    } catch {
+      // Fallback
+    }
+
+    if (typeof window !== 'undefined') {
+      const local = JSON.parse(localStorage.getItem(STORAGE_KEYS.EXHIBITORS) || '[]');
+      return { success: true, data: local };
+    }
+
+    return { success: true, data: [] };
+  },
+
+  // 3b. Legacy Exhibitor Booth Inquiry
   async submitExhibitorInquiry(data: {
     companyName: string;
     contactPerson: string;
@@ -102,36 +179,14 @@ export const api = {
     productsDescription: string;
     preferredBooth?: string;
   }): Promise<{ success: boolean; message: string }> {
-    const inquiry = {
-      ...data,
-      id: 'EXH-' + Date.now(),
-      submittedAt: new Date().toISOString()
-    };
-
-    try {
-      const res = await fetch(`${WP_API_BASE}/exhibitors`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(inquiry),
-        signal: AbortSignal.timeout(3000)
-      });
-      if (res.ok) {
-        return { success: true, message: 'Exhibitor inquiry received via WordPress CRM!' };
-      }
-    } catch {
-      // ignore
-    }
-
-    if (typeof window !== 'undefined') {
-      const existing = JSON.parse(localStorage.getItem(STORAGE_KEYS.EXHIBITORS) || '[]');
-      existing.push(inquiry);
-      localStorage.setItem(STORAGE_KEYS.EXHIBITORS, JSON.stringify(existing));
-    }
-
-    return {
-      success: true,
-      message: 'Thank you! Your booth inquiry has been received. Our exhibition committee will contact you within 24 hours.'
-    };
+    return this.reserveBooth({
+      boothNumber: data.preferredBooth || 'S-01',
+      companyName: data.companyName,
+      contactPerson: data.contactPerson,
+      designation: data.designation,
+      email: data.email,
+      mobile: data.mobileNumber
+    });
   },
 
   // 4. Submit General Contact Inquiry

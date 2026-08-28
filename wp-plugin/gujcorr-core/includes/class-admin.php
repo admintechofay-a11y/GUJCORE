@@ -191,28 +191,44 @@ class GUJCORR_Admin {
         $results = $wpdb->get_results("SELECT * FROM $table ORDER BY id DESC");
         ?>
         <div class="wrap">
-            <h1 style="font-weight:800;">Exhibition Space Inquiries &amp; Booths</h1>
+            <h1 style="font-weight:800;">Exhibition Stalls &amp; Exhibitor Bookings</h1>
             <table class="wp-list-table widefat fixed striped" style="margin-top:16px;">
                 <thead>
                     <tr>
-                        <th>Company Name</th>
+                        <th style="width:90px;">Stall #</th>
+                        <th>Company Name / Fascia</th>
                         <th>Contact Person</th>
                         <th>Email / Phone</th>
-                        <th>Industry Sector</th>
-                        <th>Preferred Booth</th>
-                        <th>Date</th>
+                        <th>Stall Type / Size</th>
+                        <th>Total Amount (INR)</th>
+                        <th>Status</th>
+                        <th>Booked Date</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($results)) : ?>
-                        <tr><td colspan="6" style="text-align:center; padding:24px;">No exhibitor inquiries submitted yet.</td></tr>
+                        <tr><td colspan="8" style="text-align:center; padding:24px;">No exhibitor stall reservations logged yet.</td></tr>
                     <?php else: foreach ($results as $b) : ?>
                         <tr>
-                            <td><strong><?php echo esc_html($b->company_name); ?></strong></td>
-                            <td><?php echo esc_html($b->contact_person); ?> (<?php echo esc_html($b->designation); ?>)</td>
-                            <td><?php echo esc_html($b->email); ?><br/><?php echo esc_html($b->mobile_number); ?></td>
-                            <td><?php echo esc_html($b->industry); ?></td>
-                            <td><strong><?php echo esc_html($b->preferred_booth); ?></strong></td>
+                            <td><strong style="font-family:monospace; font-size:14px; color:#dc2626;"><?php echo esc_html($b->booth_number ?: 'S-01'); ?></strong></td>
+                            <td>
+                                <strong><?php echo esc_html($b->company_name); ?></strong>
+                                <?php if (!empty($b->fascia_name)): ?>
+                                    <br/><small style="color:#64748b; font-family:monospace; font-weight:700;">FASCIA: <?php echo esc_html($b->fascia_name); ?></small>
+                                <?php endif; ?>
+                                <?php if (!empty($b->gstin)): ?>
+                                    <br/><small style="color:#475569;">GSTIN: <?php echo esc_html($b->gstin); ?></small>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php echo esc_html($b->contact_person); ?><?php if (!empty($b->designation)) echo '<br/><small>' . esc_html($b->designation) . '</small>'; ?></td>
+                            <td><?php echo esc_html($b->email); ?><br/><small><?php echo esc_html($b->mobile_number); ?></small></td>
+                            <td><?php echo esc_html($b->booth_size ?: '9 sqm'); ?></td>
+                            <td><strong>₹<?php echo esc_html(number_format($b->total_price ?: 112100, 2)); ?></strong></td>
+                            <td>
+                                <span style="background:<?php echo ($b->status === 'Booked' || $b->status === 'Paid') ? '#dcfce7; color:#166534;' : '#fef3c7; color:#92400e;'; ?> padding:3px 8px; border-radius:4px; font-weight:700; font-size:11px;">
+                                    <?php echo esc_html($b->status); ?>
+                                </span>
+                            </td>
                             <td><?php echo esc_html($b->created_at); ?></td>
                         </tr>
                     <?php endforeach; endif; ?>

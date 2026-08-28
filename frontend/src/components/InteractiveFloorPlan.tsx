@@ -225,6 +225,28 @@ export default function InteractiveFloorPlan() {
       }));
     }
 
+    // Fetch from WordPress and sync with localStorage
+    api.getBooths().then(res => {
+      if (res.success && res.data && res.data.length > 0) {
+        setBooths(prev => prev.map(b => {
+          const matched = res.data.find((s: any) => 
+            (s.booth_number && s.booth_number === b.number) ||
+            (s.stallNumber && s.stallNumber === b.number) ||
+            (s.stallId && s.stallId === b.id)
+          );
+          if (matched) {
+            const status = (matched.status === 'Booked' || matched.status === 'Paid' || matched.paymentStatus === 'Paid') ? 'Booked' : 'Reserved';
+            return {
+              ...b,
+              status,
+              bookedCompany: matched.company_name || matched.companyName
+            };
+          }
+          return b;
+        }));
+      }
+    }).catch(err => console.warn('Booths fetch warning:', err));
+
     // Load custom persisted bookings from localStorage
     if (typeof window !== 'undefined') {
       const savedExhibitors = JSON.parse(localStorage.getItem('gujcorr_exhibitors') || '[]');
@@ -314,6 +336,25 @@ export default function InteractiveFloorPlan() {
       existing.push(newExhibitorRecord);
       localStorage.setItem('gujcorr_exhibitors', JSON.stringify(existing));
     }
+
+    // Sync to WordPress REST API
+    api.reserveBooth({
+      boothNumber: selectedBooth.number,
+      stallNumber: selectedBooth.number,
+      stallType: selectedBooth.type,
+      companyName: bookingForm.companyName,
+      contactPerson: bookingForm.contactPerson,
+      email: bookingForm.email,
+      mobile: bookingForm.mobile,
+      fasciaName: bookingForm.fasciaName || bookingForm.companyName.toUpperCase(),
+      gstin: bookingForm.gstin,
+      boothSize: `${selectedBooth.areaSqm} sqm`,
+      basePrice: selectedBooth.basePrice,
+      gstAmount: selectedBooth.gstAmount,
+      totalPrice: selectedBooth.totalPrice,
+      paymentStatus: isPaid ? 'Booked' : 'Reserved',
+      status: isPaid ? 'Paid' : 'Reserved'
+    }).catch(err => console.warn('WordPress booth sync warning:', err));
 
     // Trigger confirmation email
     api.sendNotificationEmail({
