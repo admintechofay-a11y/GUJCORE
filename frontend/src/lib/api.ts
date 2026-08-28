@@ -14,13 +14,14 @@ const STORAGE_KEYS = {
 export const api = {
   // 1. Submit Delegate Registration
   async registerDelegate(data: Omit<DelegateRegistration, 'id' | 'registrationDate' | 'status' | 'ticketId'>): Promise<{ success: boolean; data: DelegateRegistration; message: string }> {
+    const ticketId = 'GUJ27-DEL-' + Math.random().toString(36).substring(2, 8).toUpperCase();
     const newReg: DelegateRegistration = {
       ...data,
-      id: 'REG-' + Math.floor(100000 + Math.random() * 900000),
+      id: ticketId,
+      ticketId: ticketId,
       registrationDate: new Date().toISOString(),
-      status: 'Confirmed',
-      ticketId: 'GUJ27-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-      qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GUJCORR2027:REG-${Math.floor(100000 + Math.random() * 900000)}`
+      status: 'Confirmed & Paid',
+      qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GUJCORR2027:${ticketId}`
     };
 
     try {
@@ -28,21 +29,21 @@ export const api = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newReg),
-        signal: AbortSignal.timeout(3000)
+        signal: AbortSignal.timeout(4000)
       });
       if (res.ok) {
         const wpData = await res.json();
-        return { success: true, data: wpData, message: 'Registration confirmed via WordPress API!' };
+        console.log('WordPress Registration Success:', wpData);
       }
-    } catch {
-      // Fallback to local storage
-      console.log('WordPress API unavailable; persisting registration locally in browser storage.');
+    } catch (err) {
+      console.warn('WordPress API unavailable; saving registration locally:', err);
     }
 
     if (typeof window !== 'undefined') {
-      const existing = JSON.parse(localStorage.getItem(STORAGE_KEYS.REGISTRATIONS) || '[]');
-      existing.push(newReg);
-      localStorage.setItem(STORAGE_KEYS.REGISTRATIONS, JSON.stringify(existing));
+      const existing: DelegateRegistration[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.REGISTRATIONS) || '[]');
+      const filtered = existing.filter(r => r.ticketId !== ticketId && r.id !== ticketId);
+      filtered.unshift(newReg);
+      localStorage.setItem(STORAGE_KEYS.REGISTRATIONS, JSON.stringify(filtered));
       localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify({ role: 'delegate', data: newReg }));
     }
 
@@ -53,11 +54,81 @@ export const api = {
     };
   },
 
+  // 1b. Fetch All Delegate Registrations (WordPress DB + Local Storage)
+  async getRegistrations(): Promise<{ success: boolean; data: DelegateRegistration[] }> {
+    let wpList: DelegateRegistration[] = [];
+    try {
+      const res = await fetch(`${WP_API_BASE}/registrations`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(4000)
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data && Array.isArray(json.data)) {
+          wpList = json.data;
+        }
+      }
+    } catch (err) {
+      console.warn('WordPress getRegistrations:', err);
+    }
+
+    let localList: DelegateRegistration[] = [];
+    if (typeof window !== 'undefined') {
+      localList = JSON.parse(localStorage.getItem(STORAGE_KEYS.REGISTRATIONS) || '[]');
+    }
+
+    // Merge without duplicates (favoring wpList or localList)
+    const map = new Map<string, DelegateRegistration>();
+    wpList.forEach(r => map.set(r.ticketId || r.id, r));
+    localList.forEach(r => {
+      const key = r.ticketId || r.id;
+      if (!map.has(key)) {
+        map.set(key, r);
+      }
+    });
+
+    const combined = Array.from(map.values());
+    if (typeof window !== 'undefined' && combined.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.REGISTRATIONS, JSON.stringify(combined));
+    }
+
+    return { success: true, data: combined };
+  },
+
+  // 1c. Update Delegate Status (Confirmed & Paid vs Provisional)
+  async updateRegistrationStatus(ticketId: string, status: string): Promise<{ success: boolean }> {
+    try {
+      await fetch(`${WP_API_BASE}/registrations/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticketId, status }),
+        signal: AbortSignal.timeout(4000)
+      });
+    } catch (err) {
+      console.warn('WordPress update status:', err);
+    }
+
+    if (typeof window !== 'undefined') {
+      const existing: DelegateRegistration[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.REGISTRATIONS) || '[]');
+      const updated = existing.map(r => {
+        if (r.ticketId === ticketId || r.id === ticketId) {
+          return { ...r, status: status as any };
+        }
+        return r;
+      });
+      localStorage.setItem(STORAGE_KEYS.REGISTRATIONS, JSON.stringify(updated));
+    }
+
+    return { success: true };
+  },
+
   // 2. Submit Author Paper / Abstract
   async submitPaper(data: Omit<PaperSubmission, 'id' | 'submissionDate' | 'status'>): Promise<{ success: boolean; data: PaperSubmission; message: string }> {
+    const paperCode = 'GUJ27-PAP-' + Math.random().toString(36).substring(2, 8).toUpperCase();
     const newPaper: PaperSubmission = {
       ...data,
-      id: 'PAP-' + Math.floor(1000 + Math.random() * 9000),
+      id: paperCode,
       submissionDate: new Date().toISOString(),
       status: 'Submitted'
     };
@@ -66,21 +137,25 @@ export const api = {
       const res = await fetch(`${WP_API_BASE}/papers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newPaper),
-        signal: AbortSignal.timeout(3000)
+        body: JSON.stringify({
+          ...newPaper,
+          paperCode: paperCode
+        }),
+        signal: AbortSignal.timeout(4000)
       });
       if (res.ok) {
         const wpData = await res.json();
-        return { success: true, data: wpData, message: 'Paper submitted to WordPress review system!' };
+        console.log('WordPress Paper Submission Success:', wpData);
       }
-    } catch {
-      console.log('WordPress API unavailable; saving paper submission to local store.');
+    } catch (err) {
+      console.warn('WordPress API unavailable; saving paper locally:', err);
     }
 
     if (typeof window !== 'undefined') {
-      const existing = JSON.parse(localStorage.getItem(STORAGE_KEYS.PAPERS) || '[]');
-      existing.push(newPaper);
-      localStorage.setItem(STORAGE_KEYS.PAPERS, JSON.stringify(existing));
+      const existing: PaperSubmission[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.PAPERS) || '[]');
+      const filtered = existing.filter(p => p.id !== paperCode);
+      filtered.unshift(newPaper);
+      localStorage.setItem(STORAGE_KEYS.PAPERS, JSON.stringify(filtered));
       localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify({ role: 'author', data: newPaper }));
     }
 
@@ -91,7 +166,79 @@ export const api = {
     };
   },
 
-  // 3. Submit & Sync Exhibitor Booth Reservation (Dual WordPress & localStorage)
+  // 2b. Fetch All Papers (WordPress DB + Local Storage)
+  async getPapers(): Promise<{ success: boolean; data: PaperSubmission[] }> {
+    let wpList: PaperSubmission[] = [];
+    try {
+      const res = await fetch(`${WP_API_BASE}/papers`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(4000)
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data && Array.isArray(json.data)) {
+          wpList = json.data;
+        }
+      }
+    } catch (err) {
+      console.warn('WordPress getPapers:', err);
+    }
+
+    let localList: PaperSubmission[] = [];
+    if (typeof window !== 'undefined') {
+      localList = JSON.parse(localStorage.getItem(STORAGE_KEYS.PAPERS) || '[]');
+    }
+
+    const map = new Map<string, PaperSubmission>();
+    wpList.forEach(p => map.set(p.id, p));
+    localList.forEach(p => {
+      if (!map.has(p.id)) {
+        map.set(p.id, p);
+      }
+    });
+
+    const combined = Array.from(map.values());
+    if (typeof window !== 'undefined' && combined.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.PAPERS, JSON.stringify(combined));
+    }
+
+    return { success: true, data: combined };
+  },
+
+  // 2c. Update Paper Peer Review & Score
+  async updatePaperReview(paperCode: string, score: number, comments: string, status: string): Promise<{ success: boolean }> {
+    try {
+      await fetch(`${WP_API_BASE}/papers/score`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paperCode, score, comments, status }),
+        signal: AbortSignal.timeout(4000)
+      });
+    } catch (err) {
+      console.warn('WordPress update paper score:', err);
+    }
+
+    if (typeof window !== 'undefined') {
+      const existing: PaperSubmission[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.PAPERS) || '[]');
+      const updated = existing.map(p => {
+        if (p.id === paperCode) {
+          return {
+            ...p,
+            reviewScore: score,
+            reviewComments: comments,
+            status: status as any
+          };
+        }
+        return p;
+      });
+      localStorage.setItem(STORAGE_KEYS.PAPERS, JSON.stringify(updated));
+    }
+
+    return { success: true };
+  },
+
+  // 3. Submit & Sync Exhibitor Booth Reservation
   async reserveBooth(data: {
     boothNumber: string;
     stallNumber?: string;
@@ -133,7 +280,7 @@ export const api = {
 
     if (typeof window !== 'undefined') {
       const existing = JSON.parse(localStorage.getItem(STORAGE_KEYS.EXHIBITORS) || '[]');
-      existing.push(boothRecord);
+      existing.unshift(boothRecord);
       localStorage.setItem(STORAGE_KEYS.EXHIBITORS, JSON.stringify(existing));
     }
 
@@ -143,7 +290,9 @@ export const api = {
     };
   },
 
+  // 3b. Fetch All Booths
   async getBooths(): Promise<{ success: boolean; data: any[] }> {
+    let wpList: any[] = [];
     try {
       const res = await fetch(`${WP_API_BASE}/booths`, {
         method: 'GET',
@@ -152,23 +301,37 @@ export const api = {
       });
       if (res.ok) {
         const json = await res.json();
-        if (json.data && Array.isArray(json.data) && json.data.length > 0) {
-          return { success: true, data: json.data };
+        if (json.data && Array.isArray(json.data)) {
+          wpList = json.data;
         }
       }
     } catch {
       // Fallback
     }
 
+    let localList: any[] = [];
     if (typeof window !== 'undefined') {
-      const local = JSON.parse(localStorage.getItem(STORAGE_KEYS.EXHIBITORS) || '[]');
-      return { success: true, data: local };
+      localList = JSON.parse(localStorage.getItem(STORAGE_KEYS.EXHIBITORS) || '[]');
     }
 
-    return { success: true, data: [] };
+    const map = new Map<string, any>();
+    wpList.forEach(b => map.set(b.stallNumber || b.booth_number || b.id, b));
+    localList.forEach(b => {
+      const key = b.stallNumber || b.booth_number || b.id;
+      if (!map.has(key)) {
+        map.set(key, b);
+      }
+    });
+
+    const combined = Array.from(map.values());
+    if (typeof window !== 'undefined' && combined.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.EXHIBITORS, JSON.stringify(combined));
+    }
+
+    return { success: true, data: combined };
   },
 
-  // 3b. Legacy Exhibitor Booth Inquiry
+  // 3c. Exhibitor Booth Inquiry
   async submitExhibitorInquiry(data: {
     companyName: string;
     contactPerson: string;
@@ -216,7 +379,7 @@ export const api = {
 
     if (typeof window !== 'undefined') {
       const existing = JSON.parse(localStorage.getItem(STORAGE_KEYS.CONTACTS) || '[]');
-      existing.push(msg);
+      existing.unshift(msg);
       localStorage.setItem(STORAGE_KEYS.CONTACTS, JSON.stringify(existing));
     }
 
@@ -224,6 +387,47 @@ export const api = {
       success: true,
       message: 'Message delivered! Our organizing committee (iim.barodachapter@gmail.com) will get back to you shortly.'
     };
+  },
+
+  // 4b. Fetch All Inquiries
+  async getInquiries(): Promise<{ success: boolean; data: any[] }> {
+    let wpList: any[] = [];
+    try {
+      const res = await fetch(`${WP_API_BASE}/contact`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(4000)
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data && Array.isArray(json.data)) {
+          wpList = json.data;
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    let localList: any[] = [];
+    if (typeof window !== 'undefined') {
+      localList = JSON.parse(localStorage.getItem(STORAGE_KEYS.CONTACTS) || '[]');
+    }
+
+    const map = new Map<string, any>();
+    wpList.forEach(m => map.set(m.id || m.email + m.subject, m));
+    localList.forEach(m => {
+      const key = m.id || m.email + m.subject;
+      if (!map.has(key)) {
+        map.set(key, m);
+      }
+    });
+
+    const combined = Array.from(map.values());
+    if (typeof window !== 'undefined' && combined.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.CONTACTS, JSON.stringify(combined));
+    }
+
+    return { success: true, data: combined };
   },
 
   // 5. Send Email Notification via Nodemailer

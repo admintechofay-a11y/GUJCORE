@@ -55,24 +55,25 @@ export interface AdvertisementRate {
 
 export interface PaperSubmission {
   id: string;
+  paperCode?: string;
   submissionDate: string;
   submittedAt?: string;
-  status: 'Submitted' | 'Under Review' | 'Accepted' | 'Accepted for Oral Presentation' | 'Revision Required' | 'Rejected';
+  status: 'Submitted' | 'Under Review' | 'Accepted' | 'Accepted for Oral Presentation' | 'Accepted for Poster Presentation' | 'Revision Required' | 'Rejected' | string;
   fullName: string;
-  nationality: string;
-  gender: string;
-  designation: string;
+  nationality?: string;
+  gender?: string;
+  designation?: string;
   companyName: string;
   organization?: string;
-  education: string;
-  specialization: string;
+  education?: string;
+  specialization?: string;
   achievements?: string;
   professionalMemberships?: string;
-  address: string;
-  city: string;
-  state: string;
-  country: string;
-  zipCode: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  zipCode?: string;
   phoneNumber?: string;
   mobileNumber: string;
   email: string;
@@ -81,20 +82,20 @@ export interface PaperSubmission {
   symposiumTitle: string;
   paperTitle: string;
   abstract: string;
-  keywords: string;
+  keywords?: string;
   coAuthors?: string;
   resumeFileName?: string;
   fullPaperFileName?: string;
   presentationFileName?: string;
   reviewScore?: number;
   reviewComments?: string;
-  declarationAgreed: boolean;
+  declarationAgreed?: boolean;
 }
 
 export interface DelegateRegistration {
   id: string;
   registrationDate: string;
-  status: 'Pending Payment' | 'Confirmed' | 'Attended';
+  status: 'Pending Payment' | 'Confirmed' | 'Confirmed & Paid' | 'Provisional (Unpaid)' | 'Attended' | string;
   ticketId: string;
   fullName: string;
   gender: string;

@@ -233,7 +233,7 @@ export default function UserDashboardModal({ isOpen, onClose, initialTab = 'dele
                   </div>
 
                   <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-200">
-                    <span>Submitted: {new Date(p.submissionDate).toLocaleDateString()}</span>
+                    <span>Submitted: {p.submissionDate ? new Date(p.submissionDate).toLocaleDateString() : 'Recent'}</span>
                     <span className="text-teal-700 font-semibold flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5" /> Technical Committee Review in Progress
                     </span>

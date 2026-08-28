@@ -70,23 +70,35 @@ export default function AdminPage() {
     loadData();
   }, []);
 
-  const loadData = () => {
-    const local = api.getLocalData();
-    setRegistrations(local.registrations || []);
-    setPapers(local.papers || []);
-    setBooths(local.exhibitors || []);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
-    if (typeof window !== 'undefined') {
-      const contacts = JSON.parse(localStorage.getItem('gujcorr_contacts') || '[]');
-      setInquiries(contacts);
-    }
+  const loadData = async () => {
+    setIsLoadingData(true);
+    try {
+      const [regRes, papRes, boothRes, inqRes] = await Promise.allSettled([
+        api.getRegistrations(),
+        api.getPapers(),
+        api.getBooths(),
+        api.getInquiries()
+      ]);
 
-    // Also fetch fresh booths from WordPress
-    api.getBooths().then(res => {
-      if (res.success && res.data && res.data.length > 0) {
-        setBooths(res.data);
+      if (regRes.status === 'fulfilled' && regRes.value.data) {
+        setRegistrations(regRes.value.data);
       }
-    }).catch(err => console.warn('WordPress booth fetch in admin:', err));
+      if (papRes.status === 'fulfilled' && papRes.value.data) {
+        setPapers(papRes.value.data);
+      }
+      if (boothRes.status === 'fulfilled' && boothRes.value.data) {
+        setBooths(boothRes.value.data);
+      }
+      if (inqRes.status === 'fulfilled' && inqRes.value.data) {
+        setInquiries(inqRes.value.data);
+      }
+    } catch (err) {
+      console.warn('Error loading admin data from WordPress/local:', err);
+    } finally {
+      setIsLoadingData(false);
+    }
   };
 
   const showToast = (msg: string) => {
@@ -153,7 +165,7 @@ export default function AdminPage() {
            number.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
-  const handleUpdatePaymentStatus = (ticketId: string, newStatus: string) => {
+  const handleUpdatePaymentStatus = async (ticketId: string, newStatus: string) => {
     const updated = registrations.map(r => {
       if (r.ticketId === ticketId || r.id === ticketId) {
         return { ...r, status: newStatus as any };
@@ -161,16 +173,15 @@ export default function AdminPage() {
       return r;
     });
     setRegistrations(updated);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('gujcorr_registrations', JSON.stringify(updated));
-    }
+    await api.updateRegistrationStatus(ticketId, newStatus);
     showToast(`Updated pass #${ticketId} to "${newStatus}"!`);
   };
 
-  const handleSavePaperReview = () => {
+  const handleSavePaperReview = async () => {
     if (!selectedPaper) return;
+    const paperCode = selectedPaper.id || '';
     const updated = papers.map(p => {
-      if (p.id === selectedPaper.id) {
+      if (p.id === paperCode) {
         return {
           ...p,
           reviewScore: scoreInput,
@@ -181,11 +192,9 @@ export default function AdminPage() {
       return p;
     });
     setPapers(updated);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('gujcorr_papers', JSON.stringify(updated));
-    }
+    await api.updatePaperReview(paperCode, scoreInput, commentsInput, paperStatusInput);
     setSelectedPaper(null);
-    showToast(`Paper #${selectedPaper.id} review saved! Status: "${paperStatusInput}"`);
+    showToast(`Paper #${paperCode} review saved! Status: "${paperStatusInput}"`);
   };
 
   const exportDelegatesCsv = () => {
