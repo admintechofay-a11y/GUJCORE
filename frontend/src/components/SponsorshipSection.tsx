@@ -173,7 +173,7 @@ export default function SponsorshipSection({ onContactClick }: SponsorshipSectio
               <li><strong>Bleed Advertisement:</strong> 8.23&quot; (w) × 11.75&quot; (h). Artwork should extend 0.25&quot; beyond cut marks on all sides.</li>
               <li><strong>Non-Bleed Advertisement:</strong> 7.25&quot; (w) × 10.15&quot; (h). Resolution: 300 DPI (minimum).</li>
               <li><strong>Format:</strong> High-resolution CDR, PDF, or EPS format (with fonts converted to curves/outlines).</li>
-              <li><strong>Email Submissions:</strong> Send artwork files directly to <strong className="text-red-600">coraxm2024@gmail.com</strong> with your company reference.</li>
+              <li><strong>Email Submissions:</strong> Send artwork files directly to <strong className="text-red-600">iim.barodachapter@gmail.com</strong> with your company reference.</li>
             </ul>
           </div>
         </div>

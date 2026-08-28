@@ -51,7 +51,7 @@ export default function ExhibitionSection() {
         setInquirySuccess(true);
       }
     } catch {
-      alert('Inquiry error. Please contact coraxm2024@gmail.com.');
+      alert('Inquiry error. Please contact iim.barodachapter@gmail.com.');
     } finally {
       setIsSubmitting(false);
     }

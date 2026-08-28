@@ -88,8 +88,8 @@ export default function ContactSection() {
                     <a href="mailto:iim.barodachapter@gmail.com" className="text-teal-700 hover:text-teal-900 font-semibold block">
                       iim.barodachapter@gmail.com
                     </a>
-                    <a href="mailto:coraxm2024@gmail.com" className="text-teal-700 hover:text-teal-900 font-semibold block">
-                      coraxm2024@gmail.com
+                    <a href="mailto:iim.barodachapter@gmail.com" className="text-teal-700 hover:text-teal-900 font-semibold block">
+                      iim.barodachapter@gmail.com
                     </a>
                   </div>
                 </div>

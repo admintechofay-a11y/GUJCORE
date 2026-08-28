@@ -173,7 +173,7 @@ export const api = {
 
   // 5. Send Email Notification via Nodemailer
   async sendNotificationEmail(payload: {
-    type: 'welcome' | 'paper_submitted' | 'payment_pending' | 'payment_success' | 'contact_inquiry';
+    type: 'welcome' | 'paper_submitted' | 'payment_pending' | 'payment_success' | 'exhibition_booked' | 'contact_inquiry';
     to: string;
     data: any;
   }): Promise<{ success: boolean; error?: string }> {

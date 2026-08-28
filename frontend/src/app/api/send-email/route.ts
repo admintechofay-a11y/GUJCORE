@@ -5,6 +5,7 @@ import {
   getPaperSubmissionEmailHtml, 
   getPaymentPendingEmailHtml, 
   getPaymentSuccessEmailHtml, 
+  getExhibitionBookedEmailHtml,
   getContactInquiryEmailHtml 
 } from '@/lib/mailer';
 
@@ -42,6 +43,11 @@ export async function POST(request: NextRequest) {
       case 'confirmed_badge':
         subject = `[CONFIRMED] GUJCORR 2027 Payment Receipt & Digital Entry Badge - ${data.ticketId}`;
         html = getPaymentSuccessEmailHtml(data);
+        break;
+
+      case 'exhibition_booked':
+        subject = `[CONFIRMED] GUJCORR 2027 Exhibition Stall Reservation - #${data.stallNumber} (${data.companyName})`;
+        html = getExhibitionBookedEmailHtml(data);
         break;
 
       case 'contact_inquiry':

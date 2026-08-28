@@ -26,6 +26,16 @@ interface EmailPayload {
   html: string;
 }
 
+export function getBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return 'http://localhost:3000';
+}
+
 export async function sendMail({ to, subject, html }: EmailPayload) {
   try {
     const info = await transporter.sendMail({
@@ -50,6 +60,7 @@ export function getWelcomeEmailHtml(data: {
   ticketId?: string;
   organization?: string;
 }) {
+  const baseUrl = getBaseUrl();
   return `
   <!DOCTYPE html>
   <html>
@@ -92,7 +103,7 @@ export function getWelcomeEmailHtml(data: {
         </ul>
 
         <div style="text-align: center;">
-          <a href="http://localhost:3000/masterhome" class="cta">Access Master Home Portal &rarr;</a>
+          <a href="${baseUrl}/masterhome" class="cta">Access Master Home Portal &rarr;</a>
         </div>
       </div>
       <div class="footer">
@@ -115,6 +126,7 @@ export function getPaperSubmissionEmailHtml(data: {
   symposiumTitle: string;
   presentationType: string;
 }) {
+  const baseUrl = getBaseUrl();
   return `
   <!DOCTYPE html>
   <html>
@@ -159,7 +171,7 @@ export function getPaperSubmissionEmailHtml(data: {
         </ul>
 
         <div style="text-align: center;">
-          <a href="http://localhost:3000/registration?from=paper&paperId=${data.paperCode}" class="cta">Book Author Delegate Pass &rarr;</a>
+          <a href="${baseUrl}/registration?from=paper&paperId=${data.paperCode}" class="cta">Book Author Delegate Pass &rarr;</a>
         </div>
       </div>
       <div class="footer">
@@ -181,6 +193,7 @@ export function getPaymentPendingEmailHtml(data: {
   category: string;
   totalAmount: number;
 }) {
+  const baseUrl = getBaseUrl();
   return `
   <!DOCTYPE html>
   <html>
@@ -230,7 +243,7 @@ export function getPaymentPendingEmailHtml(data: {
         <p>After transferring, please share your UTR / Transaction Reference number with the secretariat to receive your verified confirmed badge.</p>
 
         <div style="text-align: center;">
-          <a href="http://localhost:3000/invoice" class="cta">View Proforma GST Invoice &rarr;</a>
+          <a href="${baseUrl}/invoice" class="cta">View Proforma GST Invoice &rarr;</a>
         </div>
       </div>
       <div class="footer">
@@ -254,6 +267,7 @@ export function getPaymentSuccessEmailHtml(data: {
   transactionRef: string;
   paymentMethod: string;
 }) {
+  const baseUrl = getBaseUrl();
   const basePrice = Math.round(data.amount / 1.18);
   const gstAmount = data.amount - basePrice;
 
@@ -273,6 +287,7 @@ export function getPaymentSuccessEmailHtml(data: {
       .receipt-table th, .receipt-table td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
       .receipt-table th { background: #f8fafc; font-weight: 700; color: #475569; }
       .cta { display: inline-block; background: #16a34a; color: #ffffff !important; font-weight: bold; text-decoration: none; padding: 12px 24px; border-radius: 10px; margin-top: 14px; }
+      .cta-outline { display: inline-block; background: #ffffff; color: #0f172a !important; font-weight: bold; text-decoration: none; padding: 12px 20px; border-radius: 10px; margin-top: 14px; margin-left: 8px; border: 1px solid #cbd5e1; }
       .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 24px; font-size: 11px; color: #64748b; text-align: center; }
     </style>
   </head>
@@ -327,8 +342,9 @@ export function getPaymentSuccessEmailHtml(data: {
           </tbody>
         </table>
 
-        <div style="text-align: center;">
-          <a href="http://localhost:3000/masterhome" class="cta">View &amp; Print QR Entry Badge &rarr;</a>
+        <div style="text-align: center; margin-top: 20px;">
+          <a href="${baseUrl}/masterhome" class="cta">View &amp; Print QR Entry Badge &rarr;</a>
+          <a href="${baseUrl}/invoice" class="cta-outline">Download Tax Invoice</a>
         </div>
       </div>
       <div class="footer">
@@ -343,7 +359,78 @@ export function getPaymentSuccessEmailHtml(data: {
   `;
 }
 
-// 5. Contact Form Inquiry Notification Template
+// 5. Exhibition Stall Booking Confirmation Template
+export function getExhibitionBookedEmailHtml(data: {
+  stallNumber: string;
+  stallType: string;
+  areaSqm: number;
+  companyName: string;
+  contactPerson: string;
+  fasciaName: string;
+  totalPrice: number;
+  status: string;
+}) {
+  const baseUrl = getBaseUrl();
+  return `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; padding: 20px; }
+      .card { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+      .header { background: #831843; color: #ffffff; padding: 28px 24px; text-align: center; }
+      .badge { display: inline-block; background: #500724; color: #fbcfe8; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 4px 10px; border-radius: 6px; margin-bottom: 8px; }
+      .content { padding: 28px 24px; line-height: 1.6; font-size: 14px; }
+      .box { background: #fdf2f8; border-left: 4px solid #db2777; padding: 14px 18px; border-radius: 8px; margin: 18px 0; }
+      .cta { display: inline-block; background: #db2777; color: #ffffff !important; font-weight: bold; text-decoration: none; padding: 12px 24px; border-radius: 10px; margin-top: 14px; }
+      .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 24px; font-size: 11px; color: #64748b; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="header">
+        <div class="badge">Trade Expo &bull; Sarabhai Pavilion</div>
+        <h2 style="margin:0; font-size:22px;">Exhibition Stall Reservation</h2>
+        <p style="margin:6px 0 0 0; font-size:12px; color:#fce7f3;">GUJCORR 2027 &bull; 18–20 February 2027 &bull; Vadodara</p>
+      </div>
+      <div class="content">
+        <p>Dear <strong>${data.contactPerson}</strong>,</p>
+        <p>We are pleased to acknowledge the booth reservation for <strong>${data.companyName}</strong> at the GUJCORR 2027 Technology Exhibition Arena.</p>
+        
+        <div class="box">
+          <strong>Stall Allocation Details:</strong><br>
+          &bull; <strong>Allocated Stall Number:</strong> <span style="font-family:monospace; font-weight:bold; color:#831843; font-size:16px;">#${data.stallNumber}</span><br>
+          &bull; <strong>Booth Category:</strong> ${data.stallType} (${data.areaSqm} sqm)<br>
+          &bull; <strong>Fascia Board Title:</strong> <span style="font-family:monospace; font-weight:bold;">${data.fasciaName}</span><br>
+          &bull; <strong>Total Tariff:</strong> ₹${data.totalPrice.toLocaleString('en-IN')} (Inclusive of 18% GST)<br>
+          &bull; <strong>Booking Status:</strong> <span style="color:#db2777; font-weight:bold;">${data.status}</span>
+        </div>
+
+        <p><strong>Standard Stall Inclusions:</strong></p>
+        <ul>
+          <li>Pre-fabricated Octanorm modular shell scheme with corporate fascia lettering</li>
+          <li>Power sockets (5A/15A), spotlights, executive table, and visitor chairs</li>
+          <li>Complimentary full-conference delegate passes with VIP lunch catering</li>
+          <li>Corporate logo & profile listing in the printed GUJCORR 2027 Souvenir Directory</li>
+        </ul>
+
+        <div style="text-align: center;">
+          <a href="${baseUrl}/exhibition" class="cta">View Interactive Floor Plan &rarr;</a>
+        </div>
+      </div>
+      <div class="footer">
+        <strong>GUJCORR 2027 Exhibition Secretariat</strong><br>
+        The Indian Institute of Metals Baroda Chapter &bull; AMPP Gujarat Chapter<br>
+        Email: iim.barodachapter@gmail.com &bull; Phone: +91 99888 81674
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+}
+
+// 6. Contact Form Inquiry Notification Template
 export function getContactInquiryEmailHtml(data: {
   name: string;
   email: string;

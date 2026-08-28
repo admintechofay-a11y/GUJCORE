@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { 
   Store, 
   Check, 
@@ -13,8 +14,15 @@ import {
   Phone, 
   Mail, 
   Sparkles,
+  CreditCard,
+  FileText,
+  Clock,
+  ShieldCheck,
   Zap
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { api } from '@/lib/api';
+import RazorpayModal, { RazorpayPaymentResult } from './RazorpayModal';
 
 interface BoothData {
   id: string;
@@ -30,7 +38,7 @@ interface BoothData {
   inclusions: string[];
 }
 
-const BOOTH_DATABASE: BoothData[] = [
+const INITIAL_BOOTHS: BoothData[] = [
   // 4 Island Pavilions (Center Premium)
   {
     id: 'b-is-1',
@@ -119,7 +127,8 @@ const BOOTH_DATABASE: BoothData[] = [
     basePrice: 190000,
     gstAmount: 34200,
     totalPrice: 224200,
-    status: 'Available',
+    status: 'Reserved',
+    bookedCompany: 'Kirloskar Corrocoat Alloys',
     inclusions: ['2-side open corner booth', 'Octanorm shell scheme', 'Fascia board with company name', '2 Tables & 4 Chairs', '4 Spotlights & 2 Power points', '3 Complimentary Delegate Passes']
   },
   {
@@ -131,22 +140,45 @@ const BOOTH_DATABASE: BoothData[] = [
     basePrice: 190000,
     gstAmount: 34200,
     totalPrice: 224200,
-    status: 'Reserved',
-    bookedCompany: 'Kansai Nerolac Paints',
+    status: 'Available',
+    inclusions: ['2-side open corner booth', 'Octanorm shell scheme', 'Fascia board with company name', '2 Tables & 4 Chairs', '4 Spotlights & 2 Power points', '3 Complimentary Delegate Passes']
+  },
+  {
+    id: 'b-cr-5',
+    number: 'CR-05',
+    type: 'Corner Shell (18 sqm)',
+    dimensions: '6m × 3m (2 Sides Open)',
+    areaSqm: 18,
+    basePrice: 190000,
+    gstAmount: 34200,
+    totalPrice: 224200,
+    status: 'Booked',
+    bookedCompany: 'AkzoNobel International Paint',
+    inclusions: ['2-side open corner booth', 'Octanorm shell scheme', 'Fascia board with company name', '2 Tables & 4 Chairs', '4 Spotlights & 2 Power points', '3 Complimentary Delegate Passes']
+  },
+  {
+    id: 'b-cr-6',
+    number: 'CR-06',
+    type: 'Corner Shell (18 sqm)',
+    dimensions: '6m × 3m (2 Sides Open)',
+    areaSqm: 18,
+    basePrice: 190000,
+    gstAmount: 34200,
+    totalPrice: 224200,
+    status: 'Available',
     inclusions: ['2-side open corner booth', 'Octanorm shell scheme', 'Fascia board with company name', '2 Tables & 4 Chairs', '4 Spotlights & 2 Power points', '3 Complimentary Delegate Passes']
   },
 
-  // 16 Standard 9 sqm Stalls
-  ...Array.from({ length: 16 }, (_, i) => {
-    const num = i + 1;
-    const numStr = num < 10 ? `ST-0${num}` : `ST-${num}`;
-    const isBooked = [2, 5, 8, 11, 14].includes(num);
-    const isReserved = [3, 9, 13].includes(num);
-    const bookedNames = ['Ujas Energy Solutions', 'Consultech Systems', 'Advance Electronic Tech', 'Arya Metallurgical', 'Technocrat Instruments'];
+  // Standard Stalls S-01 to S-24 (9 sqm)
+  ...Array.from({ length: 24 }, (_, i) => {
+    const num = (i + 1).toString().padStart(2, '0');
+    const bookedNames = ['Jotun India', 'Kansai Nerolac', 'Asian Paints PPG', 'Deepak Nitrite', 'GSFC Ltd', 'Aegion Coating', 'TUV Rheinland', 'DNV GL India'];
+    const isBooked = [1, 4, 7, 11, 14, 18].includes(i + 1);
+    const isReserved = [3, 9, 16, 21].includes(i + 1);
 
     return {
-      id: `b-st-${num}`,
-      number: numStr,
+      id: `b-std-${num}`,
+      number: `S-${num}`,
       type: 'Standard Shell (9 sqm)' as const,
       dimensions: '3m × 3m (1 Side Open)',
       areaSqm: 9,
@@ -161,10 +193,15 @@ const BOOTH_DATABASE: BoothData[] = [
 ];
 
 export default function InteractiveFloorPlan() {
+  const { user } = useAuth();
+  const [booths, setBooths] = useState<BoothData[]>(INITIAL_BOOTHS);
   const [selectedBooth, setSelectedBooth] = useState<BoothData | null>(null);
   const [bookingStep, setBookingStep] = useState<'details' | 'form' | 'success'>('details');
+  const [paymentChoice, setPaymentChoice] = useState<'online' | 'wire'>('online');
   const [filterType, setFilterType] = useState<string>('All');
-  
+  const [isRazorpayOpen, setIsRazorpayOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const [bookingForm, setBookingForm] = useState({
     companyName: '',
     contactPerson: '',
@@ -175,26 +212,130 @@ export default function InteractiveFloorPlan() {
     notes: ''
   });
 
+  // Sync user profile on mount
+  useEffect(() => {
+    if (user) {
+      setBookingForm(prev => ({
+        ...prev,
+        companyName: user.organization || prev.companyName,
+        contactPerson: user.fullName || prev.contactPerson,
+        email: user.email || prev.email,
+        mobile: user.mobileNumber || prev.mobile,
+        fasciaName: (user.organization || prev.companyName || '').toUpperCase()
+      }));
+    }
+
+    // Load custom persisted bookings from localStorage
+    if (typeof window !== 'undefined') {
+      const savedExhibitors = JSON.parse(localStorage.getItem('gujcorr_exhibitors') || '[]');
+      if (savedExhibitors.length > 0) {
+        setBooths(prev => prev.map(b => {
+          const matched = savedExhibitors.find((s: any) => s.stallNumber === b.number || s.stallId === b.id);
+          if (matched) {
+            return {
+              ...b,
+              status: matched.paymentStatus === 'Paid' ? 'Booked' : 'Reserved',
+              bookedCompany: matched.companyName
+            };
+          }
+          return b;
+        }));
+      }
+    }
+  }, [user]);
+
   const handleStallClick = (booth: BoothData) => {
     setSelectedBooth(booth);
     setBookingStep('details');
-    setBookingForm({
-      ...bookingForm,
-      fasciaName: bookingForm.companyName.toUpperCase()
-    });
+    setBookingForm(prev => ({
+      ...prev,
+      fasciaName: prev.companyName ? prev.companyName.toUpperCase() : (booth.bookedCompany || '').toUpperCase()
+    }));
   };
 
-  const handleBookingSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBooth) return;
 
-    // Mark as reserved locally
-    selectedBooth.status = 'Reserved';
-    selectedBooth.bookedCompany = bookingForm.companyName;
+    if (paymentChoice === 'online') {
+      setIsRazorpayOpen(true);
+    } else {
+      finalizeBooking('Pending Wire Transfer (Proforma Issued)');
+    }
+  };
+
+  const handleRazorpaySuccess = (result: RazorpayPaymentResult) => {
+    setIsRazorpayOpen(false);
+    finalizeBooking('Confirmed & Paid (Razorpay)', result.razorpay_payment_id);
+  };
+
+  const finalizeBooking = (status: string, txnRef?: string) => {
+    if (!selectedBooth) return;
+    setIsProcessing(true);
+
+    const isPaid = status.includes('Paid');
+    const newExhibitorRecord = {
+      id: 'EXH-' + Math.floor(100000 + Math.random() * 900000),
+      stallId: selectedBooth.id,
+      stallNumber: selectedBooth.number,
+      stallType: selectedBooth.type,
+      dimensions: selectedBooth.dimensions,
+      areaSqm: selectedBooth.areaSqm,
+      companyName: bookingForm.companyName,
+      contactPerson: bookingForm.contactPerson,
+      email: bookingForm.email,
+      mobile: bookingForm.mobile,
+      fasciaName: bookingForm.fasciaName || bookingForm.companyName.toUpperCase(),
+      gstin: bookingForm.gstin,
+      basePrice: selectedBooth.basePrice,
+      gstAmount: selectedBooth.gstAmount,
+      totalPrice: selectedBooth.totalPrice,
+      paymentStatus: isPaid ? 'Paid' : 'Pending',
+      paymentMethod: isPaid ? 'Razorpay Online' : 'Wire Transfer / NEFT',
+      transactionRef: txnRef || (isPaid ? 'RZP-EXH-' + Math.random().toString(36).substring(2, 8).toUpperCase() : 'UNPAID-PROFORMA'),
+      bookedAt: new Date().toISOString()
+    };
+
+    // Update local state
+    setBooths(prev => prev.map(b => {
+      if (b.id === selectedBooth.id) {
+        return {
+          ...b,
+          status: isPaid ? 'Booked' : 'Reserved',
+          bookedCompany: bookingForm.companyName
+        };
+      }
+      return b;
+    }));
+
+    // Persist in localStorage
+    if (typeof window !== 'undefined') {
+      const existing = JSON.parse(localStorage.getItem('gujcorr_exhibitors') || '[]');
+      existing.push(newExhibitorRecord);
+      localStorage.setItem('gujcorr_exhibitors', JSON.stringify(existing));
+    }
+
+    // Trigger confirmation email
+    api.sendNotificationEmail({
+      type: 'exhibition_booked',
+      to: bookingForm.email,
+      data: {
+        stallNumber: selectedBooth.number,
+        stallType: selectedBooth.type,
+        areaSqm: selectedBooth.areaSqm,
+        companyName: bookingForm.companyName,
+        contactPerson: bookingForm.contactPerson,
+        fasciaName: bookingForm.fasciaName || bookingForm.companyName.toUpperCase(),
+        totalPrice: selectedBooth.totalPrice,
+        status: isPaid ? 'Confirmed & Fully Paid' : 'Provisional Reservation (Proforma Issued)'
+      }
+    }).catch(err => console.warn('Exhibition email warning:', err));
+
+    setIsProcessing(false);
     setBookingStep('success');
   };
 
-  const filteredBooths = BOOTH_DATABASE.filter(b => {
+  const filteredBooths = booths.filter(b => {
     if (filterType === 'All') return true;
     if (filterType === 'Available') return b.status === 'Available';
     if (filterType === 'Island') return b.type.includes('Island');
@@ -203,22 +344,22 @@ export default function InteractiveFloorPlan() {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" suppressHydrationWarning>
       
-      {/* Interactive Legend & Stats */}
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+      {/* Interactive Legend & Filter Toolbar */}
+      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4 text-xs font-bold">
           <div className="flex items-center gap-2">
             <span className="w-4 h-4 rounded-md bg-emerald-500 shadow-xs"></span>
-            <span className="text-slate-700">Available ({BOOTH_DATABASE.filter(b => b.status === 'Available').length})</span>
+            <span className="text-slate-700">Available ({booths.filter(b => b.status === 'Available').length})</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-4 h-4 rounded-md bg-amber-400 shadow-xs"></span>
-            <span className="text-slate-700">Reserved ({BOOTH_DATABASE.filter(b => b.status === 'Reserved').length})</span>
+            <span className="text-slate-700">Reserved ({booths.filter(b => b.status === 'Reserved').length})</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-4 h-4 rounded-md bg-slate-400 shadow-xs"></span>
-            <span className="text-slate-700">Booked ({BOOTH_DATABASE.filter(b => b.status === 'Booked').length})</span>
+            <span className="text-slate-700">Booked ({booths.filter(b => b.status === 'Booked').length})</span>
           </div>
         </div>
 
@@ -227,9 +368,9 @@ export default function InteractiveFloorPlan() {
             <button
               key={f}
               onClick={() => setFilterType(f)}
-              className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-colors cursor-pointer ${
+              className={`text-xs font-bold px-3.5 py-2 rounded-xl transition-colors cursor-pointer ${
                 filterType === f
-                  ? 'bg-slate-900 text-white'
+                  ? 'bg-slate-900 text-white shadow-xs'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -240,36 +381,37 @@ export default function InteractiveFloorPlan() {
       </div>
 
       {/* 2D Visual Floor Plan Grid */}
-      <div className="bg-slate-900 p-6 sm:p-10 rounded-3xl border border-slate-800 shadow-2xl text-white space-y-8">
+      <div className="bg-slate-950 p-6 sm:p-10 rounded-3xl border border-slate-800 shadow-2xl text-white space-y-8">
         
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b border-slate-800">
           <div>
             <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-950/80 px-2.5 py-0.5 rounded border border-amber-800">
-              Interactive 2D Floor Plan Layout
+              Sarabhai Pavilion &bull; 18–20 Feb 2027
             </span>
-            <h3 className="text-xl font-extrabold text-white mt-1">
-              Technology Exhibition Arena (Sarabhai Pavilion)
+            <h3 className="text-xl sm:text-2xl font-extrabold text-white mt-1">
+              Industrial Technology Exhibition Arena
             </h3>
           </div>
-          <span className="text-xs text-slate-400">
-            Click any stall to view dimensions, amenities &amp; reserve online
+          <span className="text-xs text-slate-400 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
+            Click any stall to view deliverables &amp; book online
           </span>
         </div>
 
         {/* 1. Main Entrance & Island Pavilions Center Stage */}
         <div className="space-y-3">
           <div className="text-center">
-            <span className="text-[10px] font-bold tracking-widest uppercase bg-slate-800 text-slate-400 px-4 py-1 rounded-full border border-slate-700">
+            <span className="text-[10px] font-bold tracking-widest uppercase bg-slate-900 text-slate-400 px-6 py-1.5 rounded-full border border-slate-800 inline-block">
               ▼ MAIN ENTRANCE &amp; DELEGATE REGISTRATION FOYER ▼
             </span>
           </div>
 
-          <div className="text-xs font-extrabold text-amber-400 uppercase tracking-wider pt-2">
-            ★ Premium Island Pavilions (6m × 6m / 36 sqm)
+          <div className="text-xs font-extrabold text-amber-400 uppercase tracking-wider pt-2 flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span>Premium Center-Stage Island Pavilions (6m × 6m / 36 sqm)</span>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {BOOTH_DATABASE.filter(b => b.type.includes('Island')).map(booth => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            {filteredBooths.filter(b => b.type.includes('Island')).map(booth => {
               const isAvailable = booth.status === 'Available';
               const isReserved = booth.status === 'Reserved';
 
@@ -282,11 +424,11 @@ export default function InteractiveFloorPlan() {
                       ? 'bg-emerald-950/40 border-emerald-500 hover:bg-emerald-900/60 hover:shadow-lg hover:shadow-emerald-500/20'
                       : isReserved
                       ? 'bg-amber-950/40 border-amber-500 hover:bg-amber-900/60'
-                      : 'bg-slate-800/80 border-slate-700 opacity-90'
+                      : 'bg-slate-900/90 border-slate-800 opacity-90'
                   }`}
                 >
                   <div className="flex items-start justify-between">
-                    <span className="font-mono font-black text-lg text-white group-hover:scale-105 transition-transform">
+                    <span className="font-mono font-black text-xl text-white group-hover:scale-105 transition-transform">
                       {booth.number}
                     </span>
                     <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${
@@ -298,9 +440,15 @@ export default function InteractiveFloorPlan() {
 
                   <div>
                     <div className="text-xs font-bold text-slate-200">{booth.dimensions}</div>
-                    <div className="text-[11px] text-slate-400 truncate">
-                      {booth.bookedCompany || `₹${booth.totalPrice.toLocaleString('en-IN')} (incl. GST)`}
-                    </div>
+                    {booth.bookedCompany ? (
+                      <div className="text-[11px] font-semibold text-amber-300 truncate mt-1">
+                        {booth.bookedCompany}
+                      </div>
+                    ) : (
+                      <div className="text-[11px] font-bold text-emerald-400 mt-1">
+                        ₹{booth.totalPrice.toLocaleString('en-IN')} (Incl. GST)
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -308,14 +456,15 @@ export default function InteractiveFloorPlan() {
           </div>
         </div>
 
-        {/* 2. Corner Stalls & Standard Stalls Matrix */}
+        {/* 2. Corner Stalls (18 sqm) */}
         <div className="space-y-3 pt-4 border-t border-slate-800">
-          <div className="text-xs font-extrabold text-teal-400 uppercase tracking-wider">
-            ★ Standard Shell &amp; Corner Booths (3m × 3m &amp; 6m × 3m)
+          <div className="text-xs font-extrabold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Store className="w-4 h-4 text-blue-400" />
+            <span>Corner Stalls &bull; 2-Sides Open (6m × 3m / 18 sqm)</span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-            {BOOTH_DATABASE.filter(b => !b.type.includes('Island')).map(booth => {
+            {filteredBooths.filter(b => b.type.includes('Corner')).map(booth => {
               const isAvailable = booth.status === 'Available';
               const isReserved = booth.status === 'Reserved';
 
@@ -323,24 +472,26 @@ export default function InteractiveFloorPlan() {
                 <div
                   key={booth.id}
                   onClick={() => handleStallClick(booth)}
-                  className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between h-24 relative group ${
+                  className={`p-3 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between h-28 ${
                     isAvailable
-                      ? 'bg-emerald-950/30 border-emerald-500/80 hover:bg-emerald-900/50 hover:border-emerald-400'
+                      ? 'bg-emerald-950/30 border-emerald-500 hover:bg-emerald-900/50'
                       : isReserved
-                      ? 'bg-amber-950/30 border-amber-500/80 hover:bg-amber-900/50'
-                      : 'bg-slate-800/60 border-slate-700'
+                      ? 'bg-amber-950/30 border-amber-500 hover:bg-amber-900/50'
+                      : 'bg-slate-900 border-slate-800 opacity-90'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-mono font-black text-sm text-white">{booth.number}</span>
-                    <span className={`w-2.5 h-2.5 rounded-full ${
-                      isAvailable ? 'bg-emerald-400 shadow-xs' : isReserved ? 'bg-amber-400' : 'bg-slate-600'
-                    }`}></span>
+                    <span className={`text-[9px] font-bold uppercase px-1.5 py-0.2 rounded ${
+                      isAvailable ? 'bg-emerald-500 text-white' : isReserved ? 'bg-amber-400 text-slate-950' : 'bg-slate-700 text-slate-300'
+                    }`}>
+                      {booth.status}
+                    </span>
                   </div>
 
                   <div>
-                    <div className="text-[10px] text-slate-300 font-bold">{booth.areaSqm} sqm</div>
-                    <div className="text-[9.5px] text-slate-400 truncate">
+                    <div className="text-[10px] text-slate-400">{booth.areaSqm} sqm</div>
+                    <div className="text-[10px] font-extrabold truncate text-slate-200">
                       {booth.bookedCompany || `₹${(booth.totalPrice / 1000).toFixed(0)}k`}
                     </div>
                   </div>
@@ -350,68 +501,91 @@ export default function InteractiveFloorPlan() {
           </div>
         </div>
 
-        <div className="text-center pt-2">
-          <span className="text-[10px] font-bold tracking-widest uppercase bg-slate-800 text-slate-400 px-4 py-1 rounded-full border border-slate-700">
-            ▲ TECHNICAL AUDITORIUM &amp; DINING HALL ACCESS ▲
-          </span>
+        {/* 3. Standard Octanorm Shell Scheme Stalls (9 sqm) */}
+        <div className="space-y-3 pt-4 border-t border-slate-800">
+          <div className="text-xs font-extrabold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+            <Layers className="w-4 h-4 text-slate-400" />
+            <span>Standard Modular Shell Schemes (3m × 3m / 9 sqm)</span>
+          </div>
+
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-8 gap-2.5">
+            {filteredBooths.filter(b => b.type.includes('Standard')).map(booth => {
+              const isAvailable = booth.status === 'Available';
+              const isReserved = booth.status === 'Reserved';
+
+              return (
+                <div
+                  key={booth.id}
+                  onClick={() => handleStallClick(booth)}
+                  className={`p-2.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between h-24 ${
+                    isAvailable
+                      ? 'bg-emerald-950/20 border-emerald-500/80 hover:bg-emerald-900/40 hover:border-emerald-400'
+                      : isReserved
+                      ? 'bg-amber-950/20 border-amber-500/80 hover:bg-amber-900/40'
+                      : 'bg-slate-900 border-slate-800 opacity-80'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-xs text-white">{booth.number}</span>
+                    <span className={`w-2 h-2 rounded-full ${
+                      isAvailable ? 'bg-emerald-400' : isReserved ? 'bg-amber-400' : 'bg-slate-600'
+                    }`}></span>
+                  </div>
+
+                  <div className="text-[9px] text-slate-400 truncate">
+                    {booth.bookedCompany || 'Available'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
       </div>
 
-      {/* Stall Modal (Details / Reservation Form / Success) */}
+      {/* Interactive Modal Dialog for Stall Inspection & Booking */}
       {selectedBooth && (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in duration-150 relative max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-slate-200 animate-in zoom-in-95">
             
-            <button
-              onClick={() => setSelectedBooth(null)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+              <div>
+                <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded ${
+                  selectedBooth.status === 'Available' ? 'bg-emerald-100 text-emerald-800' : selectedBooth.status === 'Reserved' ? 'bg-amber-100 text-amber-900' : 'bg-slate-100 text-slate-800'
+                }`}>
+                  {selectedBooth.status}
+                </span>
+                <h3 className="text-xl font-extrabold text-slate-900 mt-1">
+                  Stall #{selectedBooth.number} &bull; {selectedBooth.type}
+                </h3>
+                <p className="text-xs text-slate-500">{selectedBooth.dimensions} &bull; {selectedBooth.areaSqm} sqm</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedBooth(null)}
+                className="text-slate-400 hover:text-slate-700 text-sm font-bold p-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
 
             {bookingStep === 'details' && (
-              <div className="space-y-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider bg-slate-900 text-white px-2.5 py-0.5 rounded">
-                      Stall Specification
-                    </span>
-                    <h3 className="text-2xl font-extrabold text-slate-900 mt-1">
-                      Booth #{selectedBooth.number} ({selectedBooth.type})
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Dimensions: <strong className="text-slate-800">{selectedBooth.dimensions}</strong> &bull; Total Area: <strong className="text-slate-800">{selectedBooth.areaSqm} sqm</strong>
-                    </p>
-                  </div>
-
-                  <span className={`text-xs font-bold uppercase px-3 py-1 rounded-full ${
-                    selectedBooth.status === 'Available' ? 'bg-emerald-100 text-emerald-800' : selectedBooth.status === 'Reserved' ? 'bg-amber-100 text-amber-900' : 'bg-slate-100 text-slate-700'
-                  }`}>
-                    {selectedBooth.status}
-                  </span>
-                </div>
-
-                {selectedBooth.bookedCompany && (
-                  <div className="p-3 bg-slate-100 rounded-xl text-xs text-slate-700">
-                    Allocated to: <strong>{selectedBooth.bookedCompany}</strong>
-                  </div>
-                )}
-
-                {/* Pricing Box */}
+              <div className="space-y-4">
+                {/* Pricing Details */}
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
                   <div>
-                    <span className="text-[11px] text-slate-500 font-semibold block">Official Stall Tariff (18% GST Inclusive)</span>
+                    <span className="text-[11px] text-slate-500 font-semibold block">Total Tariff (18% GST Inclusive)</span>
                     <div className="text-2xl font-black text-slate-900">
                       ₹{selectedBooth.totalPrice.toLocaleString('en-IN')}
                     </div>
                     <span className="text-[10px] text-slate-400">
-                      ₹{selectedBooth.basePrice.toLocaleString('en-IN')} + 18% GST (₹{selectedBooth.gstAmount.toLocaleString('en-IN')})
+                      ₹{selectedBooth.basePrice.toLocaleString('en-IN')} Base + ₹{selectedBooth.gstAmount.toLocaleString('en-IN')} GST
                     </span>
                   </div>
 
                   <span className="text-xs font-bold text-teal-800 bg-teal-50 border border-teal-200 px-3 py-1.5 rounded-xl">
-                    Standard Inclusions
+                    Standard Amenities
                   </span>
                 </div>
 
@@ -430,42 +604,34 @@ export default function InteractiveFloorPlan() {
                   </div>
                 </div>
 
-                {/* Modal Footer Action */}
-                <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
+                {/* Action Buttons */}
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setSelectedBooth(null)}
-                    className="text-xs font-bold text-slate-600 px-4 py-2.5"
+                    className="text-xs font-bold text-slate-600 px-4 py-2.5 hover:bg-slate-100 rounded-xl cursor-pointer"
                   >
                     Close
                   </button>
-                  {selectedBooth.status === 'Available' && (
+                  {selectedBooth.status === 'Available' ? (
                     <button
                       type="button"
                       onClick={() => setBookingStep('form')}
                       className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
-                      Reserve This Booth Now <ArrowRight className="w-4 h-4" />
+                      Book This Stall Online <ArrowRight className="w-4 h-4" />
                     </button>
+                  ) : (
+                    <span className="text-xs font-bold text-slate-400 italic">
+                      Stall is currently {selectedBooth.status} by {selectedBooth.bookedCompany || 'Exhibitor'}
+                    </span>
                   )}
                 </div>
               </div>
             )}
 
             {bookingStep === 'form' && (
-              <form onSubmit={handleBookingSubmit} className="space-y-4">
-                <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-red-700 bg-red-50 px-2.5 py-0.5 rounded">
-                    Online Stall Reservation
-                  </span>
-                  <h3 className="text-xl font-extrabold text-slate-900 mt-1">
-                    Book Stall #{selectedBooth.number} ({selectedBooth.areaSqm} sqm)
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Total: <strong className="text-red-600 font-extrabold">₹{selectedBooth.totalPrice.toLocaleString('en-IN')}</strong> (18% GST inclusive)
-                  </p>
-                </div>
-
+              <form onSubmit={handleFormSubmit} className="space-y-4">
                 <div className="space-y-3">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">Company / Exhibitor Name *</label>
@@ -517,61 +683,142 @@ export default function InteractiveFloorPlan() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Fascia Board Name (Max 30 chars)</label>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">GSTIN Number (Optional)</label>
                       <input
                         type="text"
-                        placeholder="CORRPRO ASIA"
-                        value={bookingForm.fasciaName}
-                        onChange={(e) => setBookingForm({ ...bookingForm, fasciaName: e.target.value.toUpperCase() })}
-                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase text-slate-900"
+                        placeholder="24AAAAA0000A1Z5"
+                        value={bookingForm.gstin}
+                        onChange={(e) => setBookingForm({ ...bookingForm, gstin: e.target.value.toUpperCase() })}
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono uppercase text-slate-900"
                       />
                     </div>
                   </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Fascia Board Title (Max 30 chars)</label>
+                    <input
+                      type="text"
+                      placeholder="CORRPRO ASIA"
+                      value={bookingForm.fasciaName}
+                      onChange={(e) => setBookingForm({ ...bookingForm, fasciaName: e.target.value.toUpperCase() })}
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase text-slate-900"
+                    />
+                  </div>
+
+                  {/* Payment Selection Options */}
+                  <div className="pt-2">
+                    <label className="block text-[11px] font-bold text-slate-700 mb-2">Select Payment Method:</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className={`p-3 rounded-2xl border-2 cursor-pointer flex flex-col justify-between transition-all ${
+                        paymentChoice === 'online' ? 'border-red-600 bg-red-50/50' : 'border-slate-200 bg-white hover:bg-slate-50'
+                      }`}>
+                        <input
+                          type="radio"
+                          name="paymentChoice"
+                          className="sr-only"
+                          checked={paymentChoice === 'online'}
+                          onChange={() => setPaymentChoice('online')}
+                        />
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="w-4 h-4 text-red-600" />
+                          <span className="text-xs font-extrabold text-slate-900">Instant Online</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 mt-1">UPI / Cards / NetBanking</span>
+                      </label>
+
+                      <label className={`p-3 rounded-2xl border-2 cursor-pointer flex flex-col justify-between transition-all ${
+                        paymentChoice === 'wire' ? 'border-red-600 bg-red-50/50' : 'border-slate-200 bg-white hover:bg-slate-50'
+                      }`}>
+                        <input
+                          type="radio"
+                          name="paymentChoice"
+                          className="sr-only"
+                          checked={paymentChoice === 'wire'}
+                          onChange={() => setPaymentChoice('wire')}
+                        />
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-teal-700" />
+                          <span className="text-xs font-extrabold text-slate-900">Bank Wire Transfer</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 mt-1">Issue Proforma Invoice</span>
+                      </label>
+                    </div>
+                  </div>
+
                 </div>
 
-                <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setBookingStep('details')}
-                    className="text-xs font-bold text-slate-600 px-4 py-2.5"
+                    className="text-xs font-bold text-slate-600 px-4 py-2.5 hover:bg-slate-100 rounded-xl cursor-pointer"
                   >
                     Back
                   </button>
                   <button
                     type="submit"
-                    className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-xl shadow-xs transition-colors cursor-pointer"
+                    disabled={isProcessing}
+                    className="bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs sm:text-sm px-6 py-3 rounded-xl shadow-xs transition-colors cursor-pointer"
                   >
-                    Confirm Stall Reservation
+                    {paymentChoice === 'online' ? `Pay ₹${selectedBooth.totalPrice.toLocaleString('en-IN')} & Confirm` : 'Confirm Reservation'}
                   </button>
                 </div>
               </form>
             )}
 
             {bookingStep === 'success' && (
-              <div className="text-center py-6 space-y-4">
+              <div className="text-center py-4 space-y-5 animate-in fade-in">
                 <div className="w-16 h-16 bg-emerald-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-md">
                   <CheckCircle2 className="w-10 h-10" />
                 </div>
                 <div className="space-y-1">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded">
+                    Reservation Confirmed
+                  </span>
                   <h3 className="text-2xl font-extrabold text-slate-900">
-                    Stall #{selectedBooth.number} Reserved!
+                    Stall #{selectedBooth.number} Allocated!
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">
-                    Your reservation for <strong>{bookingForm.companyName}</strong> has been logged. The Secretariat will issue your Proforma Invoice shortly.
+                    Stall reservation for <strong>{bookingForm.companyName}</strong> has been logged. An official confirmation email with stall deliverables has been dispatched to <strong>{bookingForm.email}</strong>.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedBooth(null)}
-                  className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-6 py-3 rounded-xl transition-colors cursor-pointer"
-                >
-                  Done
-                </button>
+
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
+                  <Link
+                    href="/invoice"
+                    className="w-full sm:w-auto text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl transition-colors"
+                  >
+                    Download Proforma Invoice &rarr;
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBooth(null)}
+                    className="w-full sm:w-auto text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-5 py-2.5 rounded-xl transition-colors cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
               </div>
             )}
 
           </div>
         </div>
+      )}
+
+      {/* Razorpay Checkout Gateway Modal */}
+      {selectedBooth && (
+        <RazorpayModal
+          isOpen={isRazorpayOpen}
+          onClose={() => setIsRazorpayOpen(false)}
+          onSuccess={handleRazorpaySuccess}
+          amount={selectedBooth.totalPrice}
+          description={`Exhibition Stall #${selectedBooth.number} (${selectedBooth.type})`}
+          prefill={{
+            name: bookingForm.contactPerson,
+            email: bookingForm.email,
+            contact: bookingForm.mobile
+          }}
+        />
       )}
 
     </div>

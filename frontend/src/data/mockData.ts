@@ -69,7 +69,7 @@ export const CONFERENCE_INFO = {
     phone: "+91 99888 81674",
     email1: "info@amppgujarat.org",
     email2: "iim.barodachapter@gmail.com",
-    email3: "coraxm2024@gmail.com",
+    email3: "iim.barodachapter@gmail.com",
     address: "Block B, Sarabhai Campus, Near Genda Circle, Alembic Road, Vadodara, Gujarat – 390023"
   }
 };
