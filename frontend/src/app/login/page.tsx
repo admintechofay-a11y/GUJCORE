@@ -18,7 +18,6 @@ import {
 import { useAuth, UserRole } from '@/context/AuthContext';
 import AnnouncementBar from '@/components/AnnouncementBar';
 import Navbar from '@/components/Navbar';
-import ConferenceFlowBar from '@/components/ConferenceFlowBar';
 import PageHeader from '@/components/PageHeader';
 import Footer from '@/components/Footer';
 
@@ -68,10 +67,9 @@ export default function LoginPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col justify-between" suppressHydrationWarning>
       <AnnouncementBar />
       <Navbar />
-      <ConferenceFlowBar currentStep={2} />
 
       <PageHeader
-        badge="Step 2 of 5: Member Login"
+        badge="Conference Portal"
         title="Sign In to Your"
         highlightedTitle="Conference Portal"
         description="Access your submitted papers, review scores, delegate passes, digital QR credentials, and exhibition stalls."

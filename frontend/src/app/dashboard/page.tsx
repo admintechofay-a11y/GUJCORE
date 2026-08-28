@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AnnouncementBar from '@/components/AnnouncementBar';
 import Navbar from '@/components/Navbar';
-import ConferenceFlowBar from '@/components/ConferenceFlowBar';
 import PageHeader from '@/components/PageHeader';
 import Footer from '@/components/Footer';
 import AcceptanceLetterModal from '@/components/AcceptanceLetterModal';
@@ -254,7 +253,6 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans" suppressHydrationWarning>
       <AnnouncementBar />
       <Navbar />
-      <ConferenceFlowBar currentStep={5} />
 
       {/* Hidden File Inputs for Final Manuscript & Oral Slides */}
       <input

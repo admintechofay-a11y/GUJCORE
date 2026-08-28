@@ -4,7 +4,6 @@ import React, { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AnnouncementBar from '@/components/AnnouncementBar';
 import Navbar from '@/components/Navbar';
-import ConferenceFlowBar from '@/components/ConferenceFlowBar';
 import PageHeader from '@/components/PageHeader';
 import CallForPapers from '@/components/CallForPapers';
 import ImportantDates from '@/components/ImportantDates';
@@ -25,9 +24,8 @@ export default function CallForPapersPage() {
     <div className="min-h-screen bg-white text-slate-900 font-sans">
       <AnnouncementBar />
       <Navbar />
-      <ConferenceFlowBar currentStep={3} />
       <PageHeader
-        badge="Step 3 of 5: Paper & Poster Submission"
+        badge="Technical Proceedings"
         title="Author Submission"
         highlightedTitle="Portal"
         description="Submit your structured 200–250 word research abstract across 14 technical symposia. Accepted peer-reviewed manuscripts will be featured in official conference proceedings."

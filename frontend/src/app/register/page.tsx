@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AnnouncementBar from '@/components/AnnouncementBar';
 import Navbar from '@/components/Navbar';
-import ConferenceFlowBar from '@/components/ConferenceFlowBar';
 import PageHeader from '@/components/PageHeader';
 import Footer from '@/components/Footer';
 import { 
@@ -102,10 +101,9 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col justify-between" suppressHydrationWarning>
       <AnnouncementBar />
       <Navbar />
-      <ConferenceFlowBar currentStep={1} />
 
       <PageHeader
-        badge="Step 1 of 5: Account Registration"
+        badge="Conference Portal"
         title="Create Your"
         highlightedTitle="Master Account"
         description="Register your free conference account to submit abstracts, track peer-review status, manage delegate badges, and access author tools. No upfront fee required."
