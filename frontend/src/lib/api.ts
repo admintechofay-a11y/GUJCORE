@@ -233,10 +233,17 @@ export const api = {
     data: any;
   }): Promise<{ success: boolean; error?: string }> {
     try {
+      const clientBaseUrl = typeof window !== 'undefined' ? window.location.origin : undefined;
       const res = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          ...payload,
+          data: {
+            ...payload.data,
+            baseUrl: payload.data?.baseUrl || clientBaseUrl
+          }
+        })
       });
       const result = await res.json();
       return result;

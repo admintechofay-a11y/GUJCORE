@@ -26,14 +26,37 @@ interface EmailPayload {
   html: string;
 }
 
-export function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');
+export function getBaseUrl(overrideUrl?: string): string {
+  // 1. If explicit override passed and not localhost, use it
+  if (overrideUrl && overrideUrl.startsWith('http') && !overrideUrl.includes('localhost')) {
+    return overrideUrl.replace(/\/$/, '');
+  }
+
+  // 2. Custom environment variable (e.g. from Vercel or .env.local)
+  const envUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL;
+  if (envUrl && envUrl.startsWith('http') && !envUrl.includes('localhost')) {
+    return envUrl.replace(/\/$/, '');
+  }
+
+  // 3. Vercel deployment URL
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL.replace(/\/$/, '')}`;
   }
   if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
+    return `https://${process.env.VERCEL_URL.replace(/\/$/, '')}`;
   }
-  return 'http://localhost:3000';
+
+  // 4. If override or envUrl provided (even if localhost)
+  if (overrideUrl && overrideUrl.startsWith('http')) {
+    return overrideUrl.replace(/\/$/, '');
+  }
+
+  if (envUrl && envUrl.startsWith('http')) {
+    return envUrl.replace(/\/$/, '');
+  }
+
+  // 5. Safe production fallback so buttons in emails always open live portal
+  return 'https://amppgujarat.org';
 }
 
 export async function sendMail({ to, subject, html }: EmailPayload) {
@@ -59,8 +82,9 @@ export function getWelcomeEmailHtml(data: {
   role: string;
   ticketId?: string;
   organization?: string;
+  baseUrl?: string;
 }) {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getBaseUrl(data.baseUrl);
   return `
   <!DOCTYPE html>
   <html>
@@ -125,8 +149,9 @@ export function getPaperSubmissionEmailHtml(data: {
   paperTitle: string;
   symposiumTitle: string;
   presentationType: string;
+  baseUrl?: string;
 }) {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getBaseUrl(data.baseUrl);
   return `
   <!DOCTYPE html>
   <html>
@@ -192,8 +217,9 @@ export function getPaymentPendingEmailHtml(data: {
   email: string;
   category: string;
   totalAmount: number;
+  baseUrl?: string;
 }) {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getBaseUrl(data.baseUrl);
   return `
   <!DOCTYPE html>
   <html>
@@ -266,8 +292,9 @@ export function getPaymentSuccessEmailHtml(data: {
   amount: number;
   transactionRef: string;
   paymentMethod: string;
+  baseUrl?: string;
 }) {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getBaseUrl(data.baseUrl);
   const basePrice = Math.round(data.amount / 1.18);
   const gstAmount = data.amount - basePrice;
 
@@ -369,8 +396,9 @@ export function getExhibitionBookedEmailHtml(data: {
   fasciaName: string;
   totalPrice: number;
   status: string;
+  baseUrl?: string;
 }) {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getBaseUrl(data.baseUrl);
   return `
   <!DOCTYPE html>
   <html>
