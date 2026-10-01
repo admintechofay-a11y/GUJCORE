@@ -292,7 +292,7 @@ export const SPEAKERS: Speaker[] = [
     id: "spk-4",
     name: "Mr. Paresh Haribhakti",
     designation: "Managing Director & Member Delegate",
-    organization: "TCR Engineering Services Pvt. Ltd.",
+    organization: "TCR Advanced Engineering Pvt. Ltd.",
     role: "Plenary Speaker",
     category: "Plenary",
     initials: "PH",
@@ -304,7 +304,7 @@ export const SPEAKERS: Speaker[] = [
     id: "spk-5",
     name: "Mr. Dhruv Pandya",
     designation: "Treasurer, AMPP Gujarat Chapter",
-    organization: "Founder & MD, Arya Industrial Solutions",
+    organization: "Founder & MD, Intuitive Research & Development Pvt Ltd",
     role: "Technical Speaker",
     category: "Technical",
     initials: "DP",
@@ -587,13 +587,13 @@ export const COMMITTEE_MEMBERS = {
     { 
       name: "Mr. Dhruv Pandya", 
       role: "Treasurer, AMPP Gujarat Chapter", 
-      org: "Founder & MD, Arya Industrial Solutions",
+      org: "Founder & MD, Intuitive Research & Development Pvt Ltd",
       photo: "/images/ampp/DhruvPandya.jpg"
     },
     { 
       name: "Mr. Paresh Haribhakti", 
       role: "Member Delegate, AMPP Gujarat Chapter", 
-      org: "Managing Director, TCR Engineering Pvt. Ltd.",
+      org: "Managing Director, TCR Advanced Engineering Pvt. Ltd.",
       photo: "/images/ampp/PareshHaribhakti.jpg"
     },
     { 
@@ -607,7 +607,7 @@ export const COMMITTEE_MEMBERS = {
     { name: "Mr. Sumit Kainthola", role: "ECC Member", org: "Director, Industrial NDT" },
     { name: "Mr. Digant Joshi", role: "ECC Member", org: "MD, Tough Coating" },
     { name: "Mr. Arun Gajera", role: "ECC Member", org: "MD, Mett Bio Pvt. Ltd." },
-    { name: "Mr. Viral Patel", role: "ECC Member", org: "Manager – Business Development, Growell (India) Ltd." },
+    { name: "Mr. Viral Patel", role: "ECC Member", org: "Consultant – Intigrated Corrosion and Coating Consultants" },
     { name: "Dr. Sucheta Juneja", role: "ECC Member", org: "Head – Quality Control Laboratory" },
     { name: "Dr. Rinky Singh", role: "ECC Member", org: "Application Scientist & Director, RII Innovation UK Ltd." },
     { name: "Mr. Harsh Zala", role: "ECC Member", org: "Materials & Corrosion Digital Consultant, Wood Plc" },
