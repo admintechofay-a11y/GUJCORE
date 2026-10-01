@@ -153,14 +153,26 @@ export default function Footer() {
         </div>
 
         {/* Bottom Legal & Copyright */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <div>
+        <div className="pt-8 border-t border-slate-800/80 flex flex-col lg:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+          <div className="text-center lg:text-left">
             &copy; 2027 GUJCORR &bull; Jointly organized by AMPP Gujarat Chapter &amp; The Indian Institute of Metals Baroda Chapter.
           </div>
-          <div className="flex items-center gap-4 text-[11px]">
+          <div className="flex flex-wrap items-center justify-center lg:justify-end gap-x-3 gap-y-1 text-[11px]">
             <span>Knowledge Partner: The M.S. University of Baroda</span>
             <span>&bull;</span>
             <span>SAC Code: 998397</span>
+            <span>&bull;</span>
+            <span className="text-slate-400">
+              Designed &amp; Developed by{' '}
+              <a
+                href="https://techofay-global-ventures.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-teal-400 hover:text-teal-300 font-semibold underline underline-offset-2 transition-colors"
+              >
+                Techofay Global Ventures
+              </a>
+            </span>
           </div>
         </div>
 

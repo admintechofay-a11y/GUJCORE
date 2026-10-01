@@ -546,9 +546,9 @@ section { padding: 90px 0; }
 .footer-fees li strong { color:#fff; }
 .footer-orgs-block { margin-top:14px; font-size:0.82rem; color:var(--text-muted); }
 .footer-orgs-block strong { color:var(--text-secondary); display:block; margin-top:8px; margin-bottom:2px; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.06em; }
-.footer-bottom { border-top:1px solid var(--border-light); padding:20px 0; display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.footer-bottom { border-top:1px solid var(--border-light); padding:20px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; }
 .fb-left p { font-size:0.82rem; color:var(--text-muted); }
-.fb-right { display:flex; gap:20px; }
+.fb-right { display:flex; flex-wrap:wrap; align-items:center; gap:16px; }
 .fb-right a { font-size:0.82rem; color:var(--text-muted); }
 .fb-right a:hover { color:var(--primary); }
 
