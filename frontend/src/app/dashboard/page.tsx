@@ -456,7 +456,7 @@ export default function DashboardPage() {
                 <div className="space-y-1">
                   <h4 className="text-lg font-extrabold text-slate-900">No Research Papers Submitted Yet</h4>
                   <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">
-                    Submit your 200–250 word research abstract across any of the 14 technical symposia before 30th September 2026.
+                    Submit your abstract across any of the 14 technical sessions before 11 October 2026.
                   </p>
                 </div>
                 <Link

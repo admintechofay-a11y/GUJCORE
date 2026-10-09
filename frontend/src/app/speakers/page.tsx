@@ -30,7 +30,7 @@ export default function SpeakersPage() {
             Interested in presenting your research alongside our keynote faculty?
           </h3>
           <p className="text-sm text-slate-600">
-            Submit your abstract before 30th September 2026 to be considered for oral and poster presentation sessions.
+            Submit your abstract before 11 October 2026 to be considered for oral and poster presentation sessions.
           </p>
           <div className="pt-2 flex justify-center gap-3">
             <Link
