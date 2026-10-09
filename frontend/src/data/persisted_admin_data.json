@@ -9,7 +9,7 @@
       "passwordHash": "pbkdf2:9cd2f521650c8932b0ce9c3826afb2fa:cd1cf33a50b48249840d58d212258dfe162fb8ad9bb3d12a1fa428caba51d2055f1bffa6f7b8d22d4baef0dd10c26392c3f6cd573912190266928c59cbd9d80f",
       "status": "Active",
       "createdAt": "2026-10-09T11:18:55.647Z",
-      "lastLogin": "2026-10-09T11:19:42.209Z"
+      "lastLogin": "2026-10-09T11:27:55.061Z"
     },
     {
       "id": "usr-sec-02",
@@ -671,6 +671,18 @@
     }
   },
   "auditLogs": [
+    {
+      "id": "aud-1791545275065-w8h5",
+      "userId": "usr-admin-01",
+      "userEmail": "admin@gujcorr.org",
+      "action": "ADMIN_LOGIN_SUCCESS",
+      "resourceType": "Security",
+      "resourceId": "admin@gujcorr.org",
+      "details": "Successful authenticated login with role: Super Administrator",
+      "ipAddress": "::1",
+      "status": "Success",
+      "createdAt": "2026-10-09T11:27:55.065Z"
+    },
     {
       "id": "aud-1791544782213-pgl0",
       "userId": "usr-admin-01",
