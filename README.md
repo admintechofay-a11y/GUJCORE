@@ -1,105 +1,92 @@
-# 🛡️ GUJCORR 2027 — International Conference & Exhibition Portal
+# 🛡️ GUJCORR 2027 — International Conference & Exhibition Portal (www.gujcorr.org)
 
-> **Official Headless Web Application & WordPress REST API Backend**  
-> **Theme:** *"Advancements in Corrosion Control, Integrity Management & Sustainable Infrastructure"*  
-> **Dates:** 18–20 February 2027 | **Venue:** Vadodara, Gujarat, India  
-> **Organizers:** Jointly organized by **AMPP Gujarat Chapter** & **The Indian Institute of Metals (IIM) Baroda Chapter**
+> **AMPP Gujarat Global Conference & Expo on Corrosion (GUJCORR 2027)**  
+> **Tagline:** *"Stronger Together: Uniting the Global fight against Corrosion"*  
+> **Subtitle:** India's Premier Corrosion Conference & Expo in Gujarat  
+> **Dates:** 18–20 February 2027 | **Venue City:** Vadodara, Gujarat, India  
+> **Organizers:** Jointly organized by **AMPP Gujarat Chapter** & **The Indian Institute of Metals (IIM), Baroda Chapter**  
+> **Knowledge Partner:** **The Maharaja Sayajirao University of Baroda**  
+> **Official Website:** [www.gujcorr.org](https://www.gujcorr.org)
 
 ---
 
-## 🌟 Executive Overview
+## 🌟 Architecture & Content Single Source of Truth
 
-**GUJCORR 2027** is a modern, enterprise-grade multi-page conference management web application built with **Next.js 16 (React 19, TypeScript, Tailwind CSS)** on the frontend and an extensible **WordPress Headless CMS + MySQL** backend. 
+All conference metadata, sessions, dates, committees, tariffs, bank details, and sponsors are centralized in:
+`frontend/src/data/conference.ts`
 
-It provides an end-to-end digital experience mirroring international conference systems like *CORCON*, *NACE International*, and *AMPP Global*, featuring:
-- **Free Account Creation & Instant QR Pass Badge Generation** (No payment gate required)
-- **CORCON-Style Master Home Dashboard** with Author Tracking, Official Acceptance Letters, Certificate of Presentation, and Manuscript Template Downloads.
-- **Interactive 3-Day Technical Schedule** with 1-Click **Google Calendar** Sync & Push Reminders.
-- **2D Interactive Exhibition Grid** with 40+ stalls (Island, Corner, Standard) and instant reservation holding.
-- **Automated Proforma Invoice & Tax Receipt Generator** with 15-Digit GSTIN & SAC Code `998397`.
-- **Corrosion Awareness Awards Portal** with online citations and document nomination uploads.
-- **Vadodara Partner Hotels & Excursion Portal** featuring discounted booking codes (`GUJCORR27`).
+To update any content (dates, committee members, package tariffs), edit this single file and all pages automatically update.
 
 ---
 
 ## 🚀 Quickstart Guide
 
-### 1. Frontend (Next.js 16)
+### Frontend (Next.js 16 + React 19 + TypeScript + Tailwind CSS v4)
 ```bash
-# Navigate to frontend folder
+# Navigate to frontend
 cd frontend
 
-# Install dependencies (if needed)
+# Install dependencies
 npm install
 
-# Start local development server
+# Start development server
 npm run dev
 
-# Build for production (22 static routes pre-rendered)
+# Production build verification (all routes pre-rendered)
 npm run build
 ```
 Frontend runs locally at: **`http://localhost:3000`**
 
-### 2. WordPress Backend & MySQL Database
-The backend plugin and database migration scripts are located in `wp-plugin/` and `database/`:
-
-1. **Activate WordPress Plugin**:
-   - Copy `wp-plugin/gujcorr-core/` to your WordPress installation: `wp-content/plugins/gujcorr-core/`
-   - In WordPress Admin, navigate to **Plugins** → Activate **GUJCORR Core**.
-2. **Automated Database Setup**:
-   - Run the 1-click database installer:
-     ```bash
-     php database/install.php
-     ```
-   - Or import `database/gujcorr_schema.sql` and `database/gujcorr_seed_data.sql` via phpMyAdmin / MySQL CLI into database `gujcorr_db`.
-3. **API Configuration**:
-   - The frontend connects automatically via `NEXT_PUBLIC_WP_API_URL` set in `frontend/.env.local`.
-   - Built-in resilient caching ensures the portal runs seamlessly in local demo mode even if MySQL is offline.
-
 ---
 
-## 🗺️ Complete Frontend Routes Map (22 Pages)
+## 🗺️ Key Routes Map
 
 | Route | Functionality | Status |
 | :--- | :--- | :---: |
-| **`/`** | Homepage with Countdown, Chairman Address, Gateways & Video Player | ✅ Ready |
-| **`/schedule`** | 3-Day Multi-Hall Interactive Schedule + Google Calendar & Reminders | ✅ Ready |
-| **`/masterhome`** | CORCON-Style Unified Author & Delegate Portal | ✅ Ready |
-| **`/registration`** | Delegate Registration (Free / Pay Later + QR Pass Generator) | ✅ Ready |
-| **`/call-for-papers`** | 14-Symposia Abstract Submission + Resume & Full Paper Uploads | ✅ Ready |
-| **`/exhibition`** | 2D Exhibition Floor Plan with 40+ Stalls & Reservation Modal | ✅ Ready |
-| **`/invoice`** | Proforma Invoice & Corporate GST Receipt Generator (SAC 998397) | ✅ Ready |
-| **`/awards`** | Corrosion Awareness Awards Categories & Online Nomination Portal | ✅ Ready |
-| **`/symposia`** | Scope & Details of all 14 Specialized Technical Symposia | ✅ Ready |
-| **`/speakers`** | Keynote & Invited Speakers with Scraped Authentic Photos | ✅ Ready |
-| **`/sponsorship`** | Diamond to Bronze Packages & Souvenir Advertising Tariff | ✅ Ready |
-| **`/venue`** | Venue Guide, Partner Hotels (Code `GUJCORR27`) & Tours | ✅ Ready |
-| **`/committee`** | Organizing Committee & Board of Directors Profile Grid | ✅ Ready |
-| **`/supporters`** | 21 Corporate Patrons & PSUs (ONGC, IOCL, L&T, Berger, etc.) | ✅ Ready |
-| **`/about`** | AMPP & IIM Chapter Legacy, US$2.5T Global Impact, Vision | ✅ Ready |
-| **`/login`** | Multi-Role Authentication Switcher with 1-Click Instant Demos | ✅ Ready |
-| **`/contact`** | Secretariat Helpdesk, WhatsApp (+91 99888 81674) & Inquiries | ✅ Ready |
+| **`/`** | Homepage: Hero countdown, organizers, brochure gateway, dates | ✅ Ready |
+| **`/about`** | Comprehensive Brochure About, Technical Platform, Focus Sectors | ✅ Ready |
+| **`/technical-sessions`**| The 14 Official Technical Sessions with full scope breakdown | ✅ Ready |
+| **`/call-for-papers`** | Abstract Submission Form (Word limit, Presenting Author checkbox, File upload) | ✅ Ready |
+| **`/registration`** | Delegate Registration (Member ₹4,720 / Non-Member ₹7,670 / Student ₹1,770 incl. GST) | ✅ Ready |
+| **`/sponsorship`** | Diamond, Gold, Silver, Bronze, Tea/Coffee Packages + Comparison Matrix | ✅ Ready |
+| **`/souvenir`** | Souvenir Advertisement Rates (Back/Inner cover, Full/Half page) + Bleed Specs | ✅ Ready |
+| **`/committee`** | Organizing Committee (Chairman, Co-Chairman, Convener, Co-Convener + 25 Members) | ✅ Ready |
+| **`/advisory`** | International Advisory Committee (Hon. Vice Chancellors & Global Experts) | ✅ Ready |
+| **`/supporters`** | 21 Corporate Patrons & PSUs Logo Wall | ✅ Ready |
+| **`/venue`** | Vadodara City, Connectivity, Accommodation & Travel Guide | ✅ Ready |
+| **`/contact`** | Secretariat Contact: Phone (+91 9988881674) & Email | ✅ Ready |
+| **`/schedule`** | 3-Day Technical Programme Shell | ✅ Ready |
+| **`/speakers`** | Keynote Speakers Roster | ✅ Ready |
+| **`/exhibition`** | 2D Exhibition Floor Plan (12 sqm ₹75,000 / 9 sqm ₹50,000) | ✅ Ready |
 
 ---
 
-## 🔌 WordPress REST API Endpoints (`/wp-json/gujcorr/v1/`)
+## 🌐 Production Deployment (Vercel & Domain Setup)
 
-- `POST /registrations` — Submit new delegate registration (generates ticket ID & QR code).
-- `GET /registrations` — Fetch all registered delegates.
-- `POST /papers` — Submit new paper abstract across 14 symposia.
-- `GET /papers` — Retrieve submissions with peer-review status.
-- `POST /papers/score` — Peer-review scoring console (score 1–10 + status change).
-- `POST /booths/reserve` — Reserve exhibition booth on the 2D floor plan.
-- `GET /booths` — Get real-time status of all 40 exhibition stalls.
-- `POST /awards/nominate` — Submit online award nomination with citations.
-- `POST /invoices` — Create and log corporate Proforma Invoices.
-- `POST /contact` — Submit general inquiries to Secretariat inbox.
-- `POST /auth/login` & `POST /auth/register` — Role-based authentication routes.
+### 1. Vercel Deployment
+1. Connect the repository to [Vercel](https://vercel.com).
+2. Set Root Directory to `frontend`.
+3. Framework Preset: **Next.js**.
+4. Configure Environment Variables from `.env.example`:
+   - `NEXT_PUBLIC_SITE_URL=https://www.gujcorr.org`
+   - `SMTP_HOST=smtp.gmail.com`
+   - `SMTP_PORT=465`
+   - `SMTP_SECURE=true`
+   - `SMTP_USER=iim.barodachapter@gmail.com`
+   - `SMTP_PASS=<Google App Password>`
+   - `SMTP_FROM="GUJCORR 2027 Secretariat <iim.barodachapter@gmail.com>"`
+
+### 2. DNS Records for `www.gujcorr.org`
+In your domain registrar (GoDaddy, Namecheap, Google Domains / Squarespace, etc.):
+- **A Record**: Host `@` points to `76.76.21.21` (Vercel IP)
+- **CNAME Record**: Host `www` points to `cname.vercel-dns.com`
 
 ---
 
 ## 🏛️ Organizing Secretariat
-- **AMPP Gujarat Chapter** & **The Indian Institute of Metals (IIM) Baroda Chapter**
-- **Address:** Faculty of Technology & Engineering, The M.S. University of Baroda, Vadodara - 390001, Gujarat, India
-- **Phone / WhatsApp:** +91 99888 81674
-- **Email:** `iim.barodachapter@gmail.com` | `info@amppgujarat.org`
+- **AMPP Gujarat Chapter** & **The Indian Institute of Metals (IIM), Baroda Chapter**
+- **Address:** Metallurgical & Materials Engineering Dept, Faculty of Tech. & Engg, The M.S. University of Baroda, Vadodara - 390001, Gujarat, India
+- **Phone / WhatsApp:** +91 9988881674 (Mr. Hiren Panchal, Convener)
+- **Email:** `iim.barodachapter@gmail.com`
+- **Website:** [www.gujcorr.org](https://www.gujcorr.org)
+
