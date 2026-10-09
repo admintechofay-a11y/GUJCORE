@@ -58,18 +58,10 @@ export default function UserDashboardModal({ isOpen, onClose, initialTab = 'dele
         data: `Valid Paper: "${foundPaper.paperTitle}" by ${foundPaper.fullName}. Symposium: ${foundPaper.symposiumTitle}. Status: ${foundPaper.status}.`
       });
     } else {
-      // Demo validation for sample code
-      if (trimmed.startsWith('GUJ') || trimmed.startsWith('REG') || trimmed.startsWith('PAP')) {
-        setVerificationResult({
-          verified: true,
-          data: `Verified Official Record: GUJCORR 2027 Conference Credential #${trimmed}. Status: Valid & Active.`
-        });
-      } else {
-        setVerificationResult({
-          verified: false,
-          data: `No matching registration or paper record found for code: "${verifyCode}". Please check your Ticket ID or Paper ID.`
-        });
-      }
+      setVerificationResult({
+        verified: false,
+        data: `No matching registration or paper record found for code: "${verifyCode}". Please check your Ticket ID or Paper ID.`
+      });
     }
   };
 

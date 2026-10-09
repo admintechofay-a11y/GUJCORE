@@ -81,13 +81,6 @@ export default function LoginPage() {
     }
   };
 
-  const fillQuickCredentials = (role: UserRole, defaultEmail: string, defaultPass: string) => {
-    setSelectedRole(role);
-    setEmail(defaultEmail);
-    setPassword(defaultPass);
-    setErrorMsg('');
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col justify-between" suppressHydrationWarning>
       <AnnouncementBar />
@@ -116,36 +109,6 @@ export default function LoginPage() {
             <p className="text-xs sm:text-sm text-slate-500">
               Select your role and enter your registered credentials.
             </p>
-          </div>
-
-          {/* Quick Fill Demo Badges */}
-          <div className="space-y-1.5">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block text-center">
-              Quick One-Click Test Logins:
-            </span>
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={() => fillQuickCredentials('Admin', 'admin@amppgujarat.org', 'admin@2027')}
-                className="text-[11px] font-bold px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg border border-red-200 transition-colors cursor-pointer"
-              >
-                👑 Admin / Secretariat
-              </button>
-              <button
-                type="button"
-                onClick={() => fillQuickCredentials('Author', 'author@tcr-eng.com', 'author123')}
-                className="text-[11px] font-bold px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg border border-teal-200 transition-colors cursor-pointer"
-              >
-                📝 Author Submitter
-              </button>
-              <button
-                type="button"
-                onClick={() => fillQuickCredentials('Delegate', 'delegate@lnt.com', 'pass123')}
-                className="text-[11px] font-bold px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition-colors cursor-pointer"
-              >
-                🎟️ Delegate Attendee
-              </button>
-            </div>
           </div>
 
           {/* Form */}

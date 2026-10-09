@@ -222,17 +222,10 @@ export default function DashboardPage() {
         data: `Valid Paper: "${foundPaper.paperTitle}" by ${foundPaper.fullName}. Symposium: ${foundPaper.symposiumTitle}. Status: ${foundPaper.status}.`
       });
     } else {
-      if (trimmed.startsWith('GUJ') || trimmed.startsWith('REG') || trimmed.startsWith('PAP') || trimmed.startsWith('DEL')) {
-        setVerificationResult({
-          verified: true,
-          data: `Verified Official Record: GUJCORR 2027 Conference Credential #${trimmed}. Status: Valid & Active in Database.`
-        });
-      } else {
-        setVerificationResult({
-          verified: false,
-          data: `No matching record found for code: "${verifyCode}". Please check your Ticket ID or Paper ID.`
-        });
-      }
+      setVerificationResult({
+        verified: false,
+        data: `No matching record found for code: "${verifyCode}". Please check your Ticket ID or Paper ID.`
+      });
     }
   };
 
@@ -999,9 +992,9 @@ export default function DashboardPage() {
       <CertificateModal
         isOpen={isCertificateOpen}
         onClose={() => setIsCertificateOpen(false)}
-        recipientName={user?.fullName || 'Dr. Rajesh Sharma'}
+        recipientName={user?.fullName || 'Conference Delegate'}
         role="Distinguished Delegate & Presenter"
-        paperTitle={papers[0]?.paperTitle || 'Mitigation of High-Voltage AC Interference in Western India'}
+        paperTitle={papers[0]?.paperTitle || 'Corrosion Mitigation & Asset Integrity'}
         credentialId={user?.ticketId || 'GUJ27-CERT-01'}
       />
 
@@ -1010,9 +1003,9 @@ export default function DashboardPage() {
         isOpen={isInvoiceOpen}
         onClose={() => setIsInvoiceOpen(false)}
         initialData={{
-          companyName: user?.organization || 'Larsen & Toubro Ltd',
-          contactName: user?.fullName || 'Dr. Rajesh Sharma',
-          email: user?.email || 'delegate@company.com'
+          companyName: user?.organization || '',
+          contactName: user?.fullName || '',
+          email: user?.email || ''
         }}
       />
 

@@ -116,8 +116,8 @@ export default function RazorpayModal({
         method: activeTab.toUpperCase(),
         amount: amount,
         currency: 'INR',
-        email: prefill?.email || 'delegate@company.com',
-        contact: prefill?.contact || '+91 98765 43210'
+        email: prefill?.email || 'iim.barodachapter@gmail.com',
+        contact: prefill?.contact || '+91 9988881674'
       };
 
       setTimeout(() => {

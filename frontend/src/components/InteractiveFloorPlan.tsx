@@ -49,8 +49,7 @@ const INITIAL_BOOTHS: BoothData[] = [
     basePrice: 350000,
     gstAmount: 63000,
     totalPrice: 413000,
-    status: 'Booked',
-    bookedCompany: 'TCR Advanced Engineering Pvt Ltd',
+    status: 'Available',
     inclusions: ['4-side open island stall', 'Custom fascia structure', '4 Tables & 8 Executive Chairs', '8 Spotlights & 3 Power Points', '4 Complimentary Delegate Passes', 'Full page color souvenir advertisement']
   },
   {
@@ -62,8 +61,7 @@ const INITIAL_BOOTHS: BoothData[] = [
     basePrice: 350000,
     gstAmount: 63000,
     totalPrice: 413000,
-    status: 'Booked',
-    bookedCompany: 'Larsen & Toubro (L&T Heavy Engg)',
+    status: 'Available',
     inclusions: ['4-side open island stall', 'Custom fascia structure', '4 Tables & 8 Executive Chairs', '8 Spotlights & 3 Power Points', '4 Complimentary Delegate Passes', 'Full page color souvenir advertisement']
   },
   {
@@ -87,8 +85,7 @@ const INITIAL_BOOTHS: BoothData[] = [
     basePrice: 350000,
     gstAmount: 63000,
     totalPrice: 413000,
-    status: 'Reserved',
-    bookedCompany: 'Corrpro Asia / Aegion Corp',
+    status: 'Available',
     inclusions: ['4-side open island stall', 'Custom fascia structure', '4 Tables & 8 Executive Chairs', '8 Spotlights & 3 Power Points', '4 Complimentary Delegate Passes', 'Full page color souvenir advertisement']
   },
 
@@ -102,8 +99,7 @@ const INITIAL_BOOTHS: BoothData[] = [
     basePrice: 190000,
     gstAmount: 34200,
     totalPrice: 224200,
-    status: 'Booked',
-    bookedCompany: 'Berger Paints India Ltd (Protective)',
+    status: 'Available',
     inclusions: ['2-side open corner booth', 'Octanorm shell scheme', 'Fascia board with company name', '2 Tables & 4 Chairs', '4 Spotlights & 2 Power points', '3 Complimentary Delegate Passes']
   },
   {
@@ -127,8 +123,7 @@ const INITIAL_BOOTHS: BoothData[] = [
     basePrice: 190000,
     gstAmount: 34200,
     totalPrice: 224200,
-    status: 'Reserved',
-    bookedCompany: 'Kirloskar Corrocoat Alloys',
+    status: 'Available',
     inclusions: ['2-side open corner booth', 'Octanorm shell scheme', 'Fascia board with company name', '2 Tables & 4 Chairs', '4 Spotlights & 2 Power points', '3 Complimentary Delegate Passes']
   },
   {
@@ -152,8 +147,7 @@ const INITIAL_BOOTHS: BoothData[] = [
     basePrice: 190000,
     gstAmount: 34200,
     totalPrice: 224200,
-    status: 'Booked',
-    bookedCompany: 'AkzoNobel International Paint',
+    status: 'Available',
     inclusions: ['2-side open corner booth', 'Octanorm shell scheme', 'Fascia board with company name', '2 Tables & 4 Chairs', '4 Spotlights & 2 Power points', '3 Complimentary Delegate Passes']
   },
   {
@@ -172,9 +166,6 @@ const INITIAL_BOOTHS: BoothData[] = [
   // Standard Stalls S-01 to S-24 (9 sqm)
   ...Array.from({ length: 24 }, (_, i) => {
     const num = (i + 1).toString().padStart(2, '0');
-    const bookedNames = ['Jotun India', 'Kansai Nerolac', 'Asian Paints PPG', 'Deepak Nitrite', 'GSFC Ltd', 'Aegion Coating', 'TUV Rheinland', 'DNV GL India'];
-    const isBooked = [1, 4, 7, 11, 14, 18].includes(i + 1);
-    const isReserved = [3, 9, 16, 21].includes(i + 1);
 
     return {
       id: `b-std-${num}`,
@@ -185,8 +176,7 @@ const INITIAL_BOOTHS: BoothData[] = [
       basePrice: 95000,
       gstAmount: 17100,
       totalPrice: 112100,
-      status: isBooked ? ('Booked' as const) : isReserved ? ('Reserved' as const) : ('Available' as const),
-      bookedCompany: isBooked ? bookedNames[i % bookedNames.length] : isReserved ? 'Corporate Hold' : undefined,
+      status: 'Available' as const,
       inclusions: ['Octanorm modular shell scheme', 'Fascia name display board', '1 Table & 2 Chairs', '3 Spotlights & 1 5A Socket', '2 Complimentary Delegate Passes', 'Entry in Official Exhibition Directory']
     };
   })

@@ -22,13 +22,13 @@ class GUJCORR_REST_API {
         register_rest_route($namespace, '/registrations', array(
             'methods' => 'GET',
             'callback' => array(__CLASS__, 'get_registrations'),
-            'permission_callback' => '__return_true'
+            'permission_callback' => array(__CLASS__, 'check_admin_permissions')
         ));
 
         register_rest_route($namespace, '/registrations/status', array(
             'methods' => 'POST',
             'callback' => array(__CLASS__, 'update_registration_status'),
-            'permission_callback' => '__return_true'
+            'permission_callback' => array(__CLASS__, 'check_admin_permissions')
         ));
 
         // 2. Paper Submissions
@@ -41,13 +41,13 @@ class GUJCORR_REST_API {
         register_rest_route($namespace, '/papers', array(
             'methods' => 'GET',
             'callback' => array(__CLASS__, 'get_papers'),
-            'permission_callback' => '__return_true'
+            'permission_callback' => array(__CLASS__, 'check_admin_permissions')
         ));
 
         register_rest_route($namespace, '/papers/score', array(
             'methods' => 'POST',
             'callback' => array(__CLASS__, 'score_paper'),
-            'permission_callback' => '__return_true'
+            'permission_callback' => array(__CLASS__, 'check_admin_permissions')
         ));
 
         // 3. Exhibitors & Booths
@@ -89,6 +89,12 @@ class GUJCORR_REST_API {
             'permission_callback' => '__return_true'
         ));
 
+        register_rest_route($namespace, '/invoices', array(
+            'methods' => 'GET',
+            'callback' => array(__CLASS__, 'get_invoices'),
+            'permission_callback' => array(__CLASS__, 'check_admin_permissions')
+        ));
+
         // 6. Contact Message / Inquiries
         register_rest_route($namespace, '/contact', array(
             'methods' => 'POST',
@@ -99,13 +105,13 @@ class GUJCORR_REST_API {
         register_rest_route($namespace, '/contact', array(
             'methods' => 'GET',
             'callback' => array(__CLASS__, 'get_contact_messages'),
-            'permission_callback' => '__return_true'
+            'permission_callback' => array(__CLASS__, 'check_admin_permissions')
         ));
 
         register_rest_route($namespace, '/inquiries', array(
             'methods' => 'GET',
             'callback' => array(__CLASS__, 'get_contact_messages'),
-            'permission_callback' => '__return_true'
+            'permission_callback' => array(__CLASS__, 'check_admin_permissions')
         ));
 
         // 7. Auth Login / Register
@@ -120,17 +126,68 @@ class GUJCORR_REST_API {
             'callback' => array(__CLASS__, 'auth_register'),
             'permission_callback' => '__return_true'
         ));
+
+        // 8. Admin Management Routes
+        register_rest_route($namespace, '/admin/overview', array(
+            'methods' => 'GET',
+            'callback' => array(__CLASS__, 'get_admin_overview'),
+            'permission_callback' => array(__CLASS__, 'check_admin_permissions')
+        ));
+
+        register_rest_route($namespace, '/admin/audit-logs', array(
+            'methods' => 'GET',
+            'callback' => array(__CLASS__, 'get_audit_logs'),
+            'permission_callback' => array(__CLASS__, 'check_admin_permissions')
+        ));
+
+        register_rest_route($namespace, '/admin/content', array(
+            'methods' => 'GET',
+            'callback' => array(__CLASS__, 'get_content'),
+            'permission_callback' => '__return_true'
+        ));
+
+        register_rest_route($namespace, '/admin/content', array(
+            'methods' => 'POST',
+            'callback' => array(__CLASS__, 'update_content'),
+            'permission_callback' => array(__CLASS__, 'check_admin_permissions')
+        ));
+
+        register_rest_route($namespace, '/admin/users', array(
+            'methods' => 'GET',
+            'callback' => array(__CLASS__, 'get_admin_users'),
+            'permission_callback' => array(__CLASS__, 'check_admin_permissions')
+        ));
+
+        register_rest_route($namespace, '/admin/users', array(
+            'methods' => 'POST',
+            'callback' => array(__CLASS__, 'create_admin_user'),
+            'permission_callback' => array(__CLASS__, 'check_admin_permissions')
+        ));
     }
 
     public static function check_admin_permissions($request) {
-        if (current_user_can('manage_options')) {
+        if (is_user_logged_in() && current_user_can('manage_options')) {
             return true;
         }
+
         $api_key = $request->get_header('x-gujcorr-api-key');
-        if (!empty($api_key) && defined('GUJCORR_API_SECRET') && hash_equals(GUJCORR_API_SECRET, $api_key)) {
+        if (empty($api_key)) {
+            $auth_header = $request->get_header('authorization');
+            if (!empty($auth_header) && preg_match('/Bearer\s+(\S+)/i', $auth_header, $matches)) {
+                $api_key = $matches[1];
+            }
+        }
+
+        $secret = defined('GUJCORR_API_SECRET') ? GUJCORR_API_SECRET : get_option('gujcorr_api_secret', '');
+        if (!empty($api_key) && !empty($secret) && hash_equals($secret, $api_key)) {
             return true;
         }
-        return true;
+
+        return new WP_Error(
+            'rest_forbidden',
+            __('Access denied: Valid administrative credentials or API secret required.', 'gujcorr'),
+            array('status' => 403)
+        );
     }
 
     // 1. Delegate Registration Handlers
@@ -236,6 +293,8 @@ class GUJCORR_REST_API {
         $table = $wpdb->prefix . 'gujcorr_registrations';
         $wpdb->update($table, array('status' => $status), array('ticket_id' => $ticket_id));
 
+        self::log_audit('UPDATE_REGISTRATION_STATUS', 'Registration', $ticket_id, "Status updated to: $status");
+
         return rest_ensure_response(array('success' => true, 'message' => 'Status updated in database.'));
     }
 
@@ -285,6 +344,8 @@ class GUJCORR_REST_API {
         if ($inserted === false) {
             return new WP_Error('db_insert_error', 'Failed to save paper in database.', array('status' => 500));
         }
+
+        self::log_audit('CREATE_PAPER_SUBMISSION', 'Paper', $paper_code, 'Paper abstract submitted: ' . sanitize_text_field($params['paperTitle']), sanitize_email($params['email']));
 
         return rest_ensure_response(array(
             'success' => true,
@@ -350,6 +411,8 @@ class GUJCORR_REST_API {
             'status' => $status
         ), array('paper_code' => $paper_code));
 
+        self::log_audit('SCORE_PAPER', 'Paper', $paper_code, "Paper scored: $score, Status: $status");
+
         return rest_ensure_response(array('success' => true, 'message' => 'Paper reviewed and scored successfully.'));
     }
 
@@ -389,6 +452,8 @@ class GUJCORR_REST_API {
             'status' => $status,
             'created_at' => current_time('mysql')
         ));
+
+        self::log_audit('RESERVE_BOOTH', 'Booth', $booth_number, "Reserved by $company_name ($status)", $email);
 
         return rest_ensure_response(array(
             'success' => true,
@@ -459,6 +524,8 @@ class GUJCORR_REST_API {
             'created_at' => current_time('mysql')
         ));
 
+        self::log_audit('CREATE_AWARD_NOMINATION', 'Award', sanitize_text_field($params['awardCategory']), 'Nominee: ' . sanitize_text_field($params['nomineeName']), sanitize_email($params['email']));
+
         return rest_ensure_response(array('success' => true, 'message' => 'Award nomination submitted.'));
     }
 
@@ -487,6 +554,8 @@ class GUJCORR_REST_API {
             'created_at' => current_time('mysql')
         ));
 
+        self::log_audit('CREATE_INVOICE', 'Invoice', $inv_number, 'Created invoice for ' . sanitize_text_field($params['companyName']), sanitize_email($params['email']));
+
         return rest_ensure_response(array('success' => true, 'invoiceNumber' => $inv_number));
     }
 
@@ -506,6 +575,8 @@ class GUJCORR_REST_API {
             'status' => 'Unread',
             'created_at' => current_time('mysql')
         ));
+
+        self::log_audit('CREATE_CONTACT_MESSAGE', 'Inquiry', sanitize_email($params['email']), 'Subject: ' . sanitize_text_field($params['subject'] ?? 'General Inquiry'), sanitize_email($params['email']));
 
         return rest_ensure_response(array('success' => true, 'message' => 'Inquiry received.'));
     }
@@ -536,25 +607,296 @@ class GUJCORR_REST_API {
         return rest_ensure_response(array('success' => true, 'data' => $formatted));
     }
 
-    public static function auth_login($request) {
-        $params = $request->get_json_params() ?: $_POST;
-        $email = sanitize_email($params['email'] ?? '');
+    // 7. Admin Overview & Dashboard Analytics
+    public static function get_admin_overview($request) {
+        global $wpdb;
+        $table_reg = $wpdb->prefix . 'gujcorr_registrations';
+        $table_papers = $wpdb->prefix . 'gujcorr_papers';
+        $table_booths = $wpdb->prefix . 'gujcorr_booths';
+        $table_invoices = $wpdb->prefix . 'gujcorr_invoices';
+        $table_inquiries = $wpdb->prefix . 'gujcorr_inquiries';
+        $table_awards = $wpdb->prefix . 'gujcorr_awards';
+        $table_audit = $wpdb->prefix . 'gujcorr_audit_logs';
+
+        $total_reg = intval($wpdb->get_var("SELECT COUNT(*) FROM $table_reg") ?: 0);
+        $confirmed_reg = intval($wpdb->get_var("SELECT COUNT(*) FROM $table_reg WHERE status = 'Confirmed'") ?: 0);
+        $pending_reg = intval($wpdb->get_var("SELECT COUNT(*) FROM $table_reg WHERE status = 'Pending'") ?: 0);
+        $verified_revenue = floatval($wpdb->get_var("SELECT SUM(total_amount) FROM $table_reg WHERE status = 'Confirmed'") ?: 0.0);
+        $outstanding_revenue = floatval($wpdb->get_var("SELECT SUM(total_amount) FROM $table_reg WHERE status = 'Pending'") ?: 0.0);
+
+        $categories_breakdown = $wpdb->get_results("SELECT category, COUNT(*) as count, SUM(total_amount) as revenue FROM $table_reg GROUP BY category", ARRAY_A) ?: array();
+
+        $total_papers = intval($wpdb->get_var("SELECT COUNT(*) FROM $table_papers") ?: 0);
+        $papers_accepted = intval($wpdb->get_var("SELECT COUNT(*) FROM $table_papers WHERE status LIKE '%Accept%'") ?: 0);
+        $papers_pending = intval($wpdb->get_var("SELECT COUNT(*) FROM $table_papers WHERE status = 'Submitted' OR status = 'Under Review'") ?: 0);
+        $papers_rejected = intval($wpdb->get_var("SELECT COUNT(*) FROM $table_papers WHERE status LIKE '%Reject%'") ?: 0);
+
+        $total_booths_booked = intval($wpdb->get_var("SELECT COUNT(*) FROM $table_booths") ?: 0);
+        $total_booth_capacity = 42;
+        $total_booth_revenue = floatval($wpdb->get_var("SELECT SUM(total_price) FROM $table_booths WHERE status = 'Confirmed'") ?: 0.0);
+
+        $total_inquiries = intval($wpdb->get_var("SELECT COUNT(*) FROM $table_inquiries") ?: 0);
+        $unread_inquiries = intval($wpdb->get_var("SELECT COUNT(*) FROM $table_inquiries WHERE status = 'Unread'") ?: 0);
+
+        $total_invoices = intval($wpdb->get_var("SELECT COUNT(*) FROM $table_invoices") ?: 0);
+        $total_awards = intval($wpdb->get_var("SELECT COUNT(*) FROM $table_awards") ?: 0);
+
+        $recent_activity = $wpdb->get_results("SELECT * FROM $table_audit ORDER BY created_at DESC LIMIT 10", ARRAY_A) ?: array();
 
         return rest_ensure_response(array(
             'success' => true,
-            'user' => array(
-                'email' => $email,
-                'role' => $params['role'] ?? 'Delegate',
-                'fullName' => 'Authenticated Delegate'
+            'overview' => array(
+                'registrations' => array(
+                    'total' => $total_reg,
+                    'confirmed' => $confirmed_reg,
+                    'pending' => $pending_reg,
+                    'verifiedRevenue' => $verified_revenue,
+                    'outstandingRevenue' => $outstanding_revenue,
+                    'categories' => $categories_breakdown
+                ),
+                'papers' => array(
+                    'total' => $total_papers,
+                    'accepted' => $papers_accepted,
+                    'pendingReview' => $papers_pending,
+                    'rejected' => $papers_rejected
+                ),
+                'exhibition' => array(
+                    'booked' => $total_booths_booked,
+                    'totalCapacity' => $total_booth_capacity,
+                    'available' => max(0, $total_booth_capacity - $total_booths_booked),
+                    'revenue' => $total_booth_revenue
+                ),
+                'inquiries' => array(
+                    'total' => $total_inquiries,
+                    'unread' => $unread_inquiries
+                ),
+                'invoices' => array(
+                    'total' => $total_invoices
+                ),
+                'awards' => array(
+                    'total' => $total_awards
+                ),
+                'recentActivity' => $recent_activity
             )
         ));
     }
 
-    public static function auth_register($request) {
+    // 8. Audit Logs
+    public static function get_audit_logs($request) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'gujcorr_audit_logs';
+        $rows = $wpdb->get_results("SELECT * FROM $table ORDER BY created_at DESC LIMIT 200", ARRAY_A) ?: array();
+        return rest_ensure_response(array('success' => true, 'data' => $rows));
+    }
+
+    // 9. Content CMS Handlers
+    public static function get_content($request) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'gujcorr_content';
+        $rows = $wpdb->get_results("SELECT section_key, content_json, updated_at FROM $table", ARRAY_A);
+        $content = array();
+        if ($rows) {
+            foreach ($rows as $r) {
+                $content[$r['section_key']] = json_decode($r['content_json'], true);
+            }
+        }
+        return rest_ensure_response(array('success' => true, 'data' => $content));
+    }
+
+    public static function update_content($request) {
+        global $wpdb;
         $params = $request->get_json_params() ?: $_POST;
+        $section_key = sanitize_text_field($params['sectionKey'] ?? '');
+        $content_data = $params['content'] ?? null;
+
+        if (empty($section_key) || $content_data === null) {
+            return new WP_Error('invalid_data', 'sectionKey and content are required.', array('status' => 400));
+        }
+
+        $table = $wpdb->prefix . 'gujcorr_content';
+        $json = wp_json_encode($content_data);
+        $user_email = is_user_logged_in() ? wp_get_current_user()->user_email : 'admin@gujcorr.org';
+
+        $wpdb->replace($table, array(
+            'section_key' => $section_key,
+            'content_json' => $json,
+            'updated_by' => $user_email,
+            'updated_at' => current_time('mysql')
+        ));
+
+        self::log_audit('UPDATE_CONTENT', 'CMS_Content', $section_key, "Updated section: $section_key", $user_email);
+
+        return rest_ensure_response(array('success' => true, 'message' => "Content for '$section_key' updated."));
+    }
+
+    // 10. Admin Users & Roles
+    public static function get_admin_users($request) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'gujcorr_users';
+        $rows = $wpdb->get_results("SELECT id, username, email, full_name, role, status, last_login, created_at FROM $table ORDER BY created_at DESC", ARRAY_A) ?: array();
+        return rest_ensure_response(array('success' => true, 'data' => $rows));
+    }
+
+    public static function create_admin_user($request) {
+        global $wpdb;
+        $params = $request->get_json_params() ?: $_POST;
+        $email = sanitize_email($params['email'] ?? '');
+        $username = sanitize_user($params['username'] ?? strstr($email, '@', true));
+        $full_name = sanitize_text_field($params['fullName'] ?? $params['name'] ?? 'Staff Member');
+        $password = $params['password'] ?? '';
+        $role = sanitize_text_field($params['role'] ?? 'Secretariat Staff');
+
+        if (empty($email) || empty($password)) {
+            return new WP_Error('invalid_data', 'Email and password are required.', array('status' => 400));
+        }
+
+        $valid_roles = array(
+            'Super Administrator', 'Administrator', 'Secretariat Staff',
+            'Finance Staff', 'Paper Coordinator', 'Reviewer', 'Content Editor'
+        );
+        if (!in_array($role, $valid_roles)) {
+            $role = 'Secretariat Staff';
+        }
+
+        $table = $wpdb->prefix . 'gujcorr_users';
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM $table WHERE email = %s OR username = %s", $email, $username));
+        if ($exists) {
+            return new WP_Error('user_exists', 'A user with this email or username already exists.', array('status' => 400));
+        }
+
+        $password_hash = password_hash($password, PASSWORD_BCRYPT);
+        $wpdb->insert($table, array(
+            'username' => $username,
+            'email' => $email,
+            'password_hash' => $password_hash,
+            'full_name' => $full_name,
+            'role' => $role,
+            'status' => 'Active',
+            'created_at' => current_time('mysql')
+        ));
+
+        self::log_audit('CREATE_STAFF_ACCOUNT', 'User', $email, "Created account with role: $role");
+
+        return rest_ensure_response(array('success' => true, 'message' => "User account created for $email"));
+    }
+
+    // 11. Central Audit Logger Helper
+    public static function log_audit($action, $resource_type, $resource_id = '', $details = '', $user_email = '', $status = 'Success') {
+        global $wpdb;
+        $table = $wpdb->prefix . 'gujcorr_audit_logs';
+        if (empty($user_email)) {
+            $user_email = is_user_logged_in() ? wp_get_current_user()->user_email : 'system@gujcorr.org';
+        }
+        $wpdb->insert($table, array(
+            'user_id' => is_user_logged_in() ? strval(get_current_user_id()) : 'api',
+            'user_email' => $user_email,
+            'action' => sanitize_text_field($action),
+            'resource_type' => sanitize_text_field($resource_type),
+            'resource_id' => sanitize_text_field($resource_id),
+            'details' => is_array($details) ? wp_json_encode($details) : sanitize_textarea_field($details),
+            'ip_address' => sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? ''),
+            'status' => sanitize_text_field($status),
+            'created_at' => current_time('mysql')
+        ));
+    }
+
+    // 12. Secure Auth Login & Register
+    public static function auth_login($request) {
+        global $wpdb;
+        $params = $request->get_json_params() ?: $_POST;
+        $email = sanitize_email($params['email'] ?? '');
+        $password = $params['password'] ?? '';
+
+        if (empty($email) || empty($password)) {
+            return new WP_Error('invalid_credentials', 'Email and password are required.', array('status' => 400));
+        }
+
+        $table = $wpdb->prefix . 'gujcorr_users';
+        $user_row = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE email = %s OR username = %s", $email, $email), ARRAY_A);
+
+        if ($user_row && password_verify($password, $user_row['password_hash'])) {
+            if ($user_row['status'] !== 'Active') {
+                return new WP_Error('account_disabled', 'Account is deactivated. Contact Super Administrator.', array('status' => 403));
+            }
+
+            $wpdb->update($table, array('last_login' => current_time('mysql')), array('id' => $user_row['id']));
+            self::log_audit('LOGIN_SUCCESS', 'Auth', $user_row['email'], "Role: " . $user_row['role'], $user_row['email']);
+
+            return rest_ensure_response(array(
+                'success' => true,
+                'user' => array(
+                    'id' => $user_row['id'],
+                    'email' => $user_row['email'],
+                    'fullName' => $user_row['full_name'],
+                    'role' => $user_row['role'],
+                    'status' => $user_row['status']
+                )
+            ));
+        }
+
+        if (function_exists('wp_authenticate')) {
+            $wp_user = wp_authenticate($email, $password);
+            if (!is_wp_error($wp_user)) {
+                $role = in_array('administrator', (array)$wp_user->roles) ? 'Super Administrator' : 'Delegate';
+                self::log_audit('LOGIN_SUCCESS_WP', 'Auth', $wp_user->user_email, "Role: $role", $wp_user->user_email);
+                return rest_ensure_response(array(
+                    'success' => true,
+                    'user' => array(
+                        'id' => $wp_user->ID,
+                        'email' => $wp_user->user_email,
+                        'fullName' => $wp_user->display_name,
+                        'role' => $role,
+                        'status' => 'Active'
+                    )
+                ));
+            }
+        }
+
+        self::log_audit('LOGIN_FAILED', 'Auth', $email, 'Invalid password attempt', $email, 'Failed');
+        return new WP_Error('invalid_credentials', 'Invalid credentials provided.', array('status' => 401));
+    }
+
+    public static function auth_register($request) {
+        global $wpdb;
+        $params = $request->get_json_params() ?: $_POST;
+        $email = sanitize_email($params['email'] ?? '');
+        $password = $params['password'] ?? '';
+        $full_name = sanitize_text_field($params['fullName'] ?? $params['name'] ?? '');
+
+        if (empty($email) || empty($password)) {
+            return new WP_Error('missing_fields', 'Email and password required.', array('status' => 400));
+        }
+
+        $table = $wpdb->prefix . 'gujcorr_users';
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM $table WHERE email = %s", $email));
+        if ($exists) {
+            return new WP_Error('user_exists', 'Account with this email already exists.', array('status' => 400));
+        }
+
+        $assigned_role = 'Delegate';
+        $username = sanitize_user(strstr($email, '@', true) ?: ('user_' . wp_generate_password(4, false)));
+        $password_hash = password_hash($password, PASSWORD_BCRYPT);
+
+        $wpdb->insert($table, array(
+            'username' => $username,
+            'email' => $email,
+            'password_hash' => $password_hash,
+            'full_name' => $full_name,
+            'role' => $assigned_role,
+            'status' => 'Active',
+            'created_at' => current_time('mysql')
+        ));
+
+        self::log_audit('USER_REGISTERED', 'Auth', $email, 'Public registration as Delegate', $email);
+
         return rest_ensure_response(array(
             'success' => true,
-            'user' => $params
+            'message' => 'Registration successful.',
+            'user' => array(
+                'email' => $email,
+                'fullName' => $full_name,
+                'role' => $assigned_role
+            )
         ));
     }
 }

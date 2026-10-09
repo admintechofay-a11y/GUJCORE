@@ -33,10 +33,10 @@ interface ProformaInvoiceModalProps {
 
 export default function ProformaInvoiceModal({ isOpen, onClose, initialData }: ProformaInvoiceModalProps) {
   const [invoiceType, setInvoiceType] = useState<'PROFORMA INVOICE' | 'TAX INVOICE' | 'REGISTRATION RECEIPT'>('PROFORMA INVOICE');
-  const [companyName, setCompanyName] = useState(initialData?.companyName || 'Larsen & Toubro Ltd');
-  const [contactName, setContactName] = useState(initialData?.contactName || 'Dr. Rajesh Sharma');
-  const [address, setAddress] = useState('Knowledge City, NH-8, Vadodara, Gujarat 390019');
-  const [gstin, setGstin] = useState(initialData?.gstin || '24AAACL0140P1ZT');
+  const [companyName, setCompanyName] = useState(initialData?.companyName || '');
+  const [contactName, setContactName] = useState(initialData?.contactName || '');
+  const [address, setAddress] = useState('');
+  const [gstin, setGstin] = useState(initialData?.gstin || '');
   const [tierId, setTierId] = useState('tier-non-member');
   const [quantity, setQuantity] = useState(initialData?.quantity || 1);
   const [invoiceNumber] = useState(`GUJCORR-PI-${Math.floor(10000 + Math.random() * 90000)}`);
@@ -336,8 +336,8 @@ export default function ProformaInvoiceModal({ isOpen, onClose, initialData }: P
         description={`GUJCORR 2027 Invoice: ${invoiceNumber}`}
         prefill={{
           name: contactName,
-          email: initialData?.email || 'delegate@company.com',
-          contact: '+91 98765 43210'
+          email: initialData?.email || 'iim.barodachapter@gmail.com',
+          contact: '+91 9988881674'
         }}
         onSuccess={handleRazorpaySuccess}
         onFailure={(err) => alert(`Payment Failed: ${err.description}`)}

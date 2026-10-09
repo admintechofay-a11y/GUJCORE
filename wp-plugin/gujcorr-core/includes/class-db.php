@@ -164,9 +164,62 @@ class GUJCORR_DB {
             subject varchar(255) NOT NULL,
             message text NOT NULL,
             status varchar(50) DEFAULT 'Unread',
+            internal_notes text,
+            assigned_to varchar(100) DEFAULT '',
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY  (id)
         ) $charset_collate;";
         dbDelta($sql_inquiries);
+
+        // 7. Append-Only Audit Logs Table
+        $table_audit = $wpdb->prefix . 'gujcorr_audit_logs';
+        $sql_audit = "CREATE TABLE $table_audit (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            user_id varchar(100) DEFAULT '',
+            user_email varchar(191) DEFAULT '',
+            action varchar(100) NOT NULL,
+            resource_type varchar(100) NOT NULL,
+            resource_id varchar(100) DEFAULT '',
+            details text,
+            ip_address varchar(50) DEFAULT '',
+            status varchar(50) DEFAULT 'Success',
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            KEY idx_action (action),
+            KEY idx_created_at (created_at)
+        ) $charset_collate;";
+        dbDelta($sql_audit);
+
+        // 8. Conference CMS Content Table
+        $table_content = $wpdb->prefix . 'gujcorr_content';
+        $sql_content = "CREATE TABLE $table_content (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            section_key varchar(100) NOT NULL,
+            content_json longtext NOT NULL,
+            updated_by varchar(191) DEFAULT 'system',
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY section_key (section_key)
+        ) $charset_collate;";
+        dbDelta($sql_content);
+
+        // 9. Administrative & Staff Accounts Table
+        $table_users = $wpdb->prefix . 'gujcorr_users';
+        $sql_users = "CREATE TABLE $table_users (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            username varchar(100) NOT NULL,
+            email varchar(191) NOT NULL,
+            password_hash varchar(255) NOT NULL,
+            full_name varchar(255) NOT NULL,
+            role varchar(50) NOT NULL DEFAULT 'Delegate',
+            status varchar(20) NOT NULL DEFAULT 'Active',
+            last_login datetime DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY username (username),
+            UNIQUE KEY email (email),
+            KEY idx_role (role)
+        ) $charset_collate;";
+        dbDelta($sql_users);
     }
 }

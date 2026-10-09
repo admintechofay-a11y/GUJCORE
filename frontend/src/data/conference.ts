@@ -765,7 +765,7 @@ export const SOUVENIR_SPECS = {
   },
   resolution: "300 DPI",
   formats: "CDR, PDF, or EPS format",
-  emailArtworkTo: "iim.barodachapter@gmail.com",
+  emailArtworkTo: "coraxm2024@gmail.com / iim.barodachapter@gmail.com",
   taxNote: "18% GST Extra on all souvenir advertisement rates."
 };
 
@@ -804,16 +804,16 @@ export const PAST_SUPPORTERS = [
  * =========================================================================
  */
 export const INITIAL_BOOTHS: ExhibitorBooth[] = [
-  { id: "b1", boothNumber: "A-01", size: "12 sqm (3x4m)", dimensions: "4m x 3m", priceINR: 75000, status: "Reserved", companyName: "TCR Advanced" },
-  { id: "b2", boothNumber: "A-02", size: "9 sqm (3x3m)", dimensions: "3m x 3m", priceINR: 50000, status: "Booked", companyName: "Consultech" },
+  { id: "b1", boothNumber: "A-01", size: "12 sqm (3x4m)", dimensions: "4m x 3m", priceINR: 75000, status: "Available" },
+  { id: "b2", boothNumber: "A-02", size: "9 sqm (3x3m)", dimensions: "3m x 3m", priceINR: 50000, status: "Available" },
   { id: "b3", boothNumber: "A-03", size: "9 sqm (3x3m)", dimensions: "3m x 3m", priceINR: 50000, status: "Available" },
   { id: "b4", boothNumber: "A-04", size: "9 sqm (3x3m)", dimensions: "3m x 3m", priceINR: 50000, status: "Available" },
-  { id: "b5", boothNumber: "B-01", size: "12 sqm (3x4m)", dimensions: "4m x 3m", priceINR: 75000, status: "Booked", companyName: "DEHN India" },
+  { id: "b5", boothNumber: "B-01", size: "12 sqm (3x4m)", dimensions: "4m x 3m", priceINR: 75000, status: "Available" },
   { id: "b6", boothNumber: "B-02", size: "9 sqm (3x3m)", dimensions: "3m x 3m", priceINR: 50000, status: "Available" },
   { id: "b7", boothNumber: "B-03", size: "9 sqm (3x3m)", dimensions: "3m x 3m", priceINR: 50000, status: "Available" },
   { id: "b8", boothNumber: "B-04", size: "9 sqm (3x3m)", dimensions: "3m x 3m", priceINR: 50000, status: "Available" },
   { id: "b9", boothNumber: "C-01", size: "9 sqm (3x3m)", dimensions: "3m x 3m", priceINR: 50000, status: "Available" },
-  { id: "b10", boothNumber: "C-02", size: "9 sqm (3x3m)", dimensions: "3m x 3m", priceINR: 50000, status: "Booked", companyName: "Modsonic" },
+  { id: "b10", boothNumber: "C-02", size: "9 sqm (3x3m)", dimensions: "3m x 3m", priceINR: 50000, status: "Available" },
   { id: "b11", boothNumber: "C-03", size: "9 sqm (3x3m)", dimensions: "3m x 3m", priceINR: 50000, status: "Available" },
   { id: "b12", boothNumber: "C-04", size: "12 sqm (3x4m)", dimensions: "4m x 3m", priceINR: 75000, status: "Available" }
 ];

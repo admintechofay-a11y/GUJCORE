@@ -466,5 +466,140 @@ export const api = {
       exhibitors: JSON.parse(localStorage.getItem(STORAGE_KEYS.EXHIBITORS) || '[]'),
       currentUser: JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_USER) || 'null')
     };
+  },
+
+  // 7. Server Admin Operations
+  async getAdminOverview(): Promise<{ success: boolean; data?: any; message?: string }> {
+    try {
+      const res = await fetch('/api/admin/overview', { credentials: 'include' });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async getAuditLogs(action: string = 'all', limit: number = 100): Promise<{ success: boolean; data?: any[]; message?: string }> {
+    try {
+      const res = await fetch(`/api/admin/audit-logs?action=${encodeURIComponent(action)}&limit=${limit}`, { credentials: 'include' });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async getCmsContent(): Promise<{ success: boolean; data?: any; message?: string }> {
+    try {
+      const res = await fetch('/api/admin/content', { credentials: 'include' });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async updateCmsContent(sectionKey: string, data: any): Promise<{ success: boolean; message?: string }> {
+    try {
+      const res = await fetch('/api/admin/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sectionKey, data }),
+        credentials: 'include'
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async getAdminUsers(): Promise<{ success: boolean; data?: any[]; message?: string }> {
+    try {
+      const res = await fetch('/api/admin/users', { credentials: 'include' });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async createAdminUser(userData: { email: string; password: string; fullName: string; role: string }): Promise<{ success: boolean; message?: string }> {
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+        credentials: 'include'
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async updateAdminUserStatus(userId: string, status: 'Active' | 'Disabled'): Promise<{ success: boolean; message?: string }> {
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_status', userId, status }),
+        credentials: 'include'
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async updateRegistration(ticketId: string, status: string, transactionReference?: string, notes?: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const res = await fetch('/api/admin/registrations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticketId, status, transactionReference, notes }),
+        credentials: 'include'
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async updatePaperDecision(paperCode: string, score?: number, comments?: string, status?: string, assignedReviewer?: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const res = await fetch('/api/admin/papers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paperCode, score, comments, status, assignedReviewer }),
+        credentials: 'include'
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async updateBoothAllocation(boothNumber: string, status: string, details?: any): Promise<{ success: boolean; message?: string }> {
+    try {
+      const res = await fetch('/api/admin/booths', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ boothNumber, status, ...details }),
+        credentials: 'include'
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  async updateInquiry(id: string, status?: string, internalNotes?: string, assignedTo?: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const res = await fetch('/api/admin/inquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status, internalNotes, assignedTo }),
+        credentials: 'include'
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
   }
 };

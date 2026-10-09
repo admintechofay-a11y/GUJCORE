@@ -86,10 +86,10 @@ export default function ContactSection() {
                   <div>
                     <div className="font-bold text-slate-900">Email Enquiries:</div>
                     <a href="mailto:iim.barodachapter@gmail.com" className="text-teal-700 hover:text-teal-900 font-semibold block">
-                      iim.barodachapter@gmail.com
+                      iim.barodachapter@gmail.com (Secretariat)
                     </a>
-                    <a href="mailto:iim.barodachapter@gmail.com" className="text-teal-700 hover:text-teal-900 font-semibold block">
-                      iim.barodachapter@gmail.com
+                    <a href="mailto:coraxm2024@gmail.com" className="text-teal-700 hover:text-teal-900 font-semibold block">
+                      coraxm2024@gmail.com (Souvenir Desk)
                     </a>
                   </div>
                 </div>

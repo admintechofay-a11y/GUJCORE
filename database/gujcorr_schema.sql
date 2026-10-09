@@ -163,9 +163,58 @@ CREATE TABLE `wp_gujcorr_inquiries` (
   `organization` VARCHAR(255) DEFAULT NULL,
   `subject` VARCHAR(255) NOT NULL,
   `message` TEXT NOT NULL,
-  `status` ENUM('Unread', 'Read', 'Replied') DEFAULT 'Unread',
+  `status` ENUM('Unread', 'Read', 'In Progress', 'Resolved') DEFAULT 'Unread',
+  `internal_notes` TEXT DEFAULT NULL,
+  `assigned_to` VARCHAR(100) DEFAULT NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 7. Append-Only Audit Logs Table
+DROP TABLE IF EXISTS `wp_gujcorr_audit_logs`;
+CREATE TABLE `wp_gujcorr_audit_logs` (
+  `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` VARCHAR(100) DEFAULT '',
+  `user_email` VARCHAR(191) DEFAULT '',
+  `action` VARCHAR(100) NOT NULL,
+  `resource_type` VARCHAR(100) NOT NULL,
+  `resource_id` VARCHAR(100) DEFAULT '',
+  `details` TEXT DEFAULT NULL,
+  `ip_address` VARCHAR(50) DEFAULT '',
+  `status` VARCHAR(50) DEFAULT 'Success',
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_audit_action` (`action`),
+  KEY `idx_audit_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 8. Conference CMS Content Table
+DROP TABLE IF EXISTS `wp_gujcorr_content`;
+CREATE TABLE `wp_gujcorr_content` (
+  `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `section_key` VARCHAR(100) NOT NULL UNIQUE,
+  `content_json` LONGTEXT NOT NULL,
+  `updated_by` VARCHAR(191) DEFAULT 'system',
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_content_section` (`section_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 9. Administrative & Staff Accounts Table
+DROP TABLE IF EXISTS `wp_gujcorr_users`;
+CREATE TABLE `wp_gujcorr_users` (
+  `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `username` VARCHAR(100) NOT NULL UNIQUE,
+  `email` VARCHAR(191) NOT NULL UNIQUE,
+  `password_hash` VARCHAR(255) NOT NULL,
+  `full_name` VARCHAR(255) NOT NULL,
+  `role` VARCHAR(50) NOT NULL DEFAULT 'Delegate',
+  `status` ENUM('Active', 'Disabled') DEFAULT 'Active',
+  `last_login` DATETIME DEFAULT NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_email` (`email`),
+  KEY `idx_user_role` (`role`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
