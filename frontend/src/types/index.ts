@@ -90,6 +90,7 @@ export interface PaperSubmission {
   reviewScore?: number;
   reviewComments?: string;
   declarationAgreed?: boolean;
+  isPresentingAuthor?: boolean;
 }
 
 export interface DelegateRegistration {
@@ -110,12 +111,15 @@ export interface DelegateRegistration {
   address: string;
   category: string;
   membershipNumber?: string;
+  gstNumber?: string;
   baseAmount: number;
   gstAmount: number;
   totalAmount: number;
   paymentMethod: 'Bank Transfer / NEFT' | 'UPI / QR' | 'Credit / Debit Card (Online)' | 'Pay Later / Pending Verification' | string;
   transactionReference?: string;
   transactionRef?: string;
+  paymentProofFileName?: string;
+  paymentProofUrl?: string;
   qrCodeUrl?: string;
 }
 
@@ -129,6 +133,47 @@ export interface ExhibitorBooth {
   companyName?: string;
 }
 
+export interface ExhibitorPackage {
+  id: string;
+  name: string;
+  size: string;
+  dimensions: string;
+  priceINR: number;
+  priceFormatted: string;
+  delegates: number;
+  adSize: string;
+  features: string[];
+  memento: boolean;
+  accommodationIncluded: boolean;
+}
+
+export interface CommitteeMember {
+  name: string;
+  role: string;
+  designation?: string;
+  org: string;
+  photo?: string;
+}
+
+export interface AdvisoryMember {
+  name: string;
+  role: string;
+  designation?: string;
+  org: string;
+  country?: string;
+  photo?: string;
+}
+
+export interface ImportantDateItem {
+  id: number;
+  title: string;
+  date: string;
+  rawDate: string;
+  category: string;
+  description: string;
+  notes?: string;
+}
+
 export interface AwardCategory {
   id: string;
   title: string;
@@ -136,3 +181,4 @@ export interface AwardCategory {
   eligibility: string;
   deadline: string;
 }
+
