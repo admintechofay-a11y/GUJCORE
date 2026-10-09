@@ -200,7 +200,7 @@ export default function UserDashboardModal({ isOpen, onClose, initialTab = 'dele
                 <FileText className="w-10 h-10 text-slate-300 mx-auto" />
                 <h4 className="font-bold text-slate-900 text-sm">No Papers Submitted in This Session</h4>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  Submit your 200–250 word structured abstract before 30th September 2026.
+                  Submit your abstract before 11 October 2026.
                 </p>
                 <a
                   href="#cfp"

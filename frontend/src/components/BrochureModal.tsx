@@ -66,12 +66,19 @@ export default function BrochureModal({ isOpen, onClose }: BrochureModalProps) {
             </div>
 
             {/* Quick Action Buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href="/GUJCORR_2027_Brochure.pdf"
+                download="GUJCORR_2027_Brochure.pdf"
+                className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Download className="w-4 h-4" /> Download Official Brochure PDF
+              </a>
               <button
                 onClick={handlePrint}
                 className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs px-4 py-2.5 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
               >
-                <Printer className="w-4 h-4" /> Print / Save PDF
+                <Printer className="w-4 h-4" /> Print / Save
               </button>
             </div>
           </div>
@@ -86,8 +93,8 @@ export default function BrochureModal({ isOpen, onClose }: BrochureModalProps) {
               <Calendar className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
               <div>
                 <div className="font-bold text-slate-900">Conference Dates</div>
-                <div className="text-slate-600 font-medium">18th – 20th February 2027</div>
-                <div className="text-[11px] text-slate-500">Abstracts Deadline: 30th September 2026</div>
+                <div className="text-slate-600 font-medium">18–20 February 2027</div>
+                <div className="text-[11px] text-slate-500 font-medium">Abstracts Deadline: 11 October 2026</div>
               </div>
             </div>
 
@@ -95,8 +102,8 @@ export default function BrochureModal({ isOpen, onClose }: BrochureModalProps) {
               <MapPin className="w-5 h-5 text-teal-700 shrink-0 mt-0.5" />
               <div>
                 <div className="font-bold text-slate-900">Host City &amp; Venue</div>
-                <div className="text-slate-600 font-medium">Courtyard by Marriott Vadodara / Convention Hub</div>
-                <div className="text-[11px] text-slate-500">Sarabhai Campus, Near Genda Circle, Vadodara – 390023</div>
+                <div className="text-slate-600 font-medium">Vadodara, Gujarat, India</div>
+                <div className="text-[11px] text-slate-500 font-medium">Domain: www.gujcorr.org</div>
               </div>
             </div>
           </div>

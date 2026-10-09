@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Calendar, MapPin, Award, Users, BookOpen, Clock, Download, ArrowRight, FileText, CheckCircle2 } from 'lucide-react';
-import { CONFERENCE_INFO } from '../data/mockData';
+import { CONFERENCE_INFO } from '@/data/conference';
 import BrochureModal from './BrochureModal';
 
 interface HeroProps {

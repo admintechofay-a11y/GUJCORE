@@ -61,7 +61,7 @@ export default function HomePage() {
               <FileText className="w-6 h-6 text-amber-400 group-hover:text-white" />
               <div>
                 <div className="text-xs sm:text-sm font-extrabold text-white">Call for Papers</div>
-                <div className="text-[11px] text-slate-400 group-hover:text-teal-100">Abstracts Due 30 Sep</div>
+                <div className="text-[11px] text-slate-400 group-hover:text-teal-100">Abstracts Due 11 Oct</div>
               </div>
             </Link>
 

@@ -62,7 +62,8 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
     abstract: '',
     keywords: '',
     coAuthors: '',
-    declarationAgreed: false
+    declarationAgreed: false,
+    isPresentingAuthor: true
   });
 
   // Pre-fill when auth user changes
@@ -179,6 +180,12 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
       setErrorMessage('Please provide your abstract text.');
       return;
     }
+    if (!formData.isPresentingAuthor) {
+      setErrorMessage('Please confirm the Presenting Author checkbox. The presenting author must register as a delegate.');
+      const declEl = document.getElementById('declarationSection');
+      if (declEl) declEl.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
     if (!formData.declarationAgreed) {
       setErrorMessage('Please check the Submission & Publication Declaration checkbox.');
       const declEl = document.getElementById('declarationSection');
@@ -195,7 +202,8 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
         symposiumId: Number(formData.symposiumId),
         symposiumTitle: selectedSymp ? selectedSymp.title : 'Corrosion Science',
         resumeFileName: resumeFile ? resumeFile.name : undefined,
-        fullPaperFileName: paperFile ? paperFile.name : undefined
+        fullPaperFileName: paperFile ? paperFile.name : undefined,
+        isPresentingAuthor: formData.isPresentingAuthor
       });
 
       if (res.success) {
@@ -347,6 +355,7 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
                     abstract: '',
                     keywords: '',
                     coAuthors: '',
+                    isPresentingAuthor: true,
                     declarationAgreed: false
                   });
                 }}
@@ -712,7 +721,7 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
                       <div>
                         <FileText className="w-8 h-8 text-slate-400 mx-auto mb-2" />
                         <div className="text-xs font-bold text-slate-800">Full Paper / Extended Manuscript</div>
-                        <div className="text-[11px] text-slate-400 mt-1">Due by 15th October 2026</div>
+                        <div className="text-[11px] text-slate-400 mt-1">Due by 30 October 2026</div>
                         <span className="mt-3 inline-block bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs px-3.5 py-1.5 rounded-lg border border-slate-200 shadow-2xs transition-colors">
                           Optional at Abstract stage
                         </span>
@@ -720,6 +729,28 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
                     )}
                   </div>
 
+                </div>
+
+                {/* Presenting Author Confirmation Checkbox */}
+                <div 
+                  onClick={() => setFormData({ ...formData, isPresentingAuthor: !formData.isPresentingAuthor })}
+                  className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                    formData.isPresentingAuthor 
+                      ? 'bg-red-50/60 border-red-400' 
+                      : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <label className="flex items-start gap-3 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={formData.isPresentingAuthor}
+                      onChange={e => setFormData({ ...formData, isPresentingAuthor: e.target.checked })}
+                      className="mt-1 w-4 h-4 text-red-600 rounded focus:ring-red-500 border-slate-300 cursor-pointer"
+                    />
+                    <span className="text-xs text-slate-800 leading-relaxed font-medium">
+                      <strong className="text-red-700">Presenting Author Registration Requirement:</strong> I confirm that I am the presenting author. (Note: The presenting author must register as a delegate for the paper to be included in the technical program.)
+                    </span>
+                  </label>
                 </div>
 
                 {/* Declaration Checkbox with Interactive Clickable Container */}

@@ -63,41 +63,38 @@ export default function Navbar() {
   const primaryLinks = [
     { name: 'Home', href: '/' },
     { name: 'About', href: '/about' },
-    { name: 'Schedule', href: '/schedule' },
-    { name: 'Symposia', href: '/symposia' },
+    { name: 'Sessions', href: '/technical-sessions' },
     { name: 'Call for Papers', href: '/call-for-papers' },
     { name: 'Registration', href: '/registration' },
-    { name: 'Exhibition', href: '/exhibition' },
     { name: 'Sponsorship', href: '/sponsorship' },
+    { name: 'Souvenir', href: '/souvenir' },
   ];
 
   // More dropdown items
   const secondaryLinks = [
-    { name: 'Speakers & Keynotes', href: '/speakers', icon: Users },
-    { name: 'Venue & Travel Guide', href: '/venue', icon: MapPin },
-    { name: 'Corrosion Awards', href: '/awards', icon: Award },
-    { name: 'Proforma Invoicing', href: '/invoice', icon: FileText },
     { name: 'Organizing Committee', href: '/committee', icon: Users },
-    { name: 'Past Supporters (21 PSUs)', href: '/supporters', icon: Building2 },
-    { name: 'Master Home Portal', href: '/masterhome', icon: QrCode },
+    { name: 'International Advisory', href: '/advisory', icon: Award },
+    { name: 'Past Supporters', href: '/supporters', icon: Building2 },
+    { name: 'Exhibition Stalls', href: '/exhibition', icon: Store },
+    { name: 'Venue & Travel Guide', href: '/venue', icon: MapPin },
+    { name: '3-Day Schedule', href: '/schedule', icon: Calendar },
+    { name: 'Speakers & Keynotes', href: '/speakers', icon: Users },
     { name: 'Contact Secretariat', href: '/contact', icon: Phone },
   ];
 
   const allMobileLinks = [
     { name: 'Home', href: '/', icon: Building2 },
     { name: 'About GUJCORR', href: '/about', icon: Shield },
-    { name: '3-Day Schedule', href: '/schedule', icon: Clock },
-    { name: '14 Symposia', href: '/symposia', icon: Layers },
+    { name: '14 Technical Sessions', href: '/technical-sessions', icon: Layers },
     { name: 'Call for Papers', href: '/call-for-papers', icon: FileText },
     { name: 'Registration & Passes', href: '/registration', icon: Calendar },
-    { name: 'Exhibition Floor Plan', href: '/exhibition', icon: Store },
-    { name: 'Sponsorship Tiers', href: '/sponsorship', icon: Award },
-    { name: 'Keynote Speakers', href: '/speakers', icon: Users },
-    { name: 'Venue & Partner Hotels', href: '/venue', icon: MapPin },
-    { name: 'Corrosion Awards', href: '/awards', icon: Award },
-    { name: 'Proforma Invoice', href: '/invoice', icon: FileText },
+    { name: 'Sponsorship Packages', href: '/sponsorship', icon: Award },
+    { name: 'Souvenir Advertising', href: '/souvenir', icon: FileText },
     { name: 'Organizing Committee', href: '/committee', icon: Users },
-    { name: 'Master Home Portal', href: '/masterhome', icon: QrCode },
+    { name: 'International Advisory', href: '/advisory', icon: Award },
+    { name: 'Past Supporters', href: '/supporters', icon: Building2 },
+    { name: 'Exhibition Floor Plan', href: '/exhibition', icon: Store },
+    { name: 'Venue & Travel', href: '/venue', icon: MapPin },
     { name: 'Contact Secretariat', href: '/contact', icon: Phone },
   ];
 

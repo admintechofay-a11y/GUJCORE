@@ -84,8 +84,12 @@ export default function DelegateRegistrationSection({ onSuccess, defaultTierId }
     dietaryPreference: 'Pure Vegetarian',
     needAccommodationInfo: false,
     transactionReference: '',
+    paymentProofFileName: '',
     agreedToTerms: true
   });
+
+  const [paymentProofFile, setPaymentProofFile] = useState<{ name: string; size: string } | null>(null);
+  const paymentProofInputRef = React.useRef<HTMLInputElement>(null);
 
   // Sync auth user profile
   React.useEffect(() => {
@@ -170,7 +174,8 @@ export default function DelegateRegistrationSection({ onSuccess, defaultTierId }
         gstAmount: selectedTier.gstAmount,
         totalAmount: selectedTier.totalPrice,
         paymentMethod: isPaid ? (paymentMethod === 'Razorpay Online (UPI/Card/NetBanking)' ? 'Razorpay (UPI / Card / NetBanking)' : paymentMethod) : 'Pay Later / Pending Verification',
-        transactionReference: txnRef || (isPaid ? 'TXN-' + Math.floor(100000 + Math.random() * 900000) : 'UNPAID-PROVISIONAL')
+        transactionReference: txnRef || (isPaid ? 'TXN-' + Math.floor(100000 + Math.random() * 900000) : 'UNPAID-PROVISIONAL'),
+        paymentProofFileName: paymentProofFile ? paymentProofFile.name : undefined
       });
 
       if (res.success) {
@@ -687,17 +692,102 @@ export default function DelegateRegistrationSection({ onSuccess, defaultTierId }
                       </div>
 
                       {paymentMethod !== 'Razorpay Online (UPI/Card/NetBanking)' && (
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                            Transaction UTR / Bank Reference No.
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="e.g. UTR1234567890 or UPI Ref"
-                            value={form.transactionReference}
-                            onChange={(e) => setForm({ ...form, transactionReference: e.target.value })}
-                            className="w-full py-2 px-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-mono text-slate-900 uppercase"
-                          />
+                        <div className="space-y-4 pt-2 border-t border-blue-200">
+                          {/* Official Bank Information Card */}
+                          <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-3">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                              <div>
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-red-700 bg-red-50 px-2 py-0.5 rounded">
+                                  Official Remittance Account
+                                </span>
+                                <div className="text-xs font-bold text-slate-900 mt-1">
+                                  {CONFERENCE_INFO.bankDetails.accountName}
+                                </div>
+                                <div className="text-[11px] text-slate-600">
+                                  {CONFERENCE_INFO.bankDetails.bankName}, {CONFERENCE_INFO.bankDetails.branch}
+                                </div>
+                              </div>
+
+                              {/* Payment QR Code */}
+                              <div className="text-center shrink-0">
+                                <img
+                                  src={CONFERENCE_INFO.bankDetails.qrCodeImage}
+                                  alt="Scan QR for Payment"
+                                  className="w-24 h-24 object-contain border-2 border-slate-300 rounded-lg mx-auto shadow-2xs"
+                                  onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+                                />
+                                <span className="text-[9px] font-bold text-slate-600 block mt-1">
+                                  Scan QR for Payment
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] pt-2 border-t border-slate-100">
+                              <div>
+                                <span className="text-slate-400 block text-[9px] uppercase font-bold">A/C Number</span>
+                                <span className="font-mono font-bold text-slate-900">{CONFERENCE_INFO.bankDetails.accountNumber}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-400 block text-[9px] uppercase font-bold">IFSC Code</span>
+                                <span className="font-mono font-bold text-slate-900">{CONFERENCE_INFO.bankDetails.ifscCode}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-400 block text-[9px] uppercase font-bold">MICR Code</span>
+                                <span className="font-mono font-bold text-slate-900">{CONFERENCE_INFO.bankDetails.micrCode}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Transaction Reference Input */}
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Transaction Reference / UTR Number *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. UBIN1234567890 / UPI Ref ID"
+                              value={form.transactionReference}
+                              onChange={(e) => setForm({ ...form, transactionReference: e.target.value })}
+                              className="w-full py-2.5 px-3 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-mono text-slate-900 uppercase"
+                            />
+                          </div>
+
+                          {/* Payment Proof File Upload */}
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Upload Payment Proof / Remittance Slip (PDF, PNG, JPG)
+                            </label>
+                            <input
+                              ref={paymentProofInputRef}
+                              type="file"
+                              accept=".pdf,.png,.jpg,.jpeg"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+                                  setPaymentProofFile({ name: file.name, size: `${sizeMb} MB` });
+                                  setForm(prev => ({ ...prev, paymentProofFileName: file.name }));
+                                }
+                              }}
+                              className="hidden"
+                            />
+                            <div 
+                              onClick={() => paymentProofInputRef.current?.click()}
+                              className="p-3 bg-white border-2 border-dashed border-slate-300 hover:border-red-400 rounded-xl text-center cursor-pointer transition-colors"
+                            >
+                              {paymentProofFile ? (
+                                <div className="flex items-center justify-between text-xs font-bold text-emerald-700 px-2">
+                                  <span className="truncate max-w-[200px]">{paymentProofFile.name} ({paymentProofFile.size})</span>
+                                  <span className="text-[10px] text-red-600 underline">Change</span>
+                                </div>
+                              ) : (
+                                <div className="text-xs text-slate-600 font-medium">
+                                  Click to upload payment screenshot or bank transfer receipt
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>

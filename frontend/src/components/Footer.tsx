@@ -51,18 +51,24 @@ export default function Footer() {
             <ul className="space-y-2 text-xs text-slate-400">
               <li><Link href="/" className="hover:text-red-400 transition-colors">Home Overview</Link></li>
               <li><Link href="/about" className="hover:text-red-400 transition-colors">About GUJCORR</Link></li>
-              <li><Link href="/schedule" className="hover:text-red-400 transition-colors font-bold text-red-400">3-Day Schedule</Link></li>
-              <li><Link href="/symposia" className="hover:text-red-400 transition-colors">14 Symposia</Link></li>
-              <li><Link href="/speakers" className="hover:text-red-400 transition-colors">Keynote Speakers</Link></li>
+              <li><Link href="/technical-sessions" className="hover:text-red-400 transition-colors font-medium text-teal-300">14 Technical Sessions</Link></li>
               <li><Link href="/call-for-papers" className="hover:text-red-400 transition-colors">Call for Papers</Link></li>
               <li><Link href="/registration" className="hover:text-red-400 transition-colors">Registration &amp; Passes</Link></li>
-              <li><Link href="/exhibition" className="hover:text-red-400 transition-colors">Exhibition Floor Plan</Link></li>
               <li><Link href="/sponsorship" className="hover:text-red-400 transition-colors">Sponsorship Tiers</Link></li>
-              <li><Link href="/awards" className="hover:text-red-400 transition-colors">Corrosion Awards</Link></li>
-              <li><Link href="/invoice" className="hover:text-red-400 transition-colors">Proforma Invoices</Link></li>
-              <li><Link href="/masterhome" className="hover:text-red-400 transition-colors">Master Home Portal</Link></li>
-              <li><Link href="/venue" className="hover:text-red-400 transition-colors">Venue &amp; Partner Hotels</Link></li>
+              <li><Link href="/souvenir" className="hover:text-red-400 transition-colors">Souvenir Advertising</Link></li>
+              <li><Link href="/committee" className="hover:text-red-400 transition-colors">Organizing Committee</Link></li>
+              <li><Link href="/advisory" className="hover:text-red-400 transition-colors">International Advisory</Link></li>
+              <li><Link href="/venue" className="hover:text-red-400 transition-colors">Venue &amp; Travel</Link></li>
               <li><Link href="/contact" className="hover:text-red-400 transition-colors">Contact Secretariat</Link></li>
+              <li>
+                <a 
+                  href="/GUJCORR_2027_Brochure.pdf" 
+                  download="GUJCORR_2027_Brochure.pdf"
+                  className="hover:text-red-400 transition-colors inline-flex items-center gap-1 text-amber-300 font-semibold"
+                >
+                  <FileText className="w-3 h-3" /> Download Brochure
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -91,16 +97,22 @@ export default function Footer() {
 
             <div className="pt-2 border-t border-slate-800">
               <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-1.5">
-                Key Deadlines
+                Important Deadlines
               </h4>
-              <p className="text-xs text-red-400 font-bold">
-                Abstracts Due: 30th Sept 2026
+              <p className="text-xs text-amber-400 font-bold">
+                Abstracts Due: 11 Oct 2026
               </p>
               <p className="text-xs text-slate-400">
-                Full Paper: 15th Oct 2026
+                Full Paper: 30 Oct 2026
               </p>
               <p className="text-xs text-slate-400">
-                Event: 18th – 20th Feb 2027
+                Presentation Upload: 15 Nov 2026
+              </p>
+              <p className="text-xs text-slate-400">
+                Author Reg. Deadline: 15 Dec 2026
+              </p>
+              <p className="text-xs text-teal-400 font-semibold pt-1">
+                Conference: 18–20 Feb 2027
               </p>
             </div>
           </div>
@@ -112,10 +124,13 @@ export default function Footer() {
             </h4>
 
             <div className="space-y-2 text-xs text-slate-400">
+              <div className="text-xs text-slate-300">
+                <strong>Convener:</strong> Mr. Hiren Panchal
+              </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                <a href="tel:+919988881674" className="hover:text-white font-bold">
-                  +91 99888 81674
+                <a href="tel:+919988881674" className="hover:text-white font-bold font-mono">
+                  +91 9988881674
                 </a>
               </div>
 
@@ -127,24 +142,22 @@ export default function Footer() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                <a href="mailto:iim.barodachapter@gmail.com" className="hover:text-white">
-                  iim.barodachapter@gmail.com
+                <Globe className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                <a href="https://www.gujcorr.org" className="hover:text-white">
+                  www.gujcorr.org
                 </a>
               </div>
 
               <div className="pt-2 border-t border-slate-800 text-[11px] space-y-1">
                 <div>
-                  <strong>AMPP Gujarat:</strong>{' '}
-                  <a href="https://www.amppgujarat.org" target="_blank" rel="noopener noreferrer" className="text-red-400 hover:underline">
-                    www.amppgujarat.org
+                  <strong>AMPP Global:</strong>{' '}
+                  <a href="https://www.ampp.org" target="_blank" rel="noopener noreferrer" className="text-red-400 hover:underline">
+                    www.ampp.org
                   </a>
                 </div>
                 <div>
                   <strong>IIM Baroda:</strong>{' '}
-                  <a href="https://www.iimbaroda.com" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">
-                    www.iimbaroda.com
-                  </a>
+                  <span className="text-slate-300">MS University of Baroda, Vadodara</span>
                 </div>
               </div>
             </div>
