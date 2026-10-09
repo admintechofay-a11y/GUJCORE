@@ -174,6 +174,7 @@ class GUJCORR_REST_API {
             'transaction_ref' => sanitize_text_field($params['transactionReference'] ?? $params['transactionRef'] ?? ''),
             'dietary_preference' => sanitize_text_field($params['dietaryPreference'] ?? 'Pure Vegetarian'),
             'status' => $status,
+            'payment_proof_url' => sanitize_text_field($params['paymentProofFileName'] ?? $params['paymentProofUrl'] ?? ''),
             'qr_token' => $qr_token,
             'created_at' => current_time('mysql')
         ));
@@ -274,6 +275,7 @@ class GUJCORR_REST_API {
             'abstract_text' => sanitize_textarea_field($params['abstract']),
             'keywords' => sanitize_text_field($params['keywords'] ?? ''),
             'co_authors' => sanitize_text_field($params['coAuthors'] ?? ''),
+            'is_presenting_author' => isset($params['isPresentingAuthor']) ? ($params['isPresentingAuthor'] ? 1 : 0) : 1,
             'status' => sanitize_text_field($params['status'] ?? 'Submitted'),
             'reviewer_score' => floatval($params['reviewScore'] ?? 0.00),
             'reviewer_comments' => sanitize_textarea_field($params['reviewComments'] ?? ''),

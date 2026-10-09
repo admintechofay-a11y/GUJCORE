@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: GUJCORR 2027 Core Engine
- * Plugin URI: https://www.amppgujarat.org/gujcorr2027
+ * Plugin URI: https://www.gujcorr.org
  * Description: Complete headless CMS backend, MySQL database schema, REST API endpoints, and event management dashboard for GUJCORR 2027 (AMPP Gujarat Global Conference & Expo on Corrosion).
  * Version: 1.0.0
  * Author: AMPP Gujarat Chapter & IIM Baroda Chapter
- * Author URI: https://www.iimbaroda.com
+ * Author URI: https://www.gujcorr.org
  * Text Domain: gujcorr
  * License: GPLv2 or later
  */

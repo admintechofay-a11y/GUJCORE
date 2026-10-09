@@ -9,8 +9,8 @@ INSERT INTO `wp_gujcorr_registrations`
 (`ticket_id`, `full_name`, `gender`, `designation`, `organization`, `department`, `email`, `mobile_number`, `country`, `state`, `city`, `address`, `category`, `membership_number`, `gstin`, `company_legal_name`, `base_amount`, `gst_amount`, `total_amount`, `payment_method`, `transaction_ref`, `dietary_preference`, `status`, `qr_token`)
 VALUES
 ('GUJ27-DEL-104928', 'Dr. Rajesh Sharma', 'Male', 'Senior Corrosion Specialist', 'Larsen & Toubro Ltd', 'Asset Integrity Dept', 'rajesh.sharma@company.com', '+91 98765 43210', 'India', 'Gujarat', 'Vadodara', 'Knowledge City, NH-8, Vadodara 390019', 'Non-Member Pass', '', '24AAACL0140P1ZT', 'Larsen & Toubro Limited', 6500.00, 1170.00, 7670.00, 'Bank Transfer / NEFT', 'NEFT-UBI-884920149', 'Pure Vegetarian', 'Confirmed', 'GUJCORR2027:GUJ27-DEL-104928'),
-('GUJ27-DEL-338291', 'Prof. (Dr.) Sunil Kahar', 'Male', 'Professor & Head', 'The M.S. University of Baroda', 'Metallurgical & Materials Engg', 'sunil.kahar@msubaroda.ac.in', '+91 99888 81674', 'India', 'Gujarat', 'Vadodara', 'Faculty of Technology & Engg, MSU Baroda', 'AMPP Member Pass', 'AMPP-GUJ-001', '', '', 4000.00, 720.00, 4720.00, 'Complimentary Organizer', 'AUTH-ORG-001', 'Pure Vegetarian', 'Confirmed', 'GUJCORR2027:GUJ27-DEL-338291'),
-('GUJ27-DEL-772910', 'Mr. Hiren Panchal', 'Male', 'Managing Director', 'Technocrat Instruments Pvt Ltd', 'Technical Sales', 'hiren.panchal@technocrat.com', '+91 99888 81674', 'India', 'Gujarat', 'Vadodara', 'Makarpura GIDC, Vadodara', 'IIM Member Pass', 'IIM-BAR-042', '24AAACT8819A1Z2', 'Technocrat Instruments', 4000.00, 720.00, 4720.00, 'UPI / QR', 'UPI-9920148201', 'Jain (No Root Veg)', 'Confirmed', 'GUJCORR2027:GUJ27-DEL-772910');
+('GUJ27-DEL-338291', 'Dr. Sunil Kahar', 'Male', 'Asst. Professor', 'The M.S. University of Baroda', 'Metallurgical & Materials Engg', 'sunil.kahar@msubaroda.ac.in', '+91 9988881674', 'India', 'Gujarat', 'Vadodara', 'Faculty of Technology & Engg, MSU Baroda', 'AMPP Member Pass', 'AMPP-GUJ-001', '', '', 4000.00, 720.00, 4720.00, 'Complimentary Organizer', 'AUTH-ORG-001', 'Pure Vegetarian', 'Confirmed', 'GUJCORR2027:GUJ27-DEL-338291'),
+('GUJ27-DEL-772910', 'Mr. Hiren Panchal', 'Male', 'AGM, Technology', 'Linde Engg India Pvt. Ltd.', 'Technology', 'hiren.panchal@linde.com', '+91 9988881674', 'India', 'Gujarat', 'Vadodara', 'Vadodara, Gujarat', 'IIM Member Pass', 'IIM-BAR-042', '24AAACT8819A1Z2', 'Linde Engineering India Pvt. Ltd.', 4000.00, 720.00, 4720.00, 'UPI / QR', 'UPI-9920148201', 'Jain (No Root Veg)', 'Confirmed', 'GUJCORR2027:GUJ27-DEL-772910');
 
 -- 2. Insert Initial Sample Papers
 INSERT INTO `wp_gujcorr_papers`
@@ -23,12 +23,12 @@ VALUES
 INSERT INTO `wp_gujcorr_booths`
 (`booth_number`, `type`, `area_sqm`, `dimensions`, `company_name`, `contact_person`, `designation`, `email`, `mobile_number`, `fascia_name`, `gstin`, `base_price`, `gst_amount`, `total_price`, `status`)
 VALUES
-('IS-01', 'Island Pavilion (36 sqm)', 36, '6m x 6m', 'TCR Advanced Engineering Pvt Ltd', 'Mr. Paresh Haribhakti', 'Managing Director', 'info@tcradvanced.com', '+91 265 265 7233', 'TCR ADVANCED ENGINEERING', '24AAACT1049Z1Z5', 350000.00, 63000.00, 413000.00, 'Booked'),
-('IS-02', 'Island Pavilion (36 sqm)', 36, '6m x 6m', 'Larsen & Toubro Limited', 'Asset Integrity Head', 'Chief Engineer', 'integrity@larsentoubro.com', '+91 22 6752 5656', 'LARSEN & TOUBRO HEAVY ENGG', '24AAACL0140P1ZT', 350000.00, 63000.00, 413000.00, 'Booked'),
-('IS-03', 'Island Pavilion (36 sqm)', 36, '6m x 6m', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 350000.00, 63000.00, 413000.00, 'Available'),
-('CR-01', 'Corner Shell (18 sqm)', 18, '6m x 3m', 'Berger Paints India Ltd', 'Regional Sales Manager', 'Manager', 'protective@bergerindia.com', '+91 33 2229 9724', 'BERGER PROTECTIVE COATINGS', '19AAACB2014A1Z8', 190000.00, 34200.00, 224200.00, 'Booked'),
-('ST-01', 'Standard Shell (9 sqm)', 9, '3m x 3m', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 95000.00, 17100.00, 112100.00, 'Available'),
-('ST-02', 'Standard Shell (9 sqm)', 9, '3m x 3m', 'Ujas Energy Solutions', 'Technical Director', 'Director', 'contact@ujas.com', '+91 265 244 5566', 'UJAS ENERGY & CORROSION', '24AAACU5512D1Z9', 95000.00, 17100.00, 112100.00, 'Booked');
+('EXH-12-01', 'Exhibition Booth (12 sqm)', 12, '3m x 4m', 'TCR Advanced Engineering Pvt Ltd', 'Mr. Paresh Haribhakti', 'Managing Director', 'info@tcradvanced.com', '+91 265 265 7233', 'TCR ADVANCED ENGINEERING', '24AAACT1049Z1Z5', 75000.00, 13500.00, 88500.00, 'Booked'),
+('EXH-12-02', 'Exhibition Booth (12 sqm)', 12, '3m x 4m', 'Larsen & Toubro Limited', 'Asset Integrity Head', 'Chief Engineer', 'integrity@larsentoubro.com', '+91 22 6752 5656', 'LARSEN & TOUBRO HEAVY ENGG', '24AAACL0140P1ZT', 75000.00, 13500.00, 88500.00, 'Booked'),
+('EXH-12-03', 'Exhibition Booth (12 sqm)', 12, '3m x 4m', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 75000.00, 13500.00, 88500.00, 'Available'),
+('EXH-09-01', 'Exhibition Booth (9 sqm)', 9, '3m x 3m', 'Berger Paints India Ltd', 'Regional Sales Manager', 'Manager', 'protective@bergerindia.com', '+91 33 2229 9724', 'BERGER PROTECTIVE COATINGS', '19AAACB2014A1Z8', 50000.00, 9000.00, 59000.00, 'Booked'),
+('EXH-09-02', 'Exhibition Booth (9 sqm)', 9, '3m x 3m', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 50000.00, 9000.00, 59000.00, 'Available'),
+('EXH-09-03', 'Exhibition Booth (9 sqm)', 9, '3m x 3m', 'Ujas Energy Solutions', 'Technical Director', 'Director', 'contact@ujas.com', '+91 265 244 5566', 'UJAS ENERGY & CORROSION', '24AAACU5512D1Z9', 50000.00, 9000.00, 59000.00, 'Booked');
 
 -- 4. Insert Initial Proforma Invoice
 INSERT INTO `wp_gujcorr_invoices`
