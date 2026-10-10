@@ -223,7 +223,7 @@ class GUJCORR_Admin {
                             <td><?php echo esc_html($b->contact_person); ?><?php if (!empty($b->designation)) echo '<br/><small>' . esc_html($b->designation) . '</small>'; ?></td>
                             <td><?php echo esc_html($b->email); ?><br/><small><?php echo esc_html($b->mobile_number); ?></small></td>
                             <td><?php echo esc_html($b->booth_size ?: '9 sqm'); ?></td>
-                            <td><strong>₹<?php echo esc_html(number_format($b->total_price ?: 112100, 2)); ?></strong></td>
+                            <td><strong>₹<?php echo esc_html(number_format($b->total_price ?: 59000, 2)); ?></strong></td>
                             <td>
                                 <span style="background:<?php echo ($b->status === 'Booked' || $b->status === 'Paid') ? '#dcfce7; color:#166534;' : '#fef3c7; color:#92400e;'; ?> padding:3px 8px; border-radius:4px; font-weight:700; font-size:11px;">
                                     <?php echo esc_html($b->status); ?>

@@ -431,12 +431,15 @@ class GUJCORR_REST_API {
         $fascia_name = sanitize_text_field($params['fasciaName'] ?? strtoupper($company_name));
         $gstin = sanitize_text_field($params['gstin'] ?? '');
         $booth_size = sanitize_text_field($params['boothSize'] ?? $params['stallType'] ?? '9 sqm');
-        $base_price = floatval($params['basePrice'] ?? 95000);
-        $gst_amount = floatval($params['gstAmount'] ?? 17100);
-        $total_price = floatval($params['totalPrice'] ?? 112100);
+        $area_sqm = intval($params['areaSqm'] ?? (strpos($booth_size, '12') !== false ? 12 : 9));
+        $dimensions = sanitize_text_field($params['dimensions'] ?? ($area_sqm == 12 ? '3m x 4m' : '3m x 3m'));
+        $type = sanitize_text_field($params['type'] ?? ('Exhibition Booth (' . $booth_size . ')'));
+        $base_price = floatval($params['basePrice'] ?? ($area_sqm == 12 ? 75000 : 50000));
+        $gst_amount = floatval($params['gstAmount'] ?? ($base_price * 0.18));
+        $total_price = floatval($params['totalPrice'] ?? ($base_price + $gst_amount));
         $status = sanitize_text_field($params['status'] ?? $params['paymentStatus'] ?? 'Reserved');
 
-        $inserted = $wpdb->insert($table, array(
+        $booth_data = array(
             'booth_number' => $booth_number,
             'company_name' => $company_name,
             'contact_person' => $contact_person,
@@ -446,12 +449,23 @@ class GUJCORR_REST_API {
             'fascia_name' => $fascia_name,
             'gstin' => $gstin,
             'booth_size' => $booth_size,
+            'type' => $type,
+            'area_sqm' => $area_sqm,
+            'dimensions' => $dimensions,
             'base_price' => $base_price,
             'gst_amount' => $gst_amount,
             'total_price' => $total_price,
             'status' => $status,
             'created_at' => current_time('mysql')
-        ));
+        );
+
+        $existing_id = $wpdb->get_var($wpdb->prepare("SELECT id FROM $table WHERE booth_number = %s", $booth_number));
+        if ($existing_id) {
+            unset($booth_data['created_at']);
+            $wpdb->update($table, $booth_data, array('id' => $existing_id));
+        } else {
+            $wpdb->insert($table, $booth_data);
+        }
 
         self::log_audit('RESERVE_BOOTH', 'Booth', $booth_number, "Reserved by $company_name ($status)", $email);
 
@@ -814,10 +828,27 @@ class GUJCORR_REST_API {
         $table = $wpdb->prefix . 'gujcorr_users';
         $user_row = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE email = %s OR username = %s", $email, $email), ARRAY_A);
 
-        if ($user_row && password_verify($password, $user_row['password_hash'])) {
-            if ($user_row['status'] !== 'Active') {
-                return new WP_Error('account_disabled', 'Account is deactivated. Contact Super Administrator.', array('status' => 403));
+        if ($user_row) {
+            $is_valid = false;
+            if (password_verify($password, $user_row['password_hash'])) {
+                $is_valid = true;
+            } elseif (strpos($user_row['password_hash'], 'pbkdf2:') === 0) {
+                // Support PBKDF2 hashes from Next.js frontend
+                $parts = explode(':', $user_row['password_hash']);
+                if (count($parts) === 3) {
+                    $salt = $parts[1];
+                    $expected = $parts[2];
+                    $calculated = hash_pbkdf2('sha512', $password, $salt, 10000, 128);
+                    if (hash_equals($expected, $calculated)) {
+                        $is_valid = true;
+                    }
+                }
             }
+
+            if ($is_valid) {
+                if ($user_row['status'] !== 'Active') {
+                    return new WP_Error('account_disabled', 'Account is deactivated. Contact Super Administrator.', array('status' => 403));
+                }
 
             $wpdb->update($table, array('last_login' => current_time('mysql')), array('id' => $user_row['id']));
             self::log_audit('LOGIN_SUCCESS', 'Auth', $user_row['email'], "Role: " . $user_row['role'], $user_row['email']);

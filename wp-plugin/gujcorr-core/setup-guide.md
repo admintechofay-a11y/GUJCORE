@@ -84,12 +84,32 @@ Upon activation, the plugin automatically creates:
 
 ## 5. Live Architecture & Endpoints
 
-| Endpoint | Method | Purpose |
-| :--- | :--- | :--- |
-| `/wp-json/gujcorr/v1/registrations` | `POST` | Delegate pass registration with 18% GST calculation & QR token |
-| `/wp-json/gujcorr/v1/registrations` | `GET` | Admin list of all registered delegates |
-| `/wp-json/gujcorr/v1/papers` | `POST` | Call for papers & 200-250 word abstract submission |
-| `/wp-json/gujcorr/v1/papers` | `GET` | Technical review list of submitted abstracts |
-| `/wp-json/gujcorr/v1/exhibitors` | `POST` | Booth space reservation inquiry |
-| `/wp-json/gujcorr/v1/contact` | `POST` | Secretariat contact message |
-| `/wp-json/gujcorr/v1/settings` | `GET` | CMS-configurable tariff, GST rates & deadlines |
+| Endpoint | Method | Access | Purpose |
+| :--- | :--- | :--- | :--- |
+| `/wp-json/gujcorr/v1/registrations` | `POST` | Public | Delegate pass registration with 18% GST calculation & QR token |
+| `/wp-json/gujcorr/v1/registrations` | `GET` | Admin / API Key | List of all registered delegates |
+| `/wp-json/gujcorr/v1/registrations/status` | `POST` | Admin / API Key | Update registration status (Confirmed / Cancelled) |
+| `/wp-json/gujcorr/v1/papers` | `POST` | Public | Call for papers & 200–250 word abstract submission |
+| `/wp-json/gujcorr/v1/papers` | `GET` | Admin / API Key | Technical review list of submitted abstracts |
+| `/wp-json/gujcorr/v1/papers/score` | `POST` | Admin / Reviewer | Record reviewer evaluation score & comments |
+| `/wp-json/gujcorr/v1/booths` | `GET` | Public | Retrieve real-time floor plan booth reservation status |
+| `/wp-json/gujcorr/v1/booths/reserve` | `POST` | Public | Reserve or book an exhibition booth |
+| `/wp-json/gujcorr/v1/awards/nominate` | `POST` | Public | Submit Corrosion Awareness Award nomination |
+| `/wp-json/gujcorr/v1/invoices` | `POST` | Public | Generate Proforma or Tax Invoice for corporate payments |
+| `/wp-json/gujcorr/v1/invoices` | `GET` | Admin / Finance | List generated corporate invoices & payment statuses |
+| `/wp-json/gujcorr/v1/contact` | `POST` | Public | Secretariat contact and general inquiries |
+| `/wp-json/gujcorr/v1/auth/login` | `POST` | Public | Authenticate staff/admin user (supports bcrypt & PBKDF2) |
+| `/wp-json/gujcorr/v1/admin/overview` | `GET` | Admin / API Key | Real-time counts (registrations, papers, booths, inquiries) |
+| `/wp-json/gujcorr/v1/admin/content` | `GET` | Public | CMS content configuration (deadlines, banners, tariffs) |
+| `/wp-json/gujcorr/v1/admin/content` | `POST` | Super Admin | Update CMS content configuration |
+| `/wp-json/gujcorr/v1/admin/audit-logs` | `GET` | Super Admin | Audit trail of security and transaction events |
+
+---
+
+## 6. One-Click Plugin Installation via Zip
+
+If uploading through WordPress Admin:
+1. Go to **WordPress Admin > Plugins > Add New Plugin > Upload Plugin**.
+2. Choose `wp-plugin/gujcorr-core.zip` (or `gujcorr.zip`).
+3. Click **Install Now**, then click **Activate Plugin**.
+4. The database tables and API endpoints are automatically initialized.

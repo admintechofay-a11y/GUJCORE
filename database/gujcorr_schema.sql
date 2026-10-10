@@ -93,6 +93,7 @@ CREATE TABLE `wp_gujcorr_booths` (
   `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   `booth_number` VARCHAR(50) NOT NULL UNIQUE,
   `type` VARCHAR(100) NOT NULL DEFAULT 'Standard Shell (9 sqm)',
+  `booth_size` VARCHAR(50) NOT NULL DEFAULT '9 sqm',
   `area_sqm` INT(11) NOT NULL DEFAULT 9,
   `dimensions` VARCHAR(50) DEFAULT '3m x 3m',
   `company_name` VARCHAR(255) DEFAULT NULL,
