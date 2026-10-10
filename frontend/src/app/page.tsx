@@ -27,7 +27,7 @@ import {
   Phone,
   Mail
 } from 'lucide-react';
-import { CONFERENCE_INFO, SYMPOSIA, SPEAKERS, REGISTRATION_TIERS } from '@/data/mockData';
+import { CONFERENCE_INFO, SYMPOSIA, SPEAKERS, REGISTRATION_TIERS, getSpeakerPhoto } from '@/data/mockData';
 
 export default function HomePage() {
   const router = useRouter();
@@ -288,11 +288,7 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {featuredSpeakers.map((spk) => {
-              const photoUrl = spk.id === 'spk-1' ? '/images/ampp/Dr-sunil-Kahar.jpg'
-                : spk.id === 'spk-2' ? '/images/ampp/ZuberKhan.jpg'
-                : spk.id === 'spk-3' ? '/images/ampp/HirenPanchal.jpg'
-                : spk.id === 'spk-4' ? '/images/ampp/PareshHaribhakti.jpg'
-                : null;
+              const photoUrl = getSpeakerPhoto(spk);
 
               return (
                 <div

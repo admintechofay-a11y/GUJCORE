@@ -19,6 +19,7 @@ export interface Speaker {
   initials: string;
   color: string;
   symposium?: string;
+  photo?: string;
 }
 
 export interface RegistrationTier {

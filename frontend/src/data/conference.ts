@@ -415,7 +415,7 @@ export const ORGANIZING_COMMITTEE = {
     { name: "Mr. Siddhesh Jambekar", role: "Member", designation: "Senior Manager (Metallurgy)", org: "GSFC Ltd." },
     { name: "Dr. B J Chauhan", role: "Member", designation: "Ex-Head, Met & Mats. Engg. Dept.", org: "The M.S. University of Baroda" },
     { name: "Mr. Harsh Zala", role: "Member", designation: "Asset Integrity Specialist", org: "AsInt, Inc. Ahmedabad" },
-    { name: "Mr. Rajkumar Kashyap", role: "Member", designation: "General Manager", org: "Hereru Groups", photo: "/images/ampp/rajkumar-kashyap.jpg" },
+    { name: "Mr. Rajkumar Kashyap", role: "Member", designation: "General Manager", org: "Hereru Groups" },
     { name: "Mr. Manoranjan Mahapatra", role: "Member", designation: "Sr. Engineer, QA/QC", org: "Linde Engineering India Pvt. Ltd." },
     { name: "Dr. Daulat Sharma", role: "Member", designation: "Asso. Professor", org: "GEC Gandhinagar" },
     { name: "Dr. Krunal Patel", role: "Member", designation: "Temp. Asst. Professor, Met. & Mats. Engg. Dept.", org: "The M.S. University of Baroda" },
@@ -782,7 +782,7 @@ export const PAST_SUPPORTERS = [
   { name: "ARYA Industrial Solutions", tag: "ARYA", category: "Surface Protection & Coatings", logo: "/images/ampp/arya.png" },
   { name: "L&T Heavy Engineering", tag: "L&T HEAVY ENG", category: "Heavy Engineering & Pressure Equipment", logo: "/images/ampp/lt.png" },
   { name: "Mett-Bio", tag: "METT-BIO", category: "Testing & Certification Services", logo: "/images/ampp/mett-bio.png" },
-  { name: "Heeru Groups", tag: "HEERU", category: "Specialty Industrial Chemicals", logo: "/images/ampp/rajkumar-kashyap.jpg" },
+  { name: "Heeru Groups", tag: "HEERU", category: "Specialty Industrial Chemicals" },
   { name: "Industrial NDT", tag: "INDUSTRIAL NDT", category: "Non-Destructive Testing Services", logo: "/images/ampp/industrial-ndt.png" },
   { name: "TechnoCrat Solutions", tag: "TECHNOCRAT", category: "Coating Systems & Inspection", logo: "/images/ampp/technocrat.png" },
   { name: "Amchem Products Pvt. Ltd.", tag: "AMCHEM", category: "Polyurethane Coatings & Linings", logo: "/images/ampp/amchem.png" },
@@ -819,6 +819,23 @@ export const INITIAL_BOOTHS: ExhibitorBooth[] = [
 ];
 
 /**
+ * Robust helper to obtain the verified photo for a speaker or committee member by name/photo
+ */
+export function getSpeakerPhoto(speaker: { id?: string; name: string; photo?: string } | null | undefined): string | null {
+  if (!speaker) return null;
+  if (speaker.photo) return speaker.photo;
+
+  const n = speaker.name.toLowerCase();
+  if (n.includes('sunil') && n.includes('kahar')) return '/images/ampp/Dr-sunil-Kahar.jpg';
+  if (n.includes('zuber') && n.includes('khan')) return '/images/ampp/ZuberKhan.jpg';
+  if (n.includes('hiren') && n.includes('panchal')) return '/images/ampp/HirenPanchal.jpg';
+  if (n.includes('paresh') || n.includes('haribhakti')) return '/images/ampp/PareshHaribhakti.jpg';
+  if (n.includes('dhruv') || n.includes('pandya')) return '/images/ampp/DhruvPandya.jpg';
+
+  return null;
+}
+
+/**
  * =========================================================================
  * DISTINGUISHED SPEAKERS & CHAIRS (MOCK/INITIAL PROGRAM)
  * =========================================================================
@@ -833,6 +850,7 @@ export const SPEAKERS: Speaker[] = [
     category: "Keynote",
     initials: "SK",
     color: "bg-red-700 text-white",
+    photo: "/images/ampp/Dr-sunil-Kahar.jpg",
     bio: "Assistant Professor at The M.S. University of Baroda with pioneering research in corrosion kinetics, surface engineering, and metallurgy.",
     symposium: "Advanced Alloys & Corrosion Science"
   },
@@ -845,6 +863,7 @@ export const SPEAKERS: Speaker[] = [
     category: "Keynote",
     initials: "ZK",
     color: "bg-teal-700 text-white",
+    photo: "/images/ampp/ZuberKhan.jpg",
     bio: "Managing Director at Consultech, leading industrial corrosion prevention, plant integrity, and engineering consultancy.",
     symposium: "Oil, Gas & Petrochemical Corrosion"
   },
@@ -857,11 +876,25 @@ export const SPEAKERS: Speaker[] = [
     category: "Keynote",
     initials: "HP",
     color: "bg-blue-800 text-white",
+    photo: "/images/ampp/HirenPanchal.jpg",
     bio: "AGM, Technology at Linde Engineering India, with extensive background in process plant metallurgy, asset integrity, and corrosion mitigation.",
     symposium: "Asset Integrity Management Systems"
   },
   {
     id: "spk-4",
+    name: "Mr. Paresh Haribhakti",
+    designation: "Managing Director & Member Delegate",
+    organization: "TCR Advanced Engineering Pvt. Ltd.",
+    role: "Plenary Speaker",
+    category: "Plenary",
+    initials: "PH",
+    color: "bg-amber-700 text-white",
+    photo: "/images/ampp/PareshHaribhakti.jpg",
+    bio: "Managing Director at TCR Advanced Engineering, leading failure analyst and industrial forensic investigator with hundreds of evaluations across refineries, offshore rigs, and chemical plants globally.",
+    symposium: "Failure Analysis & NDT Inspection"
+  },
+  {
+    id: "spk-5",
     name: "Mr. Dhruv Pandya",
     designation: "Founder & MD",
     organization: "Arya Industrial Solutions",
@@ -869,11 +902,24 @@ export const SPEAKERS: Speaker[] = [
     category: "Technical",
     initials: "DP",
     color: "bg-rose-700 text-white",
+    photo: "/images/ampp/DhruvPandya.jpg",
     bio: "Founder & MD of Arya Industrial Solutions, expert in specialized industrial surface protection, coatings, and linings.",
     symposium: "Industrial Coatings, Linings & Cladding"
   },
   {
-    id: "spk-5",
+    id: "spk-6",
+    name: "Mr. Rajkumar Kashyap",
+    designation: "General Manager",
+    organization: "Hereru Groups",
+    role: "Industrial Speaker",
+    category: "Invited",
+    initials: "RK",
+    color: "bg-slate-800 text-white",
+    bio: "General Manager at Hereru Groups, senior industry leader overseeing specialty chemicals, corrosion inhibitors, and protective formulations for heavy industrial infrastructure.",
+    symposium: "Corrosion & Inhibitors"
+  },
+  {
+    id: "spk-7",
     name: "Prof. (Dr.) Bhalchandra Bhange",
     designation: "Hon. Vice Chancellor",
     organization: "The M S University of Baroda",
@@ -885,7 +931,7 @@ export const SPEAKERS: Speaker[] = [
     symposium: "Inaugural Keynote Address"
   },
   {
-    id: "spk-6",
+    id: "spk-8",
     name: "Prof. (Dr.) U. Kamachi Mudali",
     designation: "Hon. Vice Chancellor",
     organization: "Homi Bhabha National Institute (HBNI), Mumbai",
@@ -897,7 +943,7 @@ export const SPEAKERS: Speaker[] = [
     symposium: "Advanced Materials & Nuclear Integrity"
   },
   {
-    id: "spk-7",
+    id: "spk-9",
     name: "Dr. Amir Eliezer",
     designation: "Director, Corrosion Research Center",
     organization: "Nano-Bio & Advanced Materials, Israel",
@@ -909,7 +955,7 @@ export const SPEAKERS: Speaker[] = [
     symposium: "New Trends & Nanomaterials in Corrosion Control"
   },
   {
-    id: "spk-8",
+    id: "spk-10",
     name: "Juan Caballero",
     designation: "Founder & Principal Consultant",
     organization: "Naval & Industrial Solutions, Panama",
@@ -921,7 +967,7 @@ export const SPEAKERS: Speaker[] = [
     symposium: "Corrosion in Ships & Offshore Facilities"
   },
   {
-    id: "spk-9",
+    id: "spk-11",
     name: "Dr. Nafiseh Ebrahimi",
     designation: "Director, AMPP Associate Research Officer",
     organization: "National Research Council Canada",
@@ -933,7 +979,7 @@ export const SPEAKERS: Speaker[] = [
     symposium: "Corrosion Monitoring & Electrochemical Testing"
   },
   {
-    id: "spk-10",
+    id: "spk-12",
     name: "Mr. Subesh Kumar",
     designation: "Chief GM",
     organization: "Engineers India Ltd., Govt. of India, Vadodara",

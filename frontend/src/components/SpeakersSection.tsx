@@ -2,17 +2,8 @@
 
 import React, { useState } from 'react';
 import { Award, User, Building, X, ExternalLink } from 'lucide-react';
-import { SPEAKERS } from '../data/mockData';
+import { SPEAKERS, getSpeakerPhoto } from '../data/mockData';
 import { Speaker } from '../types';
-
-const speakerPhotos: Record<string, string> = {
-  'spk-1': '/images/ampp/Dr-sunil-Kahar.jpg',
-  'spk-2': '/images/ampp/ZuberKhan.jpg',
-  'spk-3': '/images/ampp/HirenPanchal.jpg',
-  'spk-4': '/images/ampp/PareshHaribhakti.jpg',
-  'spk-5': '/images/ampp/DhruvPandya.jpg',
-  'spk-6': '/images/ampp/rajkumar-kashyap.jpg',
-};
 
 export default function SpeakersSection() {
   const [selectedSpeaker, setSelectedSpeaker] = useState<Speaker | null>(null);
@@ -37,7 +28,7 @@ export default function SpeakersSection() {
         {/* Speakers Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {SPEAKERS.map((spk) => {
-            const photoUrl = speakerPhotos[spk.id];
+            const photoUrl = getSpeakerPhoto(spk);
 
             return (
               <div
@@ -107,9 +98,9 @@ export default function SpeakersSection() {
               </button>
 
               <div className="flex items-center gap-4 mb-5">
-                {speakerPhotos[selectedSpeaker.id] ? (
+                {getSpeakerPhoto(selectedSpeaker) ? (
                   <img
-                    src={speakerPhotos[selectedSpeaker.id]}
+                    src={getSpeakerPhoto(selectedSpeaker)!}
                     alt={selectedSpeaker.name}
                     className="w-18 h-18 rounded-2xl object-cover border-2 border-slate-200 shadow-md"
                   />

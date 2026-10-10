@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Users, Shield, Award, CheckCircle2, Globe, ArrowRight } from 'lucide-react';
-import { ORGANIZING_COMMITTEE, INTERNATIONAL_ADVISORY } from '@/data/conference';
+import { ORGANIZING_COMMITTEE, INTERNATIONAL_ADVISORY, getSpeakerPhoto } from '@/data/conference';
 
 export default function CommitteeSection() {
   return (
@@ -86,35 +86,50 @@ export default function CommitteeSection() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {ORGANIZING_COMMITTEE.members.map((member, idx) => (
-              <div
-                key={idx}
-                className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs hover:border-teal-300 hover:shadow-xs transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-mono text-slate-400">#{idx + 1}</span>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded">
-                      Member
-                    </span>
+            {ORGANIZING_COMMITTEE.members.map((member, idx) => {
+              const photo = member.photo || getSpeakerPhoto(member);
+
+              return (
+                <div
+                  key={idx}
+                  className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs hover:border-teal-300 hover:shadow-xs transition-all flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[10px] font-mono text-slate-400">#{idx + 1}</span>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded">
+                        Member
+                      </span>
+                    </div>
+
+                    <div className="flex items-start gap-3 mb-2">
+                      {photo && (
+                        <img
+                          src={photo}
+                          alt={member.name}
+                          className="w-11 h-11 rounded-xl object-cover border border-slate-200 shadow-2xs shrink-0"
+                          onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+                        />
+                      )}
+                      <div>
+                        <h5 className="font-bold text-slate-900 text-sm leading-snug">
+                          {member.name}
+                        </h5>
+                        {member.designation && (
+                          <span className="text-[11px] text-teal-700 font-semibold block mt-0.5">
+                            {member.designation}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      {member.org}
+                    </p>
                   </div>
-
-                  <h5 className="font-bold text-slate-900 text-sm leading-snug">
-                    {member.name}
-                  </h5>
-                  
-                  {member.designation && (
-                    <span className="text-[11px] text-teal-700 font-semibold block mt-1">
-                      {member.designation}
-                    </span>
-                  )}
-
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    {member.org}
-                  </p>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
