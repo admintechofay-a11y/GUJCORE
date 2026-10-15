@@ -388,7 +388,7 @@ export const ORGANIZING_COMMITTEE = {
     {
       name: "Mr. Hiren Panchal",
       role: "Convener",
-      designation: "AGM, Technology",
+      designation: "AGM, Material Technology",
       org: "Linde Engg India Pvt. Ltd.",
       photo: "/images/ampp/HirenPanchal.jpg"
     },
@@ -870,14 +870,14 @@ export const SPEAKERS: Speaker[] = [
   {
     id: "spk-3",
     name: "Mr. Hiren Panchal",
-    designation: "AGM, Technology",
+    designation: "AGM, Material Technology",
     organization: "Linde Engg India Pvt. Ltd.",
     role: "Convener",
     category: "Keynote",
     initials: "HP",
     color: "bg-blue-800 text-white",
     photo: "/images/ampp/HirenPanchal.jpg",
-    bio: "AGM, Technology at Linde Engineering India, with extensive background in process plant metallurgy, asset integrity, and corrosion mitigation.",
+    bio: "AGM, Material Technology at Linde Engineering India, with extensive background in process plant metallurgy, asset integrity, and corrosion mitigation.",
     symposium: "Asset Integrity Management Systems"
   },
   {
