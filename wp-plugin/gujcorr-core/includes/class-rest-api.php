@@ -163,6 +163,13 @@ class GUJCORR_REST_API {
             'callback' => array(__CLASS__, 'create_admin_user'),
             'permission_callback' => array(__CLASS__, 'check_admin_permissions')
         ));
+
+        // 9. Photo Gallery & Symposia Archive
+        register_rest_route($namespace, '/gallery', array(
+            'methods' => 'GET',
+            'callback' => array(__CLASS__, 'get_gallery'),
+            'permission_callback' => '__return_true'
+        ));
     }
 
     public static function check_admin_permissions($request) {
@@ -928,6 +935,63 @@ class GUJCORR_REST_API {
                 'fullName' => $full_name,
                 'role' => $assigned_role
             )
+        ));
+    }
+
+    public static function get_gallery($request) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'gujcorr_gallery';
+
+        $category = $request->get_param('category');
+        $featured = $request->get_param('featured');
+        $search = $request->get_param('search');
+
+        // Check if table exists
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table'") === $table;
+        if (!$table_exists) {
+            return rest_ensure_response(array(
+                'success' => true,
+                'total' => 0,
+                'photos' => array()
+            ));
+        }
+
+        $where = array('1=1');
+        $params = array();
+
+        if (!empty($category) && $category !== 'all') {
+            if ($category === 'cultural') {
+                $where[] = "(category = 'cultural' OR category = 'committee')";
+            } else {
+                $where[] = "category = %s";
+                $params[] = sanitize_text_field($category);
+            }
+        }
+
+        if ($featured === 'true' || $featured === '1') {
+            $where[] = "is_featured = 1";
+        }
+
+        if (!empty($search)) {
+            $like = '%' . $wpdb->esc_like(sanitize_text_field($search)) . '%';
+            $where[] = "(title LIKE %s OR description LIKE %s OR event LIKE %s OR tags LIKE %s)";
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        $sql = "SELECT * FROM $table WHERE " . implode(' AND ', $where) . " ORDER BY display_order ASC, id ASC";
+        if (!empty($params)) {
+            $sql = $wpdb->prepare($sql, $params);
+        }
+
+        $photos = $wpdb->get_results($sql, ARRAY_A);
+
+        return rest_ensure_response(array(
+            'success' => true,
+            'total' => count($photos),
+            'photos' => $photos
         ));
     }
 }

@@ -403,7 +403,7 @@ export const ORGANIZING_COMMITTEE = {
   members: [
     { name: "Mr. Paresh Haribhakti", role: "Member", designation: "MD", org: "TCR Engg Pvt. Ltd.", photo: "/images/ampp/PareshHaribhakti.jpg" },
     { name: "Mr. Santosh Gupte", role: "Member", designation: "Director", org: "Geo Metals & Materials Analysis (a division of GDRPL)" },
-    { name: "Dr. Vandana J. Rao", role: "Member", designation: "Head, Met & Mats. Engg. Dept.", org: "The M.S. University of Baroda" },
+    { name: "Dr. Vandana J. Rao", role: "Member", designation: "Head, Met & Mats. Engg. Dept.", org: "The M.S. University of Baroda", photo: "/images/gallery/thumbs/484521358_2416636438687700_7829528360574518461_n.jpg" },
     { name: "Mr. Sumit Kainthola", role: "Member", designation: "Director", org: "Industrial NDT" },
     { name: "Mr. Viral Patel", role: "Member", designation: "Technical Director", org: "Integrated Corrosion and Coating Consultant" },
     { name: "Mr. Digant Joshi", role: "Member", designation: "MD", org: "Tough Coating" },

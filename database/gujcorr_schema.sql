@@ -218,4 +218,29 @@ CREATE TABLE `wp_gujcorr_users` (
   KEY `idx_user_role` (`role`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 10. Photo Gallery & Symposia Archive Table
+DROP TABLE IF EXISTS `wp_gujcorr_gallery`;
+CREATE TABLE `wp_gujcorr_gallery` (
+  `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `photo_code` VARCHAR(50) NOT NULL UNIQUE,
+  `filename` VARCHAR(255) NOT NULL,
+  `title` VARCHAR(255) NOT NULL,
+  `category` VARCHAR(50) NOT NULL,
+  `event` VARCHAR(150) NOT NULL,
+  `description` TEXT DEFAULT NULL,
+  `tags` VARCHAR(255) DEFAULT NULL,
+  `image_url` VARCHAR(255) NOT NULL,
+  `thumb_url` VARCHAR(255) NOT NULL,
+  `original_url` VARCHAR(255) NOT NULL,
+  `width` INT(11) DEFAULT 1920,
+  `height` INT(11) DEFAULT 1280,
+  `is_featured` TINYINT(1) DEFAULT 0,
+  `display_order` INT(11) DEFAULT 0,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_gallery_category` (`category`),
+  KEY `idx_gallery_featured` (`is_featured`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
+

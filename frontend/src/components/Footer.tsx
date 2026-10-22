@@ -51,6 +51,7 @@ export default function Footer() {
             <ul className="space-y-2 text-xs text-slate-400">
               <li><Link href="/" className="hover:text-red-400 transition-colors">Home Overview</Link></li>
               <li><Link href="/about" className="hover:text-red-400 transition-colors">About GUJCORR</Link></li>
+              <li><Link href="/gallery" className="hover:text-red-400 transition-colors font-semibold text-amber-300">Photo Gallery (Symposia Archive)</Link></li>
               <li><Link href="/technical-sessions" className="hover:text-red-400 transition-colors font-medium text-teal-300">14 Technical Sessions</Link></li>
               <li><Link href="/call-for-papers" className="hover:text-red-400 transition-colors">Call for Papers</Link></li>
               <li><Link href="/registration" className="hover:text-red-400 transition-colors">Registration &amp; Passes</Link></li>

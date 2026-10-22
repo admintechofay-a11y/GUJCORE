@@ -25,7 +25,8 @@ import {
   LogIn,
   LogOut,
   User,
-  Clock
+  Clock,
+  Camera
 } from 'lucide-react';
 import { useAuth, cleanFullName } from '@/context/AuthContext';
 import BrochureModal from './BrochureModal';
@@ -66,12 +67,14 @@ export default function Navbar() {
     { name: 'Sessions', href: '/technical-sessions' },
     { name: 'Call for Papers', href: '/call-for-papers' },
     { name: 'Registration', href: '/registration' },
+    { name: 'Gallery', href: '/gallery' },
     { name: 'Sponsorship', href: '/sponsorship' },
     { name: 'Souvenir', href: '/souvenir' },
   ];
 
   // More dropdown items
   const secondaryLinks = [
+    { name: 'Photo Gallery', href: '/gallery', icon: Camera },
     { name: 'Organizing Committee', href: '/committee', icon: Users },
     { name: 'International Advisory', href: '/advisory', icon: Award },
     { name: 'Past Supporters', href: '/supporters', icon: Building2 },
@@ -85,6 +88,7 @@ export default function Navbar() {
   const allMobileLinks = [
     { name: 'Home', href: '/', icon: Building2 },
     { name: 'About GUJCORR', href: '/about', icon: Shield },
+    { name: 'Photo Gallery', href: '/gallery', icon: Camera },
     { name: '14 Technical Sessions', href: '/technical-sessions', icon: Layers },
     { name: 'Call for Papers', href: '/call-for-papers', icon: FileText },
     { name: 'Registration & Passes', href: '/registration', icon: Calendar },

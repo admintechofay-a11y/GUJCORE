@@ -224,5 +224,31 @@ class GUJCORR_DB {
             KEY idx_role (role)
         ) $charset_collate;";
         dbDelta($sql_users);
+
+        // 10. Photo Gallery & Symposia Archive Table
+        $table_gallery = $wpdb->prefix . 'gujcorr_gallery';
+        $sql_gallery = "CREATE TABLE $table_gallery (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            photo_code varchar(50) NOT NULL,
+            filename varchar(255) NOT NULL,
+            title varchar(255) NOT NULL,
+            category varchar(50) NOT NULL,
+            event varchar(150) NOT NULL,
+            description text,
+            tags varchar(255) DEFAULT '',
+            image_url varchar(255) NOT NULL,
+            thumb_url varchar(255) NOT NULL,
+            original_url varchar(255) NOT NULL,
+            width int(11) DEFAULT 1920,
+            height int(11) DEFAULT 1280,
+            is_featured tinyint(1) DEFAULT 0,
+            display_order int(11) DEFAULT 0,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY photo_code (photo_code),
+            KEY idx_category (category),
+            KEY idx_featured (is_featured)
+        ) $charset_collate;";
+        dbDelta($sql_gallery);
     }
 }

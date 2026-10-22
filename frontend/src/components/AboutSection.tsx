@@ -18,8 +18,10 @@ import {
   CheckCircle2,
   Award,
   BookOpen,
-  Users
+  Users,
+  Camera
 } from 'lucide-react';
+import Image from 'next/image';
 import { CONFERENCE_INFO } from '@/data/conference';
 
 export default function AboutSection() {
@@ -282,6 +284,75 @@ export default function AboutSection() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Visual Heritage & Past Symposia Archive */}
+        <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white p-8 sm:p-12 rounded-3xl border border-slate-800 shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+            <div className="space-y-4 max-w-2xl">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/20 px-3 py-1 rounded-full inline-flex items-center gap-1.5">
+                <Camera className="w-3.5 h-3.5" />
+                Official Symposia Archive
+              </span>
+              <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                Explore the Visual History of <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-rose-400 to-amber-400">CORSYM &amp; RSCCM 2024</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                Take a look at the dignitaries, lamp lighting ceremonies, souvenir releases with Prof. Amir Eliezer and Ms. Helena Seelinger, keynote presentations by Dr. Sunil Kahar and Dr. Vandana Rao, and delegate sessions captured during past symposiums.
+              </p>
+              <div className="pt-2 flex flex-wrap items-center gap-3">
+                <Link
+                  href="/gallery"
+                  className="px-5 py-3 bg-red-600 hover:bg-red-700 text-white text-xs font-extrabold rounded-xl shadow-md transition-all flex items-center gap-1.5"
+                >
+                  <span>Open Full Photo Gallery</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  href="/gallery?category=corsym"
+                  className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-colors"
+                >
+                  CORSYM 2024 Photos
+                </Link>
+                <Link
+                  href="/gallery?category=rsccm"
+                  className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-colors"
+                >
+                  RSCCM 2024 Photos
+                </Link>
+              </div>
+            </div>
+
+            {/* Quick 3-photo stack preview */}
+            <div className="grid grid-cols-3 gap-2.5 max-w-md w-full shrink-0">
+              <div className="relative aspect-[3/2] rounded-xl overflow-hidden border border-slate-700 shadow-md">
+                <Image
+                  src="/images/gallery/thumbs/482007172_967586232149791_5901845811540117665_n.jpg"
+                  alt="Souvenir Release"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div className="relative aspect-[3/2] rounded-xl overflow-hidden border border-slate-700 shadow-md">
+                <Image
+                  src="/images/gallery/thumbs/6Q8A8817.JPG"
+                  alt="Lamp Lighting"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div className="relative aspect-[3/2] rounded-xl overflow-hidden border border-slate-700 shadow-md">
+                <Image
+                  src="/images/gallery/thumbs/484521358_2416636438687700_7829528360574518461_n.jpg"
+                  alt="Keynote Address"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            </div>
           </div>
         </div>
 

@@ -25,15 +25,20 @@ import {
   Calendar,
   MessageSquare,
   Phone,
-  Mail
+  Mail,
+  Camera,
+  ZoomIn
 } from 'lucide-react';
+import Image from 'next/image';
 import { CONFERENCE_INFO, SYMPOSIA, SPEAKERS, REGISTRATION_TIERS, getSpeakerPhoto } from '@/data/mockData';
+import { getFeaturedGalleryItems } from '@/data/gallery';
 
 export default function HomePage() {
   const router = useRouter();
 
   const featuredSymposia = SYMPOSIA.slice(0, 6);
   const featuredSpeakers = SPEAKERS.slice(0, 4);
+  const featuredGallery = getFeaturedGalleryItems().slice(0, 6);
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-red-500 selection:text-white">
@@ -405,6 +410,101 @@ export default function HomePage() {
             ))}
           </div>
 
+        </div>
+      </section>
+
+      {/* 9.5. Visual Highlights & Photo Gallery Showcase */}
+      <section className="py-16 sm:py-20 bg-slate-950 text-white relative overflow-hidden border-b border-slate-800">
+        <div className="absolute inset-0 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:24px_24px] opacity-20 pointer-events-none" />
+        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/20 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-2">
+                <Camera className="w-3.5 h-3.5" />
+                Archival Photo Gallery • Symposia Highlights
+              </span>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight">
+                Glimpses of <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-rose-400 to-amber-400">Past Symposia</span>
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
+                Reliving CORSYM 2024 and RSCCM 2024 — organized by AMPP India Chapter, The M.S. University of Baroda, and IIM Baroda Chapter.
+              </p>
+            </div>
+
+            <Link
+              href="/gallery"
+              className="inline-flex items-center gap-2 text-xs sm:text-sm font-extrabold text-white bg-red-600 hover:bg-red-700 px-5 py-3 rounded-xl transition-all shadow-md hover:shadow-red-600/20 self-start md:self-auto shrink-0"
+            >
+              <span>Explore Photo Gallery</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featuredGallery.map((photo) => (
+              <Link
+                key={photo.id}
+                href="/gallery"
+                className="group relative bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-md hover:border-slate-700 transition-all duration-300 flex flex-col"
+              >
+                <div className="relative w-full aspect-[16/10] overflow-hidden bg-slate-950">
+                  <Image
+                    src={photo.thumbSrc}
+                    alt={photo.title}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
+                  
+                  <div className="absolute top-3 left-3">
+                    <span className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold bg-slate-900/80 backdrop-blur-md text-amber-400 border border-amber-400/30">
+                      {photo.categoryLabel}
+                    </span>
+                  </div>
+
+                  <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="px-2 py-1 rounded-lg text-[11px] font-bold bg-white/90 text-slate-900 flex items-center gap-1 shadow-sm">
+                      <ZoomIn className="w-3 h-3" /> View
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-4 flex-1 flex flex-col justify-between">
+                  <div>
+                    <div className="text-[11px] font-bold text-red-400 mb-1">
+                      {photo.event}
+                    </div>
+                    <h3 className="font-extrabold text-white text-sm line-clamp-1 group-hover:text-amber-400 transition-colors">
+                      {photo.title}
+                    </h3>
+                    <p className="text-xs text-slate-400 line-clamp-2 mt-1 leading-relaxed">
+                      {photo.description}
+                    </p>
+                  </div>
+
+                  <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500">
+                    <span>{photo.tags.slice(0, 2).join(' • ')}</span>
+                    <span className="text-amber-400 font-semibold group-hover:translate-x-0.5 transition-transform">
+                      View in Gallery →
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <Link
+              href="/gallery"
+              className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors"
+            >
+              <span>Click to view the complete photo archive with high-resolution lightbox &amp; original DSLR downloads</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
       </section>
 
