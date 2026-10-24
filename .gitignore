@@ -32,3 +32,6 @@ Thumbs.db
 __pycache__/
 *.pyc
 *.pyo
+
+# Temporary Uploads & Transfer Archives
+WhatsApp*.zip
