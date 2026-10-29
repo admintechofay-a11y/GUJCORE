@@ -94,7 +94,7 @@ export default function BrochureModal({ isOpen, onClose }: BrochureModalProps) {
               <div>
                 <div className="font-bold text-slate-900">Conference Dates</div>
                 <div className="text-slate-600 font-medium">18–20 February 2027</div>
-                <div className="text-[11px] text-slate-500 font-medium">Abstracts Deadline: 11 October 2026</div>
+                <div className="text-[11px] text-slate-500 font-medium">Abstracts Deadline: 28 October 2026</div>
               </div>
             </div>
 

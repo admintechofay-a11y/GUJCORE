@@ -160,10 +160,10 @@ function createInitialStore(): StoreData {
       badgeText: 'GUJCORR 2027 • Vadodara, Gujarat'
     },
     deadlines: {
-      abstractSubmission: '11th October 2026',
-      fullPaperSubmission: '30th October 2026',
-      presentationSubmission: '15th November 2026',
-      authorRegistrationDeadline: '15th December 2026',
+      abstractSubmission: '28th October 2026',
+      fullPaperSubmission: '25th November 2026',
+      presentationSubmission: '15th December 2026',
+      authorRegistrationDeadline: '25th December 2026',
       conferenceDates: '18th – 20th February 2027'
     }
   };

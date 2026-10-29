@@ -122,7 +122,7 @@ export function getWelcomeEmailHtml(data: {
 
         <p><strong>Next Steps:</strong></p>
         <ul>
-          <li><strong>Authors:</strong> Submit your 200–250 word research abstract across 14 symposia before 30th Sept 2026.</li>
+          <li><strong>Authors:</strong> Submit your 200–250 word research abstract across 14 symposia before 28th October 2026.</li>
           <li><strong>Delegates:</strong> Reserve your conference pass and download your Proforma GST Invoice.</li>
         </ul>
 
@@ -191,8 +191,8 @@ export function getPaperSubmissionEmailHtml(data: {
         <p><strong>Important Key Dates for Authors:</strong></p>
         <ul>
           <li><strong>Peer Review Notification:</strong> 31st October 2026</li>
-          <li><strong>Full Camera-Ready Manuscript Due:</strong> 30th November 2026</li>
-          <li><strong>Delegate Pass Registration Deadline:</strong> 15th December 2026 (Required to confirm podium presentation slot)</li>
+          <li><strong>Full Camera-Ready Manuscript Due:</strong> 25th November 2026</li>
+          <li><strong>Delegate Pass Registration Deadline:</strong> 25th December 2026 (Required to confirm podium presentation slot)</li>
         </ul>
 
         <div style="text-align: center;">

@@ -19,7 +19,7 @@ export default function AnnouncementBar() {
               Alert
             </span>
             <span className="truncate">
-              <strong>Abstracts Due:</strong> 30th Sept 2026 &nbsp;|&nbsp; 
+              <strong>Abstracts Due:</strong> 28th Oct 2026 &nbsp;|&nbsp; 
               <span className="hidden sm:inline"> <strong>Conference:</strong> 18–20 Feb 2027, Vadodara</span>
             </span>
           </div>

@@ -110,7 +110,7 @@ export default function AdminPage() {
     tagline: 'Stronger Together: Uniting the Global Fight Against Corrosion',
     dates: '18th – 20th February 2027',
     venue: 'Vadodara, Gujarat, India',
-    abstractDeadline: '11th October 2026',
+    abstractDeadline: '28th October 2026',
     earlyBirdDeadline: '30th October 2026',
     organizerEmail: 'iim.barodachapter@gmail.com',
     organizerPhone: '+91 9988881674'

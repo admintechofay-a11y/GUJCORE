@@ -101,16 +101,16 @@ export default function Footer() {
                 Important Deadlines
               </h4>
               <p className="text-xs text-amber-400 font-bold">
-                Abstracts Due: 11 Oct 2026
+                Abstracts Due: 28 Oct 2026
               </p>
               <p className="text-xs text-slate-400">
-                Full Paper: 30 Oct 2026
+                Full Paper: 25 Nov 2026
               </p>
               <p className="text-xs text-slate-400">
-                Presentation Upload: 15 Nov 2026
+                Presentation Upload: 15 Dec 2026
               </p>
               <p className="text-xs text-slate-400">
-                Author Reg. Deadline: 15 Dec 2026
+                Author Reg. Deadline: 25 Dec 2026
               </p>
               <p className="text-xs text-teal-400 font-semibold pt-1">
                 Conference: 18–20 Feb 2027

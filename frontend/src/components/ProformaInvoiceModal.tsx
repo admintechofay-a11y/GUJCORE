@@ -307,7 +307,7 @@ export default function ProformaInvoiceModal({ isOpen, onClose, initialData }: P
           <div className="flex items-end justify-between pt-8 border-t border-slate-200 text-xs">
             <div className="text-slate-500 text-[10.5px] space-y-1">
               <div>* This is an official computer-generated proforma document.</div>
-              <div>* Payments should be remitted within 30 days or prior to 15th December 2026.</div>
+              <div>* Payments should be remitted within 30 days or prior to 25th December 2026.</div>
             </div>
 
             <div className="text-center space-y-1">

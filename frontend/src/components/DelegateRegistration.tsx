@@ -634,7 +634,7 @@ export default function DelegateRegistrationSection({ onSuccess, defaultTierId }
                         <h4 className="font-extrabold text-slate-900 text-xs sm:text-sm">Register Now &amp; Pay Later</h4>
                       </div>
                       <p className="text-[11px] text-slate-500 mt-1 pl-6">
-                        Activate your account immediately. Pay via Bank NEFT / PO / On-site before 15 Dec 2026.
+                        Activate your account immediately. Pay via Bank NEFT / PO / On-site before 25 Dec 2026.
                       </p>
                     </div>
 

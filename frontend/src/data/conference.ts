@@ -144,8 +144,8 @@ export const IMPORTANT_DATES: ImportantDateItem[] = [
   {
     id: 1,
     title: "Abstract Submission Due",
-    date: "11 October 2026",
-    rawDate: "2026-10-11",
+    date: "28 October 2026",
+    rawDate: "2026-10-28",
     category: "Call for Papers",
     description: "Upload 200–250 word structured abstract via the website portal.",
     notes: "Abstracts are uploaded via the website. The presenting author must register as a delegate for the paper to be included in the technical program."
@@ -153,8 +153,8 @@ export const IMPORTANT_DATES: ImportantDateItem[] = [
   {
     id: 2,
     title: "Full Text Paper Due",
-    date: "30 October 2026",
-    rawDate: "2026-10-30",
+    date: "25 November 2026",
+    rawDate: "2026-11-25",
     category: "Manuscript",
     description: "Complete full-length peer-reviewed technical paper manuscript submission.",
     notes: "Peer review feedback and formal acceptance notices issued upon technical review."
@@ -162,8 +162,8 @@ export const IMPORTANT_DATES: ImportantDateItem[] = [
   {
     id: 3,
     title: "Presentation Submission / Upload Due",
-    date: "15 November 2026",
-    rawDate: "2026-11-15",
+    date: "15 December 2026",
+    rawDate: "2026-12-15",
     category: "Presentation",
     description: "PowerPoint slide deck / poster presentation upload for accepted papers.",
     notes: "Formats: PPTX / PDF for oral presentation sessions and poster display panels."
@@ -171,8 +171,8 @@ export const IMPORTANT_DATES: ImportantDateItem[] = [
   {
     id: 4,
     title: "Registration Deadline for Authors",
-    date: "15 December 2026",
-    rawDate: "2026-12-15",
+    date: "25 December 2026",
+    rawDate: "2026-12-25",
     category: "Registration",
     description: "Mandatory delegate registration for presenting authors to be in the program.",
     notes: "The presenting author must register as a delegate for the paper to be included in the technical program."
