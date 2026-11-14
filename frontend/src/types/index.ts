@@ -88,6 +88,10 @@ export interface PaperSubmission {
   resumeFileName?: string;
   fullPaperFileName?: string;
   presentationFileName?: string;
+  fileName?: string;
+  fileSize?: string;
+  fileType?: string;
+  fileData?: string;
   reviewScore?: number;
   reviewComments?: string;
   declarationAgreed?: boolean;

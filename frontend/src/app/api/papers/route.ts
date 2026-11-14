@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbGetPapers, dbInsertPaper, dbAppendAuditLog } from '@/lib/server/db';
+import { dbGetPapers, dbInsertPaper, dbAttachPaperFile, dbAppendAuditLog } from '@/lib/server/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,6 +18,41 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+
+    // Support attaching/uploading a full text manuscript to an existing paper
+    if (body.action === 'attach_file' || (body.paperCode && body.fileData && !body.paperTitle)) {
+      if (!body.paperCode || !body.fileData) {
+        return NextResponse.json(
+          { success: false, message: 'paperCode and fileData are required to attach manuscript.' },
+          { status: 400 }
+        );
+      }
+
+      await dbAttachPaperFile(body.paperCode, {
+        fileName: body.fileName || 'manuscript.pdf',
+        fileType: body.fileType || 'application/pdf',
+        fileSize: body.fileSize || 'Unknown',
+        fileData: body.fileData
+      });
+
+      const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
+      await dbAppendAuditLog({
+        userId: 'author_or_admin',
+        userEmail: body.email || 'author@gujcorr.org',
+        action: 'ATTACH_PAPER_MANUSCRIPT',
+        resourceType: 'Paper',
+        resourceId: body.paperCode,
+        details: `Attached manuscript file: ${body.fileName || 'manuscript.pdf'} (${body.fileSize || 'N/A'})`,
+        ipAddress: ip,
+        status: 'Success'
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Manuscript for paper #${body.paperCode} saved to live database successfully.`
+      });
+    }
+
     if (!body.paperTitle || !body.fullName || !body.email) {
       return NextResponse.json(
         { success: false, message: 'Paper title, author full name, and email are required.' },

@@ -84,7 +84,7 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
 
   // File upload states
   const [resumeFile, setResumeFile] = useState<{ name: string; size: string; type: string } | null>(null);
-  const [paperFile, setPaperFile] = useState<{ name: string; size: string; type: string } | null>(null);
+  const [paperFile, setPaperFile] = useState<{ name: string; size: string; type: string; data?: string } | null>(null);
 
   const [abstractWordCount, setAbstractWordCount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -133,11 +133,16 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
         alert('File size exceeds 25MB limit. Please choose a smaller file.');
         return;
       }
-      setPaperFile({
-        name: file.name,
-        size: formatFileSize(file.size),
-        type: file.type || 'Document'
-      });
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPaperFile({
+          name: file.name,
+          size: formatFileSize(file.size),
+          type: file.type || 'application/pdf',
+          data: reader.result as string
+        });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -203,6 +208,10 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
         symposiumTitle: selectedSymp ? selectedSymp.title : 'Corrosion Science',
         resumeFileName: resumeFile ? resumeFile.name : undefined,
         fullPaperFileName: paperFile ? paperFile.name : undefined,
+        fileName: paperFile ? paperFile.name : undefined,
+        fileSize: paperFile ? paperFile.size : undefined,
+        fileType: paperFile ? paperFile.type : undefined,
+        fileData: paperFile?.data ? paperFile.data : undefined,
         isPresentingAuthor: formData.isPresentingAuthor
       });
 

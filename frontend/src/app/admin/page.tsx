@@ -38,7 +38,8 @@ import {
   Check,
   X,
   PlusCircle,
-  HelpCircle
+  HelpCircle,
+  UploadCloud
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import AnnouncementBar from '@/components/AnnouncementBar';
@@ -255,6 +256,57 @@ export default function AdminPage() {
     } catch {
       alert('Error saving review decision.');
     }
+  };
+
+  // Download or view uploaded manuscript
+  const handleDownloadPaperFile = (p: any) => {
+    if (p.fileData) {
+      const link = document.createElement('a');
+      link.href = p.fileData;
+      link.download = p.fileName || `${p.paperCode || p.id}_Manuscript.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      alert(`No file has been uploaded for paper #${p.paperCode || p.id} yet. Full text manuscripts are due by 25 November 2026. You can attach one using the "Attach File" button.`);
+    }
+  };
+
+  // Upload or attach manuscript file
+  const handleUploadPaperFile = async (paperCode: string, file: File) => {
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      alert('File size exceeds 20MB limit.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Data = reader.result as string;
+      try {
+        const res = await fetch('/api/papers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'attach_file',
+            paperCode,
+            fileName: file.name,
+            fileType: file.type || 'application/pdf',
+            fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+            fileData: base64Data
+          })
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast(`Manuscript file uploaded and saved for paper #${paperCode}!`);
+          loadAllAdminData();
+        } else {
+          alert(json.message || 'Failed uploading manuscript.');
+        }
+      } catch {
+        alert('Error uploading manuscript.');
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   // Booth allocation save
@@ -768,13 +820,14 @@ export default function AdminPage() {
                           <th className="py-3 px-4">Primary Author</th>
                           <th className="py-3 px-4">Author Contact &amp; Org</th>
                           <th className="py-3 px-4">Paper Title &amp; Symposium</th>
+                          <th className="py-3 px-4">Manuscript Document</th>
                           <th className="py-3 px-4">Score</th>
                           <th className="py-3 px-4">Status</th>
                           <th className="py-3 px-4 text-right">Review Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {papers.map((p, idx) => {
+                        {papers.map((p: any, idx) => {
                           const isAcc = (p.status || '').toLowerCase().includes('accepted');
                           return (
                             <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
@@ -799,6 +852,35 @@ export default function AdminPage() {
                                 <div className="text-[10px] text-purple-700 font-semibold truncate">
                                   Track {p.symposiumId}: {p.symposiumTitle}
                                 </div>
+                              </td>
+                              <td className="py-3 px-4">
+                                {p.fileData ? (
+                                  <button
+                                    onClick={() => handleDownloadPaperFile(p)}
+                                    className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                                    title={p.fileName || 'Download Manuscript'}
+                                  >
+                                    <Download className="w-3 h-3 text-emerald-700 shrink-0" />
+                                    <span className="truncate max-w-[100px]">{p.fileName || 'Download'}</span>
+                                  </button>
+                                ) : (
+                                  <div className="flex items-center gap-1.5">
+                                    <label className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold cursor-pointer flex items-center gap-1 transition-colors border border-slate-200">
+                                      <UploadCloud className="w-3 h-3 text-slate-500" />
+                                      <span>Attach</span>
+                                      <input
+                                        type="file"
+                                        accept=".pdf,.doc,.docx"
+                                        className="hidden"
+                                        onChange={e => {
+                                          const file = e.target.files?.[0];
+                                          if (file) handleUploadPaperFile(p.paperCode || p.id, file);
+                                        }}
+                                      />
+                                    </label>
+                                    <span className="text-[9px] text-slate-400 whitespace-nowrap">Due 25 Nov</span>
+                                  </div>
+                                )}
                               </td>
                               <td className="py-3 px-4 font-bold text-purple-700">
                                 {p.reviewScore ? `${p.reviewScore}/10` : 'Pending'}
@@ -1111,13 +1193,14 @@ export default function AdminPage() {
                         <th className="py-3 px-4">Paper Code</th>
                         <th className="py-3 px-4">Author &amp; Org</th>
                         <th className="py-3 px-4">Symposium &amp; Title</th>
+                        <th className="py-3 px-4">Manuscript Document</th>
                         <th className="py-3 px-4">Score</th>
                         <th className="py-3 px-4">Status</th>
                         <th className="py-3 px-4 text-right">Review</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {filteredPapers.map((p, idx) => {
+                      {filteredPapers.map((p: any, idx) => {
                         const isAcc = (p.status || '').toLowerCase().includes('accepted');
                         return (
                           <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
@@ -1129,6 +1212,35 @@ export default function AdminPage() {
                             <td className="py-3 px-4 max-w-xs">
                               <div className="font-bold text-slate-900 truncate">{p.paperTitle}</div>
                               <div className="text-[11px] text-slate-500 truncate">{p.symposiumTitle}</div>
+                            </td>
+                            <td className="py-3 px-4">
+                              {p.fileData ? (
+                                <button
+                                  onClick={() => handleDownloadPaperFile(p)}
+                                  className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                                  title={p.fileName || 'Download Manuscript'}
+                                >
+                                  <Download className="w-3 h-3 text-emerald-700 shrink-0" />
+                                  <span className="truncate max-w-[100px]">{p.fileName || 'Download'}</span>
+                                </button>
+                              ) : (
+                                <div className="flex items-center gap-1.5">
+                                  <label className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold cursor-pointer flex items-center gap-1 transition-colors border border-slate-200">
+                                    <UploadCloud className="w-3 h-3 text-slate-500" />
+                                    <span>Attach</span>
+                                    <input
+                                      type="file"
+                                      accept=".pdf,.doc,.docx"
+                                      className="hidden"
+                                      onChange={e => {
+                                        const file = e.target.files?.[0];
+                                        if (file) handleUploadPaperFile(p.paperCode || p.id, file);
+                                      }}
+                                    />
+                                  </label>
+                                  <span className="text-[9px] text-slate-400 whitespace-nowrap">Due 25 Nov</span>
+                                </div>
+                              )}
                             </td>
                             <td className="py-3 px-4 font-bold text-purple-700">
                               {p.reviewScore ? `${p.reviewScore}/10` : 'Pending'}
@@ -1169,10 +1281,47 @@ export default function AdminPage() {
                         <button onClick={() => setSelectedPaper(null)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
                       </div>
 
-                      <div className="p-3 bg-slate-50 rounded-xl text-xs space-y-1">
+                      <div className="p-3 bg-slate-50 rounded-xl text-xs space-y-2">
                         <div className="font-bold text-slate-900">{selectedPaper.paperTitle}</div>
                         <div className="text-[11px] text-slate-500">{selectedPaper.fullName} ({selectedPaper.companyName})</div>
                         <p className="text-[11px] text-slate-600 mt-2 line-clamp-3">{selectedPaper.abstract}</p>
+
+                        {/* Manuscript Document Action in Modal */}
+                        {selectedPaper.fileData ? (
+                          <div className="mt-3 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 text-xs text-emerald-800 font-bold truncate">
+                              <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                              <span className="truncate">{selectedPaper.fileName || 'Manuscript Document'}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadPaperFile(selectedPaper)}
+                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0 shadow-xs"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              <span>Download</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
+                            <span className="text-[11px] text-amber-800 font-semibold">
+                              Manuscript document due 25 Nov 2026.
+                            </span>
+                            <label className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer shadow-xs">
+                              <UploadCloud className="w-3.5 h-3.5" />
+                              <span>Attach PDF</span>
+                              <input
+                                type="file"
+                                accept=".pdf,.doc,.docx"
+                                className="hidden"
+                                onChange={e => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleUploadPaperFile(selectedPaper.paperCode || selectedPaper.id, file);
+                                }}
+                              />
+                            </label>
+                          </div>
+                        )}
                       </div>
 
                       <div className="space-y-3">

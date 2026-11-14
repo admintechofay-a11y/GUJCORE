@@ -96,6 +96,10 @@ export async function dbGetPapers(filters?: { symposiumId?: string | null; statu
           review_score as "reviewScore", 
           review_comments as "reviewComments", 
           reviewed_by as "reviewedBy", 
+          file_name as "fileName",
+          file_type as "fileType",
+          file_size as "fileSize",
+          file_data as "fileData",
           submission_date as "submissionDate",
           submission_date as "submittedAt"
         FROM papers
@@ -157,7 +161,8 @@ export async function dbInsertPaper(p: any): Promise<any> {
         INSERT INTO papers (
           id, paper_code, full_name, email, mobile_number, company_name,
           symposium_id, symposium_title, paper_title, presentation_type,
-          status, abstract, keywords, co_authors, submission_date
+          status, abstract, keywords, co_authors, submission_date,
+          file_name, file_type, file_size, file_data
         ) VALUES (
           ${id},
           ${paperCode},
@@ -173,7 +178,11 @@ export async function dbInsertPaper(p: any): Promise<any> {
           ${p.abstract || ''},
           ${p.keywords || ''},
           ${p.coAuthors || ''},
-          ${p.submissionDate || now}
+          ${p.submissionDate || now},
+          ${p.fileName || null},
+          ${p.fileType || null},
+          ${p.fileSize || null},
+          ${p.fileData || null}
         )
         ON CONFLICT (paper_code) DO NOTHING;
       `;
@@ -189,7 +198,11 @@ export async function dbInsertPaper(p: any): Promise<any> {
     id,
     paperCode,
     submissionDate: p.submissionDate || now,
-    status: p.status || 'Submitted'
+    status: p.status || 'Submitted',
+    fileName: p.fileName,
+    fileType: p.fileType,
+    fileSize: p.fileSize,
+    fileData: p.fileData
   };
   const filtered = store.papers.filter(item => item.id !== id && item.paperCode !== paperCode);
   filtered.unshift(newPaper);
@@ -197,6 +210,40 @@ export async function dbInsertPaper(p: any): Promise<any> {
   saveStore(store);
 
   return newPaper;
+}
+
+export async function dbAttachPaperFile(paperCode: string, file: { fileName: string; fileType?: string; fileSize?: string; fileData: string }): Promise<boolean> {
+  const sql = getDb();
+  const now = new Date().toISOString();
+
+  if (sql) {
+    try {
+      await sql`
+        UPDATE papers
+        SET 
+          file_name = ${file.fileName},
+          file_type = ${file.fileType || 'application/pdf'},
+          file_size = ${file.fileSize || 'Unknown'},
+          file_data = ${file.fileData},
+          updated_at = ${now}
+        WHERE paper_code = ${paperCode} OR id = ${paperCode};
+      `;
+    } catch (err) {
+      console.warn('[DB] Error attaching paper file to DB:', err);
+    }
+  }
+
+  const store = getStore();
+  const paper = store.papers.find(p => p.paperCode === paperCode || p.id === paperCode);
+  if (paper) {
+    paper.fileName = file.fileName;
+    paper.fileType = file.fileType || 'application/pdf';
+    paper.fileSize = file.fileSize || 'Unknown';
+    paper.fileData = file.fileData;
+    paper.updatedAt = now;
+    saveStore(store);
+  }
+  return true;
 }
 
 export async function dbUpdatePaperDecision(paperCode: string, score?: number, comments?: string, status?: string, assignedReviewer?: string, reviewerEmail?: string): Promise<boolean> {
