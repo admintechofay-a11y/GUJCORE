@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStore, saveStore, appendAuditLog } from '@/lib/server/store';
+import { dbGetUserByEmail, dbUpdateUserLastLogin, dbAppendAuditLog } from '@/lib/server/db';
 import { checkRateLimit, recordFailedAttempt, resetRateLimit, verifyPassword, createSessionToken } from '@/lib/server/auth';
 
 export async function POST(request: NextRequest) {
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     // Rate limiting check
     const rateCheck = checkRateLimit(rateLimitKey);
     if (!rateCheck.allowed) {
-      appendAuditLog({
+      await dbAppendAuditLog({
         userId: 'anonymous',
         userEmail: cleanEmail,
         action: 'LOGIN_RATE_LIMITED',
@@ -41,12 +41,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const store = getStore();
-    const user = store.users.find(u => u.email.toLowerCase() === cleanEmail);
+    const user = await dbGetUserByEmail(cleanEmail);
 
     if (!user) {
       recordFailedAttempt(rateLimitKey);
-      appendAuditLog({
+      await dbAppendAuditLog({
         userId: 'anonymous',
         userEmail: cleanEmail,
         action: 'LOGIN_FAILED_UNKNOWN_USER',
@@ -65,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (user.status === 'Disabled') {
-      appendAuditLog({
+      await dbAppendAuditLog({
         userId: user.id,
         userEmail: user.email,
         action: 'LOGIN_BLOCKED_DISABLED_ACCOUNT',
@@ -85,7 +84,7 @@ export async function POST(request: NextRequest) {
     const isMatch = verifyPassword(password, user.passwordHash);
     if (!isMatch) {
       recordFailedAttempt(rateLimitKey);
-      appendAuditLog({
+      await dbAppendAuditLog({
         userId: user.id,
         userEmail: user.email,
         action: 'LOGIN_FAILED_BAD_PASSWORD',
@@ -105,9 +104,9 @@ export async function POST(request: NextRequest) {
     // Success: Reset rate limit
     resetRateLimit(rateLimitKey);
 
-    // Update lastLogin
-    user.lastLogin = new Date().toISOString();
-    saveStore(store);
+    // Update lastLogin in cloud DB & store
+    await dbUpdateUserLastLogin(user.id);
+    const now = new Date().toISOString();
 
     // Create session token
     const token = createSessionToken({
@@ -117,7 +116,7 @@ export async function POST(request: NextRequest) {
       role: user.role
     });
 
-    appendAuditLog({
+    await dbAppendAuditLog({
       userId: user.id,
       userEmail: user.email,
       action: 'ADMIN_LOGIN_SUCCESS',
@@ -136,7 +135,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         fullName: user.fullName,
         role: user.role,
-        lastLogin: user.lastLogin
+        lastLogin: now
       },
       token
     });

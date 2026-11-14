@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/server/auth';
-import { getStore } from '@/lib/server/store';
+import { dbGetRegistrations, dbGetPapers, dbGetBooths, dbGetInquiries, dbGetAuditLogs } from '@/lib/server/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,25 +13,31 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const store = getStore();
+    const [registrations, papers, booths, inquiries, recentActivity] = await Promise.all([
+      dbGetRegistrations(),
+      dbGetPapers(),
+      dbGetBooths(),
+      dbGetInquiries(),
+      dbGetAuditLogs(10)
+    ]);
 
     // 1. Registrations stats
-    const totalReg = store.registrations.length;
-    const confirmedReg = store.registrations.filter(r => (r.status || '').toLowerCase().includes('confirmed')).length;
-    const pendingReg = store.registrations.filter(r => (r.status || '').toLowerCase().includes('pending')).length;
+    const totalReg = registrations.length;
+    const confirmedReg = registrations.filter(r => (r.status || '').toLowerCase().includes('confirmed')).length;
+    const pendingReg = registrations.filter(r => (r.status || '').toLowerCase().includes('pending')).length;
     
     // Revenue calculations: strict separation between verified and pending
-    const verifiedRevenue = store.registrations
+    const verifiedRevenue = registrations
       .filter(r => (r.status || '').toLowerCase().includes('confirmed'))
       .reduce((sum, r) => sum + (Number(r.totalAmount) || 0), 0);
 
-    const outstandingRevenue = store.registrations
+    const outstandingRevenue = registrations
       .filter(r => (r.status || '').toLowerCase().includes('pending'))
       .reduce((sum, r) => sum + (Number(r.totalAmount) || 0), 0);
 
     // Category breakdown
     const categoryCounts: Record<string, { count: number; revenue: number }> = {};
-    store.registrations.forEach(r => {
+    registrations.forEach(r => {
       const cat = r.category || 'Standard Delegate';
       if (!categoryCounts[cat]) {
         categoryCounts[cat] = { count: 0, revenue: 0 };
@@ -43,26 +49,23 @@ export async function GET(request: NextRequest) {
     });
 
     // 2. Papers stats
-    const totalPapers = store.papers.length;
-    const acceptedPapers = store.papers.filter(p => (p.status || '').toLowerCase().includes('accepted')).length;
-    const pendingPapers = store.papers.filter(p => (p.status || '').toLowerCase().includes('submitted') || (p.status || '').toLowerCase().includes('review')).length;
-    const rejectedPapers = store.papers.filter(p => (p.status || '').toLowerCase().includes('reject')).length;
+    const totalPapers = papers.length;
+    const acceptedPapers = papers.filter(p => (p.status || '').toLowerCase().includes('accepted')).length;
+    const pendingPapers = papers.filter(p => (p.status || '').toLowerCase().includes('submitted') || (p.status || '').toLowerCase().includes('review')).length;
+    const rejectedPapers = papers.filter(p => (p.status || '').toLowerCase().includes('reject')).length;
 
     // 3. Exhibition booths
-    const totalBooths = store.booths.length; // 42
-    const bookedBooths = store.booths.filter(b => b.status === 'Confirmed' || b.status === 'Reserved').length;
-    const confirmedBooths = store.booths.filter(b => b.status === 'Confirmed').length;
-    const availableBooths = store.booths.filter(b => b.status === 'Available').length;
-    const boothRevenue = store.booths
+    const totalBooths = booths.length; // 42
+    const bookedBooths = booths.filter(b => b.status === 'Confirmed' || b.status === 'Reserved').length;
+    const confirmedBooths = booths.filter(b => b.status === 'Confirmed').length;
+    const availableBooths = booths.filter(b => b.status === 'Available').length;
+    const boothRevenue = booths
       .filter(b => b.status === 'Confirmed')
       .reduce((sum, b) => sum + (Number(b.totalPrice) || 0), 0);
 
     // 4. Inquiries stats
-    const totalInquiries = store.inquiries.length;
-    const unreadInquiries = store.inquiries.filter(i => (i.status || '').toLowerCase() === 'unread').length;
-
-    // 5. Recent audit logs
-    const recentActivity = store.auditLogs.slice(0, 10);
+    const totalInquiries = inquiries.length;
+    const unreadInquiries = inquiries.filter(i => (i.status || '').toLowerCase() === 'unread').length;
 
     return NextResponse.json({
       success: true,

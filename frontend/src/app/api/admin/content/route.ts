@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest, hasCapability } from '@/lib/server/auth';
-import { getStore, saveStore, appendAuditLog } from '@/lib/server/store';
+import { dbGetCmsContent, dbSaveCmsContent, dbAppendAuditLog } from '@/lib/server/db';
 
 export async function GET(request: NextRequest) {
   try {
-    const store = getStore();
+    const content = await dbGetCmsContent();
     return NextResponse.json({
       success: true,
-      data: store.content
+      data: content
     });
   } catch (err: any) {
     return NextResponse.json(
@@ -37,12 +37,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const store = getStore();
-    store.content[sectionKey] = data;
-    saveStore(store);
+    await dbSaveCmsContent(sectionKey, data, session.email);
 
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
-    appendAuditLog({
+    await dbAppendAuditLog({
       userId: session.userId,
       userEmail: session.email,
       action: 'UPDATE_CMS_CONTENT',
@@ -56,7 +54,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: `Content section '${sectionKey}' published successfully.`,
-      data: store.content[sectionKey]
+      data
     });
   } catch (err: any) {
     return NextResponse.json(

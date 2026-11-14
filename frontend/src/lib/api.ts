@@ -24,19 +24,36 @@ export const api = {
       qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GUJCORR2027:${ticketId}`
     };
 
+    // Primary: Post to live Next.js / Neon Database API
     try {
-      const res = await fetch(`${WP_API_BASE}/registrations`, {
+      const serverRes = await fetch('/api/registrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newReg),
-        signal: AbortSignal.timeout(4000)
+        signal: AbortSignal.timeout(6000)
       });
-      if (res.ok) {
-        const wpData = await res.json();
-        console.log('WordPress Registration Success:', wpData);
+      if (serverRes.ok) {
+        const json = await serverRes.json();
+        if (json.success && json.data) {
+          console.log('[API] Registration saved in Neon Database:', json.data);
+        }
       }
     } catch (err) {
-      console.warn('WordPress API unavailable; saving registration locally:', err);
+      console.warn('[API] Next.js registrations endpoint notice:', err);
+    }
+
+    // Secondary: Forward to WordPress if configured
+    try {
+      if (WP_API_BASE && !WP_API_BASE.includes('localhost')) {
+        await fetch(`${WP_API_BASE}/registrations`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newReg),
+          signal: AbortSignal.timeout(3000)
+        });
+      }
+    } catch {
+      // ignore
     }
 
     if (typeof window !== 'undefined') {
@@ -133,22 +150,42 @@ export const api = {
       status: 'Submitted'
     };
 
+    // Primary: Post to live Next.js / Neon Database API
     try {
-      const res = await fetch(`${WP_API_BASE}/papers`, {
+      const serverRes = await fetch('/api/papers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...newPaper,
           paperCode: paperCode
         }),
-        signal: AbortSignal.timeout(4000)
+        signal: AbortSignal.timeout(6000)
       });
-      if (res.ok) {
-        const wpData = await res.json();
-        console.log('WordPress Paper Submission Success:', wpData);
+      if (serverRes.ok) {
+        const json = await serverRes.json();
+        if (json.success && json.data) {
+          console.log('[API] Paper saved in Neon Database:', json.data);
+        }
       }
     } catch (err) {
-      console.warn('WordPress API unavailable; saving paper locally:', err);
+      console.warn('[API] Next.js papers endpoint notice:', err);
+    }
+
+    // Secondary: Forward to WordPress if configured
+    try {
+      if (WP_API_BASE && !WP_API_BASE.includes('localhost')) {
+        await fetch(`${WP_API_BASE}/papers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...newPaper,
+            paperCode: paperCode
+          }),
+          signal: AbortSignal.timeout(3000)
+        });
+      }
+    } catch {
+      // ignore
     }
 
     if (typeof window !== 'undefined') {
@@ -263,6 +300,23 @@ export const api = {
       submittedAt: new Date().toISOString()
     };
 
+    // 1. Post to Next.js API (Neon PostgreSQL DB)
+    try {
+      const res = await fetch('/api/booths', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(boothRecord),
+        signal: AbortSignal.timeout(5000)
+      });
+      if (res.ok) {
+        const json = await res.json();
+        return { success: true, message: json.message || 'Exhibitor booth reserved successfully in database!' };
+      }
+    } catch {
+      // Fallback
+    }
+
+    // 2. Post to WordPress if available
     try {
       const res = await fetch(`${WP_API_BASE}/booths/reserve`, {
         method: 'POST',
@@ -275,7 +329,7 @@ export const api = {
         return { success: true, message: json.message || 'Exhibitor booth saved to WordPress!' };
       }
     } catch {
-      // Fallback to local storage if WordPress is offline
+      // Fallback to local storage if offline
     }
 
     if (typeof window !== 'undefined') {
@@ -292,21 +346,39 @@ export const api = {
 
   // 3b. Fetch All Booths
   async getBooths(): Promise<{ success: boolean; data: any[] }> {
-    let wpList: any[] = [];
+    let list: any[] = [];
     try {
-      const res = await fetch(`${WP_API_BASE}/booths`, {
+      const res = await fetch('/api/booths', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(4000)
+        signal: AbortSignal.timeout(5000)
       });
       if (res.ok) {
         const json = await res.json();
         if (json.data && Array.isArray(json.data)) {
-          wpList = json.data;
+          list = json.data;
         }
       }
     } catch {
       // Fallback
+    }
+
+    if (list.length === 0) {
+      try {
+        const res = await fetch(`${WP_API_BASE}/booths`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(4000)
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.data && Array.isArray(json.data)) {
+            list = json.data;
+          }
+        }
+      } catch {
+        // Fallback
+      }
     }
 
     let localList: any[] = [];
@@ -315,9 +387,9 @@ export const api = {
     }
 
     const map = new Map<string, any>();
-    wpList.forEach(b => map.set(b.stallNumber || b.booth_number || b.id, b));
+    list.forEach(b => map.set(b.stallNumber || b.booth_number || b.boothNumber || b.id, b));
     localList.forEach(b => {
-      const key = b.stallNumber || b.booth_number || b.id;
+      const key = b.stallNumber || b.booth_number || b.boothNumber || b.id;
       if (!map.has(key)) {
         map.set(key, b);
       }
@@ -363,6 +435,21 @@ export const api = {
   }): Promise<{ success: boolean; message: string }> {
     const msg = { ...data, id: 'MSG-' + Date.now(), submittedAt: new Date().toISOString() };
 
+    // 1. Post to Next.js API (Neon PostgreSQL DB)
+    try {
+      const res = await fetch('/api/inquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(msg),
+        signal: AbortSignal.timeout(5000)
+      });
+      if (res.ok) {
+        return { success: true, message: 'Message sent directly to GUJCORR secretariat!' };
+      }
+    } catch {
+      // ignore
+    }
+
     try {
       const res = await fetch(`${WP_API_BASE}/contact`, {
         method: 'POST',
@@ -391,21 +478,39 @@ export const api = {
 
   // 4b. Fetch All Inquiries
   async getInquiries(): Promise<{ success: boolean; data: any[] }> {
-    let wpList: any[] = [];
+    let list: any[] = [];
     try {
-      const res = await fetch(`${WP_API_BASE}/contact`, {
+      const res = await fetch('/api/inquiries', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(4000)
+        signal: AbortSignal.timeout(5000)
       });
       if (res.ok) {
         const json = await res.json();
         if (json.data && Array.isArray(json.data)) {
-          wpList = json.data;
+          list = json.data;
         }
       }
     } catch {
       // ignore
+    }
+
+    if (list.length === 0) {
+      try {
+        const res = await fetch(`${WP_API_BASE}/contact`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(4000)
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.data && Array.isArray(json.data)) {
+            list = json.data;
+          }
+        }
+      } catch {
+        // ignore
+      }
     }
 
     let localList: any[] = [];
@@ -414,7 +519,7 @@ export const api = {
     }
 
     const map = new Map<string, any>();
-    wpList.forEach(m => map.set(m.id || m.email + m.subject, m));
+    list.forEach(m => map.set(m.id || m.email + m.subject, m));
     localList.forEach(m => {
       const key = m.id || m.email + m.subject;
       if (!map.has(key)) {

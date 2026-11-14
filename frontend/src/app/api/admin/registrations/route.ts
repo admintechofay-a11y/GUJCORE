@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest, hasCapability } from '@/lib/server/auth';
-import { getStore, saveStore, appendAuditLog, forwardToWordPress } from '@/lib/server/store';
+import { dbGetRegistrations, dbUpdateRegistrationStatus, dbAppendAuditLog } from '@/lib/server/db';
+import { forwardToWordPress } from '@/lib/server/store';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,30 +14,10 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const search = (searchParams.get('search') || '').toLowerCase().trim();
-    const status = searchParams.get('status') || 'all';
-    const category = searchParams.get('category') || 'all';
+    const search = searchParams.get('search');
+    const status = searchParams.get('status');
 
-    const store = getStore();
-    let list = [...store.registrations];
-
-    if (status !== 'all') {
-      list = list.filter(r => (r.status || '').toLowerCase() === status.toLowerCase());
-    }
-
-    if (category !== 'all') {
-      list = list.filter(r => (r.category || '').toLowerCase() === category.toLowerCase());
-    }
-
-    if (search) {
-      list = list.filter(r => 
-        (r.fullName || '').toLowerCase().includes(search) ||
-        (r.email || '').toLowerCase().includes(search) ||
-        (r.ticketId || '').toLowerCase().includes(search) ||
-        (r.organization || '').toLowerCase().includes(search) ||
-        (r.mobileNumber || '').includes(search)
-      );
-    }
+    const list = await dbGetRegistrations({ status, search });
 
     return NextResponse.json({
       success: true,
@@ -61,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { ticketId, status, transactionReference, notes } = body;
+    const { ticketId, status } = body;
 
     if (!ticketId || !status) {
       return NextResponse.json(
@@ -70,53 +51,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const store = getStore();
-    const reg = store.registrations.find(r => r.ticketId === ticketId || r.id === ticketId);
-
-    if (!reg) {
-      return NextResponse.json(
-        { success: false, message: 'Registration record not found.' },
-        { status: 404 }
-      );
-    }
-
-    const oldStatus = reg.status;
-    reg.status = status;
-    if (transactionReference !== undefined) {
-      reg.transactionReference = transactionReference;
-    }
-    if (notes !== undefined) {
-      reg.adminNotes = notes;
-    }
-    reg.updatedAt = new Date().toISOString();
-    reg.updatedBy = session.email;
-
-    saveStore(store);
+    await dbUpdateRegistrationStatus(ticketId, status);
 
     // Forward update to WordPress REST API if connected
     forwardToWordPress('/registrations/status', 'POST', { ticketId, status });
 
     // Audit log
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
-    appendAuditLog({
+    await dbAppendAuditLog({
       userId: session.userId,
       userEmail: session.email,
       action: 'UPDATE_REGISTRATION_STATUS',
       resourceType: 'Registration',
       resourceId: ticketId,
-      details: `Changed status from '${oldStatus}' to '${status}'. Ref: ${transactionReference || reg.transactionReference || 'N/A'}`,
+      details: `Status updated to: "${status}". Staff: ${session.email}`,
       ipAddress: ip,
       status: 'Success'
     });
 
     return NextResponse.json({
       success: true,
-      message: `Registration ${ticketId} status updated to ${status}.`,
-      data: reg
+      message: `Registration ${ticketId} status updated in live database.`
     });
   } catch (err: any) {
     return NextResponse.json(
-      { success: false, message: 'Failed updating registration record.' },
+      { success: false, message: 'Failed updating registration status.' },
       { status: 500 }
     );
   }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/server/auth';
-import { appendAuditLog } from '@/lib/server/store';
+import { dbAppendAuditLog } from '@/lib/server/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
 
     if (session) {
-      appendAuditLog({
+      await dbAppendAuditLog({
         userId: session.userId,
         userEmail: session.email,
         action: 'ADMIN_LOGOUT',

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest, hasCapability, hashPassword, StaffRole } from '@/lib/server/auth';
-import { getStore, saveStore, appendAuditLog } from '@/lib/server/store';
+import { dbGetUsers, dbInsertUser, dbUpdateUserStatus, dbAppendAuditLog } from '@/lib/server/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,9 +12,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const store = getStore();
+    const users = await dbGetUsers();
     // Exclude password hashes!
-    const safeUsers = store.users.map(u => ({
+    const safeUsers = users.map(u => ({
       id: u.id,
       email: u.email,
       username: u.username,
@@ -50,7 +50,6 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { action, userId, email, fullName, role, password, status } = body;
-    const store = getStore();
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
 
     if (action === 'update_status') {
@@ -58,7 +57,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message: 'userId and status are required.' }, { status: 400 });
       }
 
-      const target = store.users.find(u => u.id === userId);
+      const users = await dbGetUsers();
+      const target = users.find(u => u.id === userId);
       if (!target) {
         return NextResponse.json({ success: false, message: 'Staff user not found.' }, { status: 404 });
       }
@@ -68,10 +68,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message: 'Cannot deactivate your own logged-in account.' }, { status: 400 });
       }
 
-      target.status = status;
-      saveStore(store);
+      await dbUpdateUserStatus(userId, status);
 
-      appendAuditLog({
+      await dbAppendAuditLog({
         userId: session.userId,
         userEmail: session.email,
         action: 'UPDATE_STAFF_STATUS',
@@ -94,7 +93,8 @@ export async function POST(request: NextRequest) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const exists = store.users.some(u => u.email.toLowerCase() === cleanEmail);
+    const users = await dbGetUsers();
+    const exists = users.some(u => u.email.toLowerCase() === cleanEmail);
     if (exists) {
       return NextResponse.json(
         { success: false, message: 'An account with this email address already exists.' },
@@ -119,21 +119,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const newUser = {
+    const newUser = await dbInsertUser({
       id: 'usr-' + Date.now().toString(36),
       email: cleanEmail,
       username: cleanEmail.split('@')[0],
       fullName: fullName.trim(),
       role: role as StaffRole,
       passwordHash: hashPassword(password),
-      status: 'Active' as const,
-      createdAt: new Date().toISOString()
-    };
+      status: 'Active' as const
+    });
 
-    store.users.push(newUser);
-    saveStore(store);
-
-    appendAuditLog({
+    await dbAppendAuditLog({
       userId: session.userId,
       userEmail: session.email,
       action: 'CREATE_STAFF_ACCOUNT',

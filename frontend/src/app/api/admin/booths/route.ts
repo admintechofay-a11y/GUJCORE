@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest, hasCapability } from '@/lib/server/auth';
-import { getStore, saveStore, appendAuditLog, forwardToWordPress } from '@/lib/server/store';
+import { dbGetBooths, dbUpdateBooth, dbAppendAuditLog } from '@/lib/server/db';
+import { forwardToWordPress } from '@/lib/server/store';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,10 +13,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const store = getStore();
+    const booths = await dbGetBooths();
     return NextResponse.json({
       success: true,
-      data: store.booths
+      data: booths
     });
   } catch (err: any) {
     return NextResponse.json(
@@ -45,8 +46,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const store = getStore();
-    const booth = store.booths.find(b => b.boothNumber === boothNumber || b.id === boothNumber);
+    const booths = await dbGetBooths();
+    const booth = booths.find(b => b.boothNumber === boothNumber || b.id === boothNumber);
 
     if (!booth) {
       return NextResponse.json(
@@ -69,41 +70,28 @@ export async function POST(request: NextRequest) {
     }
 
     const oldStatus = booth.status;
-    booth.status = status;
-    if (companyName !== undefined) booth.companyName = companyName;
-    if (contactPerson !== undefined) booth.contactPerson = contactPerson;
-    if (email !== undefined) booth.email = email;
-    if (mobileNumber !== undefined) booth.mobileNumber = mobileNumber;
-    if (fasciaName !== undefined) booth.fasciaName = fasciaName;
-    if (gstin !== undefined) booth.gstin = gstin;
+    const updateData: any = {
+      status,
+      companyName: status === 'Available' ? '' : (companyName !== undefined ? companyName : booth.companyName),
+      contactPerson: status === 'Available' ? '' : (contactPerson !== undefined ? contactPerson : booth.contactPerson),
+      email: status === 'Available' ? '' : (email !== undefined ? email : booth.email),
+      mobileNumber: status === 'Available' ? '' : (mobileNumber !== undefined ? mobileNumber : booth.mobileNumber),
+      fasciaName: status === 'Available' ? '' : (fasciaName !== undefined ? fasciaName : booth.fasciaName),
+      gstin: status === 'Available' ? '' : (gstin !== undefined ? gstin : booth.gstin)
+    };
 
-    if (status === 'Available') {
-      booth.companyName = '';
-      booth.contactPerson = '';
-      booth.email = '';
-      booth.mobileNumber = '';
-      booth.fasciaName = '';
-      booth.gstin = '';
-      booth.bookedAt = null;
-    } else if (!booth.bookedAt) {
-      booth.bookedAt = new Date().toISOString();
-    }
-
-    booth.updatedAt = new Date().toISOString();
-    booth.updatedBy = session.email;
-
-    saveStore(store);
+    await dbUpdateBooth(boothNumber, updateData);
 
     // Forward to WordPress REST API if connected
     forwardToWordPress('/booths/reserve', 'POST', {
       boothNumber,
       status,
-      companyName: booth.companyName,
-      contactPerson: booth.contactPerson,
-      email: booth.email,
-      mobile: booth.mobileNumber,
-      fasciaName: booth.fasciaName,
-      gstin: booth.gstin,
+      companyName: updateData.companyName,
+      contactPerson: updateData.contactPerson,
+      email: updateData.email,
+      mobile: updateData.mobileNumber,
+      fasciaName: updateData.fasciaName,
+      gstin: updateData.gstin,
       boothSize: booth.boothSize,
       basePrice: booth.basePrice,
       gstAmount: booth.gstAmount,
@@ -112,13 +100,13 @@ export async function POST(request: NextRequest) {
 
     // Audit log
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
-    appendAuditLog({
+    await dbAppendAuditLog({
       userId: session.userId,
       userEmail: session.email,
       action: 'UPDATE_BOOTH_STATUS',
       resourceType: 'Booth',
       resourceId: boothNumber,
-      details: `Booth status updated from '${oldStatus}' to '${status}' for '${booth.companyName || 'Unassigned'}'.`,
+      details: `Booth status updated from '${oldStatus}' to '${status}' for '${updateData.companyName || 'Unassigned'}'.`,
       ipAddress: ip,
       status: 'Success'
     });
@@ -126,7 +114,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: `Booth ${boothNumber} updated to ${status}.`,
-      data: booth
+      data: { ...booth, ...updateData }
     });
   } catch (err: any) {
     return NextResponse.json(

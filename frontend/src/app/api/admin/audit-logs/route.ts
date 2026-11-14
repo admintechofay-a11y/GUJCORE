@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest, hasCapability } from '@/lib/server/auth';
-import { getStore } from '@/lib/server/store';
+import { dbGetAuditLogs } from '@/lib/server/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,16 +16,15 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(200, Math.max(10, Number(searchParams.get('limit')) || 100));
     const action = searchParams.get('action') || 'all';
 
-    const store = getStore();
-    let logs = [...store.auditLogs];
+    let logs = await dbGetAuditLogs(limit);
 
     if (action !== 'all') {
-      logs = logs.filter(l => l.action.toLowerCase() === action.toLowerCase());
+      logs = logs.filter(l => (l.action || '').toLowerCase() === action.toLowerCase());
     }
 
     return NextResponse.json({
       success: true,
-      data: logs.slice(0, limit)
+      data: logs
     });
   } catch (err: any) {
     return NextResponse.json(

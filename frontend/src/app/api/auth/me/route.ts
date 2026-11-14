@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/server/auth';
-import { getStore } from '@/lib/server/store';
+import { dbGetUserByEmail } from '@/lib/server/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,8 +13,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const store = getStore();
-    const user = store.users.find(u => u.id === session.userId || u.email.toLowerCase() === session.email.toLowerCase());
+    const user = await dbGetUserByEmail(session.email);
 
     if (!user || user.status === 'Disabled') {
       return NextResponse.json(

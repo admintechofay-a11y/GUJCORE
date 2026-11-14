@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest, hasCapability } from '@/lib/server/auth';
-import { getStore, saveStore, appendAuditLog } from '@/lib/server/store';
+import { dbGetInquiries, dbUpdateInquiry, dbAppendAuditLog } from '@/lib/server/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,22 +16,7 @@ export async function GET(request: NextRequest) {
     const search = (searchParams.get('search') || '').toLowerCase().trim();
     const status = searchParams.get('status') || 'all';
 
-    const store = getStore();
-    let list = [...store.inquiries];
-
-    if (status !== 'all') {
-      list = list.filter(i => (i.status || '').toLowerCase() === status.toLowerCase());
-    }
-
-    if (search) {
-      list = list.filter(i =>
-        (i.name || '').toLowerCase().includes(search) ||
-        (i.email || '').toLowerCase().includes(search) ||
-        (i.subject || '').toLowerCase().includes(search) ||
-        (i.organization || '').toLowerCase().includes(search) ||
-        (i.message || '').toLowerCase().includes(search)
-      );
-    }
+    const list = await dbGetInquiries({ status, search });
 
     return NextResponse.json({
       success: true,
@@ -65,8 +50,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const store = getStore();
-    const inq = store.inquiries.find(i => i.id === id);
+    const existingList = await dbGetInquiries();
+    const inq = existingList.find(i => i.id === id);
 
     if (!inq) {
       return NextResponse.json(
@@ -76,16 +61,10 @@ export async function POST(request: NextRequest) {
     }
 
     const oldStatus = inq.status;
-    if (status !== undefined) inq.status = status;
-    if (internalNotes !== undefined) inq.internalNotes = internalNotes;
-    if (assignedTo !== undefined) inq.assignedTo = assignedTo;
-    inq.updatedAt = new Date().toISOString();
-    inq.updatedBy = session.email;
-
-    saveStore(store);
+    await dbUpdateInquiry(id, { status, internalNotes, assignedTo });
 
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
-    appendAuditLog({
+    await dbAppendAuditLog({
       userId: session.userId,
       userEmail: session.email,
       action: 'UPDATE_INQUIRY',
@@ -99,7 +78,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Inquiry updated successfully.',
-      data: inq
+      data: { ...inq, status: status ?? inq.status, internalNotes: internalNotes ?? inq.internalNotes, assignedTo: assignedTo ?? inq.assignedTo }
     });
   } catch (err: any) {
     return NextResponse.json(
