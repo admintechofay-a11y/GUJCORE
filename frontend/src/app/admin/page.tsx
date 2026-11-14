@@ -552,6 +552,18 @@ export default function AdminPage() {
                     className="w-full text-xs sm:text-sm pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-red-500 focus:outline-none"
                   />
                 </div>
+                <div className="flex items-center justify-between pt-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginEmail('admin@gujcorr.org');
+                      setLoginPassword('GujCorr@2027#Secret');
+                    }}
+                    className="text-[11px] text-blue-600 hover:text-blue-800 font-bold underline cursor-pointer"
+                  >
+                    Auto-Fill Admin Credentials (admin@gujcorr.org)
+                  </button>
+                </div>
               </div>
 
               <button
@@ -710,6 +722,211 @@ export default function AdminPage() {
                     <div className="text-xs text-slate-500 font-bold flex items-center gap-1">
                       <span>{42 - totalBoothsBooked} Stalls Available</span>
                     </div>
+                  </div>
+                </div>
+
+                {/* 1. ALL SUBMITTED TECHNICAL PAPERS & AUTHORS (Executive Overview) */}
+                <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden p-6 space-y-4">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                          <FileText className="w-5 h-5 text-purple-600" />
+                          <span>Submitted Technical Papers &amp; Author Directory</span>
+                        </h3>
+                        <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                          {papers.length} Papers Received
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        All abstracts submitted online through the live portal, synced with the cloud database.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={exportPapersCsv}
+                        className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download Papers CSV</span>
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('papers')}
+                        className="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Manage &amp; Score &rarr;</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto border border-slate-100 rounded-2xl">
+                    <table className="w-full text-left text-xs text-slate-700">
+                      <thead className="bg-slate-50 text-slate-900 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                        <tr>
+                          <th className="py-3 px-4">Paper Code</th>
+                          <th className="py-3 px-4">Primary Author</th>
+                          <th className="py-3 px-4">Author Contact &amp; Org</th>
+                          <th className="py-3 px-4">Paper Title &amp; Symposium</th>
+                          <th className="py-3 px-4">Score</th>
+                          <th className="py-3 px-4">Status</th>
+                          <th className="py-3 px-4 text-right">Review Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {papers.map((p, idx) => {
+                          const isAcc = (p.status || '').toLowerCase().includes('accepted');
+                          return (
+                            <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                              <td className="py-3 px-4 font-mono font-bold text-slate-900">
+                                <span className="bg-slate-100 px-2 py-1 rounded text-[11px] font-bold text-slate-800">
+                                  {p.paperCode || p.id}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4">
+                                <div className="font-extrabold text-slate-900 text-xs">{p.fullName}</div>
+                                <div className="text-[10px] text-slate-500 font-semibold">{p.presentationType || 'Oral'} Presentation</div>
+                              </td>
+                              <td className="py-3 px-4 max-w-xs">
+                                <div className="text-[11px] font-bold text-slate-700 truncate">{p.email}</div>
+                                <div className="text-[10px] text-slate-400">{p.mobileNumber}</div>
+                                <div className="text-[10px] text-slate-500 truncate font-medium">{p.companyName}</div>
+                              </td>
+                              <td className="py-3 px-4 max-w-sm">
+                                <div className="font-bold text-slate-900 line-clamp-1" title={p.paperTitle}>
+                                  {p.paperTitle}
+                                </div>
+                                <div className="text-[10px] text-purple-700 font-semibold truncate">
+                                  Track {p.symposiumId}: {p.symposiumTitle}
+                                </div>
+                              </td>
+                              <td className="py-3 px-4 font-bold text-purple-700">
+                                {p.reviewScore ? `${p.reviewScore}/10` : 'Pending'}
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
+                                  isAcc ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-purple-50 text-purple-700 border border-purple-200'
+                                }`}>
+                                  {p.status || 'Submitted'}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                <button
+                                  onClick={() => {
+                                    setSelectedPaper(p);
+                                    setScoreInput(p.reviewScore || 8.5);
+                                    setCommentsInput(p.reviewComments || '');
+                                    setPaperStatusInput(p.status || 'Accepted for Oral Presentation');
+                                  }}
+                                  className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[10px] font-bold cursor-pointer transition-colors shadow-2xs"
+                                >
+                                  Score / Decision
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 2. ALL REGISTERED DELEGATES MANIFEST (Executive Overview) */}
+                <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden p-6 space-y-4">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                          <Users className="w-5 h-5 text-blue-600" />
+                          <span>Registered Conference Delegates</span>
+                        </h3>
+                        <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                          {registrations.length} Passes Issued
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        All conference attendees, institution delegates, and industry participants.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={exportDelegatesCsv}
+                        className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download Delegates CSV</span>
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('delegates')}
+                        className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>View Full Manifest &rarr;</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto border border-slate-100 rounded-2xl">
+                    <table className="w-full text-left text-xs text-slate-700">
+                      <thead className="bg-slate-50 text-slate-900 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                        <tr>
+                          <th className="py-3 px-4">Ticket ID</th>
+                          <th className="py-3 px-4">Delegate Name</th>
+                          <th className="py-3 px-4">Contact &amp; Org</th>
+                          <th className="py-3 px-4">Category</th>
+                          <th className="py-3 px-4">Tariff</th>
+                          <th className="py-3 px-4">Status</th>
+                          <th className="py-3 px-4 text-right">Verification</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {registrations.map((reg, idx) => {
+                          const isPaid = (reg.status || '').toLowerCase().includes('confirmed');
+                          return (
+                            <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                              <td className="py-3 px-4 font-mono font-bold text-slate-900">
+                                <span className="bg-slate-100 px-2 py-1 rounded text-[11px] font-bold text-slate-800">
+                                  {reg.ticketId || reg.id}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 font-bold text-slate-900">
+                                {reg.fullName}
+                              </td>
+                              <td className="py-3 px-4">
+                                <div className="text-[11px] text-slate-600 truncate">{reg.email}</div>
+                                <div className="text-[10px] text-slate-400 font-medium">{reg.organization}</div>
+                              </td>
+                              <td className="py-3 px-4 font-medium text-slate-700">{reg.category}</td>
+                              <td className="py-3 px-4 font-extrabold text-slate-900">₹{(reg.totalAmount || 4720).toLocaleString('en-IN')}</td>
+                              <td className="py-3 px-4">
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
+                                  isPaid ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                }`}>
+                                  {reg.status}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                {!isPaid ? (
+                                  <button
+                                    onClick={() => handleUpdateDelegateStatus(reg.ticketId || reg.id, 'Confirmed')}
+                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold cursor-pointer shadow-2xs"
+                                  >
+                                    Confirm Pass
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleUpdateDelegateStatus(reg.ticketId || reg.id, 'Pending')}
+                                    className="px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-lg text-[10px] font-bold cursor-pointer"
+                                  >
+                                    Hold Pass
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
 
