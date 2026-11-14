@@ -30,7 +30,7 @@ export const api = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newReg),
-        signal: AbortSignal.timeout(6000)
+        signal: AbortSignal.timeout(30000)
       });
       if (serverRes.ok) {
         const json = await serverRes.json();
@@ -159,7 +159,7 @@ export const api = {
           ...newPaper,
           paperCode: paperCode
         }),
-        signal: AbortSignal.timeout(6000)
+        signal: AbortSignal.timeout(30000)
       });
       if (serverRes.ok) {
         const json = await serverRes.json();
