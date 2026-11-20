@@ -560,8 +560,8 @@ export default function DashboardPage() {
                           </span>
                         </div>
 
-                        {/* Live Status Badge */}
-                        <div className="flex items-center gap-2">
+                        {/* Live Status Badges (Abstract & Full Paper Manuscript) */}
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 ${
                             isAcc
                               ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
@@ -578,8 +578,25 @@ export default function DashboardPage() {
                             {isRev && <AlertCircle className="w-3.5 h-3.5 text-amber-600" />}
                             {isRej && <X className="w-3.5 h-3.5 text-rose-600" />}
                             {!isAcc && !isUnder && !isRev && !isRej && <Clock className="w-3.5 h-3.5 text-amber-600" />}
-                            <span>{paper.status || 'Submitted'}</span>
+                            <span>Abstract: {paper.status || 'Submitted'}</span>
                           </span>
+
+                          {(paper.fullPaperFileName || (paper.fullPaperStatus && paper.fullPaperStatus !== 'Pending Submission')) && (
+                            <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 ${
+                              (paper.fullPaperStatus || '').toLowerCase().includes('proceeding') || (paper.fullPaperStatus || '').toLowerCase().includes('accept')
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                : (paper.fullPaperStatus || '').toLowerCase().includes('under review')
+                                ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                                : (paper.fullPaperStatus || '').toLowerCase().includes('revision')
+                                ? 'bg-amber-100 text-amber-900 border border-amber-300 animate-pulse'
+                                : (paper.fullPaperStatus || '').toLowerCase().includes('reject')
+                                ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                                : 'bg-indigo-100 text-indigo-900 border border-indigo-200'
+                            }`}>
+                              <FileCheck className="w-3.5 h-3.5" />
+                              <span>Full Paper: {paper.fullPaperStatus || 'Submitted'}</span>
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -673,6 +690,53 @@ export default function DashboardPage() {
                           </div>
                         )}
 
+                        {/* FULL PAPER MANUSCRIPT REVIEW COMMENTS (Shown when committee reviews full paper) */}
+                        {paper.fullPaperReviewComments && (
+                          <div className={`mt-3.5 p-4 rounded-2xl border transition-all ${
+                            (paper.fullPaperStatus || '').toLowerCase().includes('revision')
+                              ? 'bg-amber-50 border-amber-300 text-amber-950 shadow-xs'
+                              : (paper.fullPaperStatus || '').toLowerCase().includes('reject')
+                              ? 'bg-rose-50 border-rose-300 text-rose-950 shadow-xs'
+                              : (paper.fullPaperStatus || '').toLowerCase().includes('proceeding') || (paper.fullPaperStatus || '').toLowerCase().includes('accept')
+                              ? 'bg-emerald-50 border-emerald-300 text-emerald-950 shadow-xs'
+                              : 'bg-blue-50 border-blue-200 text-blue-950 shadow-xs'
+                          }`}>
+                            <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-current/15">
+                              <div className="flex items-center gap-2">
+                                <FileCheck className="w-4 h-4 text-current shrink-0" />
+                                <span className="text-xs font-black uppercase tracking-wider">
+                                  Technical Review Committee Comments (Full Paper Manuscript)
+                                </span>
+                              </div>
+                              {paper.fullPaperScore && (
+                                <span className="text-xs font-black px-2.5 py-0.5 rounded-lg bg-white shadow-2xs border border-current/20">
+                                  Manuscript Score: {paper.fullPaperScore} / 10
+                                </span>
+                              )}
+                            </div>
+                            
+                            <p className="text-xs leading-relaxed font-semibold whitespace-pre-wrap pl-6">
+                              {paper.fullPaperReviewComments}
+                            </p>
+
+                            {(paper.fullPaperStatus || '').toLowerCase().includes('revision') && (
+                              <div className="mt-3 pt-2.5 border-t border-amber-300/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                                <span className="text-[11px] font-bold text-amber-900">
+                                  ⚠️ Please revise your manuscript according to the comments above and upload the updated file.
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => triggerManuscriptUpload(paper.paperCode || paper.id)}
+                                  className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+                                >
+                                  <Upload className="w-3.5 h-3.5" />
+                                  <span>Upload Revised Manuscript</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         {/* Uploaded File Attachments Badge Display */}
                         {(paper.fullPaperFileName || paper.presentationFileName || paper.fileName || paper.fileData) && (
                           <div className="mt-3 flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
@@ -709,15 +773,26 @@ export default function DashboardPage() {
 
                       {/* Paper Action Buttons */}
                       <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 text-xs">
+                        <div className="flex flex-wrap items-center gap-3 text-xs">
                           <div className="flex items-center gap-1 text-slate-600">
                             <Clock className="w-3.5 h-3.5 text-amber-500" />
-                            <span>Status: <strong>{paper.status || 'Submitted'}</strong></span>
+                            <span>Abstract: <strong>{paper.status || 'Submitted'}</strong></span>
                           </div>
                           {paper.reviewScore && (
-                            <span className="bg-emerald-50 text-emerald-800 px-2.5 py-0.5 rounded-md font-bold">
+                            <span className="bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md font-bold text-[11px]">
                               Score: {paper.reviewScore}/10
                             </span>
+                          )}
+                          {paper.fullPaperFileName && (
+                            <div className="flex items-center gap-1 text-blue-700 font-semibold border-l pl-3 border-slate-200">
+                              <FileCheck className="w-3.5 h-3.5 text-blue-600" />
+                              <span>Paper: <strong>{paper.fullPaperStatus || 'Submitted'}</strong></span>
+                              {paper.fullPaperScore && (
+                                <span className="bg-blue-50 text-blue-800 px-2 py-0.5 rounded-md font-bold text-[11px]">
+                                  {paper.fullPaperScore}/10
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
 

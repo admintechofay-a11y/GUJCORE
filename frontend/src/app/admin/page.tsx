@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { 
   ShieldCheck, 
@@ -17,32 +17,33 @@ import {
   AlertCircle, 
   Printer, 
   Edit3, 
-  RefreshCw,
-  TrendingUp,
-  FileSpreadsheet,
-  Building2,
-  Phone,
-  Lock,
-  ArrowRight,
-  Sparkles,
-  DollarSign,
-  UserCheck,
-  Shield,
-  Eye,
-  LogOut,
-  Sliders,
-  History,
-  FileCheck,
-  Award,
-  Layers,
-  Check,
-  X,
-  PlusCircle,
-  HelpCircle,
-  UploadCloud,
-  MessageSquare,
-  Trash2,
-  Presentation
+  RefreshCw, 
+  TrendingUp, 
+  FileSpreadsheet, 
+  Building2, 
+  Phone, 
+  Lock, 
+  ArrowRight, 
+  Sparkles, 
+  DollarSign, 
+  UserCheck, 
+  Shield, 
+  Eye, 
+  LogOut, 
+  Sliders, 
+  History, 
+  FileCheck, 
+  Award, 
+  Layers, 
+  Check, 
+  X, 
+  PlusCircle, 
+  HelpCircle, 
+  UploadCloud, 
+  MessageSquare, 
+  Trash2, 
+  Presentation,
+  BookOpen
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import AnnouncementBar from '@/components/AnnouncementBar';
@@ -55,9 +56,9 @@ import { useAuth, UserRole } from '@/context/AuthContext';
 export default function AdminPage() {
   const { user, login, logout, checkSession } = useAuth();
   
-  // Active Tab state
+  // Active Tab state (Supporting separate dedicated tabs for Abstract & Full Paper Approvals)
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'delegates' | 'papers' | 'booths' | 'sponsorship' | 'finance' | 'inquiries' | 'cms' | 'staff' | 'audit'
+    'overview' | 'delegates' | 'abstracts' | 'fullpapers' | 'papers' | 'booths' | 'sponsorship' | 'finance' | 'inquiries' | 'cms' | 'staff' | 'audit'
   >('overview');
 
   // Login gate state
@@ -85,6 +86,8 @@ export default function AdminPage() {
 
   // Modals state
   const [selectedPaper, setSelectedPaper] = useState<PaperSubmission | null>(null);
+  const [reviewModalType, setReviewModalType] = useState<'abstract' | 'full_paper'>('abstract');
+  const [abstractTextModalPaper, setAbstractTextModalPaper] = useState<PaperSubmission | null>(null);
   const [scoreInput, setScoreInput] = useState<number>(8.5);
   const [commentsInput, setCommentsInput] = useState<string>('');
   const [paperStatusInput, setPaperStatusInput] = useState<string>('Accepted for Oral Presentation');
@@ -243,14 +246,25 @@ export default function AdminPage() {
     }
   };
 
-  // Paper review save
+  // Paper review save (abstract or full paper)
   const handleSavePaperReview = async () => {
     if (!selectedPaper) return;
     const paperCode = selectedPaper.paperCode || selectedPaper.id;
     try {
-      const res = await api.updatePaperDecision(paperCode, scoreInput, commentsInput, paperStatusInput, user?.email);
+      const res = await api.updatePaperDecision(
+        paperCode, 
+        scoreInput, 
+        commentsInput, 
+        paperStatusInput, 
+        user?.email, 
+        reviewModalType
+      );
       if (res.success) {
-        showToast(`Paper #${paperCode} reviewed: Score ${scoreInput}/10, Status: "${paperStatusInput}".`);
+        showToast(
+          reviewModalType === 'full_paper'
+            ? `Full Paper #${paperCode} reviewed: Score ${scoreInput}/10, Status: "${paperStatusInput}".`
+            : `Abstract #${paperCode} reviewed: Score ${scoreInput}/10, Status: "${paperStatusInput}".`
+        );
         setSelectedPaper(null);
         loadAllAdminData();
       } else {
@@ -258,6 +272,20 @@ export default function AdminPage() {
       }
     } catch {
       alert('Error saving review decision.');
+    }
+  };
+
+  const openReviewModal = (p: PaperSubmission, type: 'abstract' | 'full_paper' = 'abstract') => {
+    setSelectedPaper(p);
+    setReviewModalType(type);
+    if (type === 'full_paper') {
+      setScoreInput(p.fullPaperScore || 8.5);
+      setCommentsInput(p.fullPaperReviewComments || '');
+      setPaperStatusInput(p.fullPaperStatus || 'Accepted for Proceedings');
+    } else {
+      setScoreInput(p.reviewScore || 8.5);
+      setCommentsInput(p.reviewComments || '');
+      setPaperStatusInput(p.status || 'Accepted for Oral Presentation');
     }
   };
 
@@ -313,28 +341,54 @@ export default function AdminPage() {
     handleDownloadSingleFile(p.abstractFileData || p.fileData, p.abstractFileName || p.fileName || `${p.paperCode || p.id}_Manuscript.pdf`);
   };
 
-  // 1-click Approve, Under Review, or Reject paper decision
-  const handleQuickPaperDecision = async (paperCode: string, newStatus: string) => {
+  // 1-click Approve, Under Review, or Reject Abstract decision
+  const handleQuickAbstractDecision = async (paperCode: string, newStatus: string) => {
     const isApprove = newStatus.includes('Accepted');
     const isUnder = newStatus.toLowerCase().includes('under review');
-    const actionLabel = isApprove ? 'APPROVE' : isUnder ? 'MARK AS UNDER REVIEW' : 'REJECT';
-    if (!window.confirm(`Are you sure you want to ${actionLabel} paper #${paperCode}?`)) {
+    const actionLabel = isApprove ? 'APPROVE ABSTRACT' : isUnder ? 'MARK ABSTRACT AS UNDER REVIEW' : 'REJECT ABSTRACT';
+    if (!window.confirm(`Are you sure you want to ${actionLabel} for paper #${paperCode}?`)) {
       return;
     }
 
     try {
-      const res = await api.updatePaperDecision(paperCode, undefined, undefined, newStatus);
+      const res = await api.updatePaperDecision(paperCode, undefined, undefined, newStatus, user?.email, 'abstract');
       if (res.success) {
-        showToast(`Paper #${paperCode} successfully updated to "${newStatus}".`);
+        showToast(`Abstract #${paperCode} successfully updated to "${newStatus}".`);
         setPapers(prev => prev.map(p => (p.paperCode === paperCode || p.id === paperCode) ? { ...p, status: newStatus } : p));
         loadAllAdminData();
       } else {
-        alert(res.message || 'Failed updating paper status.');
+        alert(res.message || 'Failed updating abstract status.');
       }
     } catch {
-      alert('Network error while updating paper decision.');
+      alert('Network error while updating abstract decision.');
     }
   };
+
+  // 1-click Quick Full Paper Proceedings Decision
+  const handleQuickFullPaperDecision = async (paperCode: string, newStatus: string) => {
+    const isApprove = newStatus.includes('Accepted') || newStatus.includes('Proceedings');
+    const isUnder = newStatus.toLowerCase().includes('under review');
+    const actionLabel = isApprove ? 'APPROVE FOR PROCEEDINGS' : isUnder ? 'MARK UNDER REVIEW' : 'REJECT FULL PAPER';
+    if (!window.confirm(`Are you sure you want to ${actionLabel} for paper #${paperCode}?`)) {
+      return;
+    }
+
+    try {
+      const res = await api.updatePaperDecision(paperCode, undefined, undefined, newStatus, user?.email, 'full_paper');
+      if (res.success) {
+        showToast(`Full Paper #${paperCode} successfully updated to "${newStatus}".`);
+        setPapers(prev => prev.map(p => (p.paperCode === paperCode || p.id === paperCode) ? { ...p, fullPaperStatus: newStatus } : p));
+        loadAllAdminData();
+      } else {
+        alert(res.message || 'Failed updating full paper status.');
+      }
+    } catch {
+      alert('Network error while updating full paper decision.');
+    }
+  };
+
+  // Legacy fallback alias
+  const handleQuickPaperDecision = handleQuickAbstractDecision;
 
   // Upload or attach abstract, manuscript or presentation file
   const handleUploadPaperFile = async (
@@ -567,7 +621,35 @@ export default function AdminPage() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `GUJCORR_2027_Papers_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `GUJCORR_2027_Abstracts_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportFullPapersCsv = () => {
+    const headers = ['Paper Code', 'Author Name', 'Email', 'Mobile', 'Organization', 'Symposium ID', 'Symposium Title', 'Paper Title', 'Abstract Decision', 'Manuscript File', 'Proceedings Status', 'Manuscript Score', 'Reviewer Feedback'];
+    const rows = papers.map(p => [
+      p.paperCode || p.id,
+      `"${p.fullName}"`,
+      p.email,
+      p.mobileNumber,
+      `"${p.companyName}"`,
+      p.symposiumId,
+      `"${p.symposiumTitle}"`,
+      `"${(p.paperTitle || '').replace(/"/g, '""')}"`,
+      p.status || 'Submitted',
+      p.fullPaperFileName || 'None',
+      p.fullPaperStatus || 'Pending Submission',
+      p.fullPaperScore || 'N/A',
+      `"${(p.fullPaperReviewComments || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `GUJCORR_2027_Full_Papers_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -580,6 +662,15 @@ export default function AdminPage() {
   const outstandingRevenue = overviewData?.registrations?.outstandingRevenue ?? registrations.filter(r => (r.status || '').toLowerCase().includes('pending')).reduce((sum, r) => sum + (Number(r.totalAmount) || 0), 0);
   const totalPapers = overviewData?.papers?.total ?? papers.length;
   const acceptedPapers = overviewData?.papers?.accepted ?? papers.filter(p => (p.status || '').toLowerCase().includes('accepted')).length;
+
+  const papersWithFullPaper = useMemo(() => {
+    return papers.filter(p => !!(p.fullPaperFileData || p.fullPaperFileName || (p.fullPaperStatus && p.fullPaperStatus !== 'Pending Submission')));
+  }, [papers]);
+
+  const acceptedFullPapers = useMemo(() => {
+    return papers.filter(p => (p.fullPaperStatus || '').toLowerCase().includes('proceeding') || (p.fullPaperStatus || '').toLowerCase().includes('accept')).length;
+  }, [papers]);
+
   const totalBoothsBooked = overviewData?.exhibition?.booked ?? booths.filter(b => b.status === 'Confirmed' || b.status === 'Reserved').length;
   const unreadInquiries = overviewData?.inquiries?.unread ?? inquiries.filter(i => (i.status || '').toLowerCase() === 'unread').length;
 
@@ -595,8 +686,8 @@ export default function AdminPage() {
     return matchQuery;
   });
 
-  // Filtered Paper records
-  const filteredPapers = papers.filter(p => {
+  // Filtered Abstracts records
+  const filteredAbstracts = papers.filter(p => {
     const q = searchTerm.toLowerCase();
     const matchQuery = (p.paperTitle || '').toLowerCase().includes(q) ||
                        (p.fullName || '').toLowerCase().includes(q) ||
@@ -605,6 +696,22 @@ export default function AdminPage() {
     if (statusFilter !== 'all' && !(p.status || '').toLowerCase().includes(statusFilter.toLowerCase())) return false;
     return matchQuery;
   });
+
+  // Filtered Full Papers records
+  const filteredFullPapers = papers.filter(p => {
+    const q = searchTerm.toLowerCase();
+    const matchQuery = (p.paperTitle || '').toLowerCase().includes(q) ||
+                       (p.fullName || '').toLowerCase().includes(q) ||
+                       (p.paperCode || p.id || '').toLowerCase().includes(q) ||
+                       (p.symposiumTitle || '').toLowerCase().includes(q);
+    if (statusFilter === 'all') return matchQuery;
+    if (statusFilter === 'uploaded') return matchQuery && !!(p.fullPaperFileData || p.fullPaperFileName);
+    if (statusFilter === 'missing') return matchQuery && !(p.fullPaperFileData || p.fullPaperFileName);
+    return matchQuery && (p.fullPaperStatus || '').toLowerCase().includes(statusFilter.toLowerCase());
+  });
+
+  // Legacy fallback alias
+  const filteredPapers = filteredAbstracts;
 
   // Filtered Booth records
   const filteredBooths = booths.filter(b => {
@@ -766,12 +873,13 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* 3. NAVIGATION TABS (10 ENTERPRISE MODULES) */}
+            {/* 3. NAVIGATION TABS (ENTERPRISE MODULES WITH SEPARATE ABSTRACT & FULL PAPER APPROVALS) */}
             <div className="flex overflow-x-auto gap-1 p-1.5 bg-slate-200/70 rounded-2xl mb-8 scrollbar-none text-xs font-bold">
               {[
                 { id: 'overview', label: 'Overview', icon: TrendingUp },
                 { id: 'delegates', label: `Delegates (${registrations.length})`, icon: Users },
-                { id: 'papers', label: `Papers (${papers.length})`, icon: FileText },
+                { id: 'abstracts', label: `Abstracts (${papers.length})`, icon: FileText },
+                { id: 'fullpapers', label: `Full Papers (${papersWithFullPaper.length})`, icon: FileCheck },
                 { id: 'booths', label: `Booths (${booths.length})`, icon: Store },
                 { id: 'sponsorship', label: 'Sponsors & Souvenir', icon: Award },
                 { id: 'finance', label: 'Finance & Billing', icon: DollarSign },
@@ -781,7 +889,7 @@ export default function AdminPage() {
                 { id: 'audit', label: 'Audit Trail', icon: History }
               ].map(t => {
                 const Icon = t.icon;
-                const active = activeTab === t.id;
+                const active = activeTab === t.id || (t.id === 'abstracts' && activeTab === 'papers');
                 return (
                   <button
                     key={t.id}
@@ -889,10 +997,18 @@ export default function AdminPage() {
                         <span>Download Papers CSV</span>
                       </button>
                       <button
-                        onClick={() => setActiveTab('papers')}
+                        onClick={() => setActiveTab('abstracts')}
                         className="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer"
                       >
-                        <span>Manage &amp; Score &rarr;</span>
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Abstract Approvals &rarr;</span>
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('fullpapers')}
+                        className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer"
+                      >
+                        <FileCheck className="w-3.5 h-3.5" />
+                        <span>Full Paper Approvals &rarr;</span>
                       </button>
                     </div>
                   </div>
@@ -1452,73 +1568,174 @@ export default function AdminPage() {
             )}
 
             {/* ============================================================== */}
-            {/* MODULE 3: TECHNICAL PAPERS & CFP (3.4) */}
+            {/* MODULE 3A: ABSTRACT SUBMISSIONS & SCREENING APPROVALS */}
             {/* ============================================================== */}
-            {activeTab === 'papers' && (
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden space-y-4 p-6 animate-in fade-in">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <div className="relative flex-1 sm:w-64">
-                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                      <input
-                        type="text"
-                        placeholder="Search paper title, author, code..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full text-xs pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-                      />
+            {(activeTab === 'abstracts' || activeTab === 'papers') && (
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden space-y-6 p-6 animate-in fade-in">
+                {/* Header Switcher & Actions */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl">
+                      <button
+                        type="button"
+                        onClick={() => { setActiveTab('abstracts'); setStatusFilter('all'); setSearchTerm(''); }}
+                        className="px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 bg-white text-purple-800 shadow-xs cursor-pointer transition-all"
+                      >
+                        <FileText className="w-4 h-4 text-purple-600" />
+                        <span>1. Abstract Approvals ({papers.length})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setActiveTab('fullpapers'); setStatusFilter('all'); setSearchTerm(''); }}
+                        className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-white/60 cursor-pointer transition-all"
+                      >
+                        <FileCheck className="w-4 h-4 text-blue-600" />
+                        <span>2. Full Paper Approvals ({papersWithFullPaper.length})</span>
+                      </button>
                     </div>
                   </div>
 
-                  <button
-                    onClick={exportPapersCsv}
-                    className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Export Papers CSV</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={exportPapersCsv}
+                      className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Export Abstracts CSV</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="overflow-x-auto">
+                {/* 4 Summary Stat Cards for Abstracts */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-purple-50/60 border border-purple-200 p-4 rounded-2xl space-y-1">
+                    <div className="text-[10px] font-extrabold uppercase text-purple-700 tracking-wider">Total Received</div>
+                    <div className="text-2xl font-black text-purple-900">{papers.length}</div>
+                    <div className="text-[10px] text-purple-700 font-semibold">Abstracts submitted</div>
+                  </div>
+                  <div className="bg-emerald-50/60 border border-emerald-200 p-4 rounded-2xl space-y-1">
+                    <div className="text-[10px] font-extrabold uppercase text-emerald-700 tracking-wider">Oral Accepted</div>
+                    <div className="text-2xl font-black text-emerald-900">
+                      {papers.filter(p => (p.status || '').toLowerCase().includes('oral')).length}
+                    </div>
+                    <div className="text-[10px] text-emerald-700 font-semibold">Accepted for Oral Presentation</div>
+                  </div>
+                  <div className="bg-teal-50/60 border border-teal-200 p-4 rounded-2xl space-y-1">
+                    <div className="text-[10px] font-extrabold uppercase text-teal-700 tracking-wider">Poster Accepted</div>
+                    <div className="text-2xl font-black text-teal-900">
+                      {papers.filter(p => (p.status || '').toLowerCase().includes('poster')).length}
+                    </div>
+                    <div className="text-[10px] text-teal-700 font-semibold">Accepted for Poster Session</div>
+                  </div>
+                  <div className="bg-blue-50/60 border border-blue-200 p-4 rounded-2xl space-y-1">
+                    <div className="text-[10px] font-extrabold uppercase text-blue-700 tracking-wider">Under Review</div>
+                    <div className="text-2xl font-black text-blue-900">
+                      {papers.filter(p => (p.status || '').toLowerCase().includes('under review') || (p.status || '').toLowerCase() === 'submitted').length}
+                    </div>
+                    <div className="text-[10px] text-blue-700 font-semibold">Awaiting Committee Evaluation</div>
+                  </div>
+                </div>
+
+                {/* Search & Status Filters */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="relative flex-1 w-full sm:w-80">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="text"
+                      placeholder="Search abstract title, author, track, code..."
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      className="w-full text-xs pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
+                    />
+                  </div>
+
+                  <select
+                    value={statusFilter}
+                    onChange={e => setStatusFilter(e.target.value)}
+                    className="text-xs py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold w-full sm:w-auto"
+                  >
+                    <option value="all">All Abstract Statuses</option>
+                    <option value="submitted">Submitted (Awaiting Review)</option>
+                    <option value="under review">Under Review</option>
+                    <option value="oral">Accepted for Oral Presentation</option>
+                    <option value="poster">Accepted for Poster Presentation</option>
+                    <option value="revision">Revision Required</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+
+                {/* Abstract Approvals Table */}
+                <div className="overflow-x-auto border border-slate-100 rounded-2xl">
                   <table className="w-full text-left text-xs text-slate-700">
                     <thead className="bg-slate-50 text-slate-900 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200">
                       <tr>
                         <th className="py-3 px-4">Paper Code</th>
-                        <th className="py-3 px-4">Author &amp; Org</th>
+                        <th className="py-3 px-4">Primary Author</th>
                         <th className="py-3 px-4">Symposium &amp; Title</th>
-                        <th className="py-3 px-4">Uploaded Documents (Abstract / Paper / PPT)</th>
+                        <th className="py-3 px-4">Abstract Screening</th>
                         <th className="py-3 px-4">Score</th>
-                        <th className="py-3 px-4">Status</th>
-                        <th className="py-3 px-4 text-right">Review</th>
+                        <th className="py-3 px-4">Abstract Status</th>
+                        <th className="py-3 px-4 text-right">Approval Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {filteredPapers.map((p: any, idx) => {
-                        const isAcc = (p.status || '').toLowerCase().includes('accepted');
+                      {filteredAbstracts.map((p: any, idx) => {
+                        const s = (p.status || '').toLowerCase();
+                        const isAcc = s.includes('accept');
+                        const isOral = s.includes('oral');
+                        const isPoster = s.includes('poster');
+                        const isUnder = s.includes('under review');
+                        const isRev = s.includes('revision');
+                        const isRej = s.includes('reject');
+
                         return (
                           <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
-                            <td className="py-3 px-4 font-mono font-bold text-slate-900">{p.paperCode || p.id}</td>
+                            <td className="py-3 px-4 font-mono font-bold text-slate-900">
+                              <span className="bg-slate-100 px-2 py-1 rounded text-[11px] font-bold text-slate-800">
+                                {p.paperCode || p.id}
+                              </span>
+                            </td>
                             <td className="py-3 px-4">
-                              <div className="font-bold text-slate-900">{p.fullName}</div>
-                              <div className="text-[11px] text-slate-400">{p.companyName}</div>
+                              <div className="font-extrabold text-slate-900">{p.fullName}</div>
+                              <div className="text-[10px] text-slate-400">{p.email}</div>
+                              <div className="text-[10px] text-slate-500 font-medium">{p.companyName}</div>
                             </td>
                             <td className="py-3 px-4 max-w-xs">
-                              <div className="font-bold text-slate-900 truncate">{p.paperTitle}</div>
-                              <div className="text-[11px] text-slate-500 truncate">{p.symposiumTitle}</div>
+                              <div className="font-bold text-slate-900 line-clamp-1" title={p.paperTitle}>
+                                {p.paperTitle}
+                              </div>
+                              <div className="text-[10px] text-purple-700 font-semibold truncate">
+                                Track {p.symposiumId}: {p.symposiumTitle}
+                              </div>
                             </td>
-                            <td className="py-3 px-4 min-w-[240px]">
-                              <div className="space-y-1.5 text-[10px]">
-                                {/* 1. ABSTRACT DOCUMENT */}
-                                <div className="flex items-center justify-between gap-1 p-1.5 bg-slate-50 border border-slate-200 rounded-lg">
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    <FileText className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                                    <span className="font-bold text-slate-800">Abstract:</span>
+                            <td className="py-3 px-4 min-w-[210px]">
+                              <div className="space-y-1.5">
+                                {/* Text Preview Drawer Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => setAbstractTextModalPaper(p)}
+                                  className="w-full px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 rounded-lg text-[10px] font-bold flex items-center justify-between gap-1 cursor-pointer shadow-2xs"
+                                  title="Read full submitted abstract text"
+                                >
+                                  <span className="flex items-center gap-1">
+                                    <FileText className="w-3 h-3 text-purple-600" />
+                                    <span>Read Abstract Text</span>
+                                  </span>
+                                  <span className="text-[9px] text-purple-600 font-mono">
+                                    {p.abstract ? `${p.abstract.split(/\s+/).filter(Boolean).length}w` : 'Preview'} &rarr;
+                                  </span>
+                                </button>
+
+                                {/* Abstract PDF attachment actions */}
+                                <div className="flex items-center justify-between gap-1 p-1 bg-slate-50 border border-slate-200 rounded-lg text-[10px]">
+                                  <div className="flex items-center gap-1 min-w-0">
+                                    <span className="font-bold text-slate-700">PDF:</span>
                                     {(p.abstractFileData || p.fileData) ? (
-                                      <span className="text-slate-600 truncate max-w-[85px]" title={p.abstractFileName || p.fileName || 'Abstract.pdf'}>
+                                      <span className="text-slate-600 truncate max-w-[80px]" title={p.abstractFileName || p.fileName || 'Abstract.pdf'}>
                                         {p.abstractFileName || p.fileName || 'Abstract.pdf'}
                                       </span>
                                     ) : (
-                                      <span className="text-amber-700 font-semibold italic">Missing</span>
+                                      <span className="text-amber-700 italic">None</span>
                                     )}
                                   </div>
                                   {(p.abstractFileData || p.fileData) ? (
@@ -1526,7 +1743,7 @@ export default function AdminPage() {
                                       <button
                                         type="button"
                                         onClick={() => handleViewFile(p.abstractFileData || p.fileData, p.abstractFileName || 'Abstract.pdf')}
-                                        className="px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
+                                        className="px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer"
                                         title="View Abstract PDF"
                                       >
                                         <Eye className="w-2.5 h-2.5" />
@@ -1535,7 +1752,7 @@ export default function AdminPage() {
                                       <button
                                         type="button"
                                         onClick={() => handleDownloadSingleFile(p.abstractFileData || p.fileData, p.abstractFileName || `${p.paperCode || p.id}_Abstract.pdf`)}
-                                        className="px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
+                                        className="px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer"
                                         title="Download Abstract"
                                       >
                                         <Download className="w-2.5 h-2.5" />
@@ -1543,7 +1760,7 @@ export default function AdminPage() {
                                       </button>
                                     </div>
                                   ) : (
-                                    <label className="px-1.5 py-0.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[9px] font-bold cursor-pointer flex items-center gap-0.5 shrink-0 shadow-2xs">
+                                    <label className="px-1.5 py-0.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[9px] font-bold cursor-pointer flex items-center gap-0.5 shrink-0">
                                       <UploadCloud className="w-2.5 h-2.5 text-slate-500" />
                                       <span>Attach</span>
                                       <input
@@ -1558,108 +1775,6 @@ export default function AdminPage() {
                                     </label>
                                   )}
                                 </div>
-
-                                {/* 2. FULL PAPER MANUSCRIPT */}
-                                <div className="flex items-center justify-between gap-1 p-1.5 bg-slate-50 border border-slate-200 rounded-lg">
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    <FileCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                                    <span className="font-bold text-slate-800">Paper:</span>
-                                    {p.fullPaperFileData ? (
-                                      <span className="text-slate-600 truncate max-w-[85px]" title={p.fullPaperFileName || 'Paper.pdf'}>
-                                        {p.fullPaperFileName || 'Manuscript.pdf'}
-                                      </span>
-                                    ) : (
-                                      <span className="text-slate-400 font-medium italic">Due 15 Dec</span>
-                                    )}
-                                  </div>
-                                  {p.fullPaperFileData ? (
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleViewFile(p.fullPaperFileData, p.fullPaperFileName || 'FullPaper.pdf')}
-                                        className="px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
-                                        title="View Full Paper Manuscript"
-                                      >
-                                        <Eye className="w-2.5 h-2.5" />
-                                        <span>View</span>
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDownloadSingleFile(p.fullPaperFileData, p.fullPaperFileName || `${p.paperCode || p.id}_FullPaper.pdf`)}
-                                        className="px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
-                                        title="Download Full Paper"
-                                      >
-                                        <Download className="w-2.5 h-2.5" />
-                                        <span>DL</span>
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <label className="px-1.5 py-0.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[9px] font-bold cursor-pointer flex items-center gap-0.5 shrink-0 shadow-2xs">
-                                      <UploadCloud className="w-2.5 h-2.5 text-slate-500" />
-                                      <span>Attach</span>
-                                      <input
-                                        type="file"
-                                        accept=".pdf,.doc,.docx"
-                                        className="hidden"
-                                        onChange={e => {
-                                          const file = e.target.files?.[0];
-                                          if (file) handleUploadPaperFile(p.paperCode || p.id, file, 'full_paper');
-                                        }}
-                                      />
-                                    </label>
-                                  )}
-                                </div>
-
-                                {/* 3. PRESENTATION SLIDES (PPT) */}
-                                <div className="flex items-center justify-between gap-1 p-1.5 bg-slate-50 border border-slate-200 rounded-lg">
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    <Presentation className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                                    <span className="font-bold text-slate-800">PPT:</span>
-                                    {p.presentationFileData ? (
-                                      <span className="text-slate-600 truncate max-w-[85px]" title={p.presentationFileName || 'Presentation.pptx'}>
-                                        {p.presentationFileName || 'Slides.pptx'}
-                                      </span>
-                                    ) : (
-                                      <span className="text-slate-400 font-medium italic">Due 25 Dec</span>
-                                    )}
-                                  </div>
-                                  {p.presentationFileData ? (
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleViewFile(p.presentationFileData, p.presentationFileName || 'Presentation.pptx')}
-                                        className="px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
-                                        title="View Presentation"
-                                      >
-                                        <Eye className="w-2.5 h-2.5" />
-                                        <span>View</span>
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDownloadSingleFile(p.presentationFileData, p.presentationFileName || `${p.paperCode || p.id}_Presentation.pptx`)}
-                                        className="px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
-                                        title="Download Presentation"
-                                      >
-                                        <Download className="w-2.5 h-2.5" />
-                                        <span>DL</span>
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <label className="px-1.5 py-0.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[9px] font-bold cursor-pointer flex items-center gap-0.5 shrink-0 shadow-2xs">
-                                      <UploadCloud className="w-2.5 h-2.5 text-slate-500" />
-                                      <span>Attach</span>
-                                      <input
-                                        type="file"
-                                        accept=".ppt,.pptx,.pdf"
-                                        className="hidden"
-                                        onChange={e => {
-                                          const file = e.target.files?.[0];
-                                          if (file) handleUploadPaperFile(p.paperCode || p.id, file, 'presentation');
-                                        }}
-                                      />
-                                    </label>
-                                  )}
-                                </div>
                               </div>
                             </td>
                             <td className="py-3 px-4 font-bold text-purple-700">
@@ -1667,10 +1782,12 @@ export default function AdminPage() {
                             </td>
                             <td className="py-3 px-4">
                               <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
+                                isOral ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' :
+                                isPoster ? 'bg-teal-50 text-teal-800 border border-teal-300' :
                                 isAcc ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                                (p.status || '').toLowerCase().includes('under review') ? 'bg-blue-50 text-blue-700 border border-blue-200' :
-                                (p.status || '').toLowerCase().includes('revision') ? 'bg-amber-50 text-amber-800 border border-amber-300' :
-                                (p.status || '').toLowerCase().includes('reject') ? 'bg-rose-50 text-rose-700 border border-rose-200' :
+                                isUnder ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                                isRev ? 'bg-amber-50 text-amber-800 border border-amber-300' :
+                                isRej ? 'bg-rose-50 text-rose-700 border border-rose-200' :
                                 'bg-purple-50 text-purple-700 border border-purple-200'
                               }`}>
                                 {p.status || 'Submitted'}
@@ -1678,46 +1795,61 @@ export default function AdminPage() {
                             </td>
                             <td className="py-3 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                                {/* Quick Approve Button */}
+                                {/* Quick Approve Oral Button */}
                                 <button
                                   type="button"
-                                  onClick={() => handleQuickPaperDecision(p.paperCode || p.id, 'Accepted for Oral Presentation')}
+                                  onClick={() => handleQuickAbstractDecision(p.paperCode || p.id, 'Accepted for Oral Presentation')}
                                   className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs ${
-                                    isAcc 
+                                    isOral 
                                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
                                       : 'bg-emerald-600 hover:bg-emerald-700 text-white'
                                   }`}
-                                  title="Approve Paper for Presentation"
+                                  title="Approve for Oral Presentation"
                                 >
                                   <Check className="w-3 h-3 stroke-[3]" />
-                                  <span>{isAcc ? 'Approved' : 'Approve'}</span>
+                                  <span>{isOral ? 'Oral Approved' : 'Oral'}</span>
+                                </button>
+
+                                {/* Quick Approve Poster Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickAbstractDecision(p.paperCode || p.id, 'Accepted for Poster Presentation')}
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs ${
+                                    isPoster 
+                                      ? 'bg-teal-100 text-teal-800 border border-teal-300' 
+                                      : 'bg-teal-600 hover:bg-teal-700 text-white'
+                                  }`}
+                                  title="Approve for Poster Presentation"
+                                >
+                                  <Check className="w-3 h-3 stroke-[3]" />
+                                  <span>{isPoster ? 'Poster Approved' : 'Poster'}</span>
                                 </button>
 
                                 {/* Quick Under Review Button */}
                                 <button
                                   type="button"
-                                  onClick={() => handleQuickPaperDecision(p.paperCode || p.id, 'Under Review')}
+                                  onClick={() => handleQuickAbstractDecision(p.paperCode || p.id, 'Under Review')}
                                   className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs ${
-                                    (p.status || '').toLowerCase().includes('under review')
+                                    isUnder
                                       ? 'bg-blue-100 text-blue-800 border border-blue-300'
                                       : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200'
                                   }`}
-                                  title="Mark paper as Under Review"
+                                  title="Mark as Under Review"
                                 >
                                   <Clock className="w-3 h-3 stroke-[2.5]" />
-                                  <span>{(p.status || '').toLowerCase().includes('under review') ? 'In Review' : 'Under Review'}</span>
+                                  <span>{isUnder ? 'In Review' : 'Review'}</span>
                                 </button>
 
                                 {/* Quick Reject Button */}
                                 <button
                                   type="button"
-                                  onClick={() => handleQuickPaperDecision(p.paperCode || p.id, 'Rejected')}
+                                  onClick={() => handleQuickAbstractDecision(p.paperCode || p.id, 'Rejected')}
                                   className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs ${
-                                    (p.status || '').toLowerCase().includes('reject')
+                                    isRej
                                       ? 'bg-rose-100 text-rose-800 border border-rose-300'
                                       : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'
                                   }`}
-                                  title="Reject Paper"
+                                  title="Reject Abstract"
                                 >
                                   <X className="w-3 h-3 stroke-[3]" />
                                   <span>Reject</span>
@@ -1726,17 +1858,12 @@ export default function AdminPage() {
                                 {/* Score Modal Trigger */}
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    setSelectedPaper(p);
-                                    setScoreInput(p.reviewScore || 8.5);
-                                    setCommentsInput(p.reviewComments || '');
-                                    setPaperStatusInput(p.status || 'Accepted for Oral Presentation');
-                                  }}
-                                  className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[10px] font-bold cursor-pointer transition-colors shadow-2xs flex items-center gap-1"
-                                  title="Detailed Scoring, Review & Author Comments"
+                                  onClick={() => openReviewModal(p, 'abstract')}
+                                  className="px-2.5 py-1 bg-purple-900 hover:bg-purple-800 text-white rounded-lg text-[10px] font-bold cursor-pointer transition-colors shadow-2xs flex items-center gap-1"
+                                  title="Score, add comments, and request changes for author"
                                 >
                                   <MessageSquare className="w-3 h-3" />
-                                  <span>Review / Score</span>
+                                  <span>Score / Review</span>
                                 </button>
 
                                 {/* Delete Entry Button */}
@@ -1744,7 +1871,7 @@ export default function AdminPage() {
                                   type="button"
                                   onClick={() => handleDeletePaper(p.paperCode || p.id, p.paperTitle)}
                                   className="p-1 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
-                                  title="Permanently remove this paper submission from the live database"
+                                  title="Permanently remove this paper submission"
                                 >
                                   <Trash2 className="w-3 h-3 text-rose-600 shrink-0" />
                                   <span>Delete</span>
@@ -1757,158 +1884,737 @@ export default function AdminPage() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            )}
 
-                {/* Score Modal */}
-                {selectedPaper && (
-                  <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-                      <div className="flex items-center justify-between border-b pb-3">
-                        <h4 className="font-extrabold text-slate-900 text-sm">Review Evaluation: {selectedPaper.paperCode || selectedPaper.id}</h4>
-                        <button onClick={() => setSelectedPaper(null)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+            {/* ============================================================== */}
+            {/* MODULE 3B: FULL PAPER MANUSCRIPTS & PROCEEDINGS APPROVALS */}
+            {/* ============================================================== */}
+            {activeTab === 'fullpapers' && (
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden space-y-6 p-6 animate-in fade-in">
+                {/* Header Switcher & Actions */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl">
+                      <button
+                        type="button"
+                        onClick={() => { setActiveTab('abstracts'); setStatusFilter('all'); setSearchTerm(''); }}
+                        className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-white/60 cursor-pointer transition-all"
+                      >
+                        <FileText className="w-4 h-4 text-purple-600" />
+                        <span>1. Abstract Approvals ({papers.length})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setActiveTab('fullpapers'); setStatusFilter('all'); setSearchTerm(''); }}
+                        className="px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 bg-white text-blue-800 shadow-xs cursor-pointer transition-all"
+                      >
+                        <FileCheck className="w-4 h-4 text-blue-600" />
+                        <span>2. Full Paper Approvals ({papersWithFullPaper.length})</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={exportFullPapersCsv}
+                      className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Export Full Papers CSV</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 4 Summary Stat Cards for Full Papers */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-blue-50/60 border border-blue-200 p-4 rounded-2xl space-y-1">
+                    <div className="text-[10px] font-extrabold uppercase text-blue-700 tracking-wider">Manuscripts Received</div>
+                    <div className="text-2xl font-black text-blue-900">{papersWithFullPaper.length}</div>
+                    <div className="text-[10px] text-blue-700 font-semibold">Camera-ready uploaded</div>
+                  </div>
+                  <div className="bg-emerald-50/60 border border-emerald-200 p-4 rounded-2xl space-y-1">
+                    <div className="text-[10px] font-extrabold uppercase text-emerald-700 tracking-wider">Proceedings Approved</div>
+                    <div className="text-2xl font-black text-emerald-900">{acceptedFullPapers}</div>
+                    <div className="text-[10px] text-emerald-700 font-semibold">Accepted for ISBN publication</div>
+                  </div>
+                  <div className="bg-amber-50/60 border border-amber-200 p-4 rounded-2xl space-y-1">
+                    <div className="text-[10px] font-extrabold uppercase text-amber-800 tracking-wider">Revisions Requested</div>
+                    <div className="text-2xl font-black text-amber-900">
+                      {papers.filter(p => (p.fullPaperStatus || '').toLowerCase().includes('revision')).length}
+                    </div>
+                    <div className="text-[10px] text-amber-800 font-semibold">Changes needed by author</div>
+                  </div>
+                  <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl space-y-1">
+                    <div className="text-[10px] font-extrabold uppercase text-slate-600 tracking-wider">Awaiting Manuscript</div>
+                    <div className="text-2xl font-black text-slate-800">
+                      {Math.max(0, papers.length - papersWithFullPaper.length)}
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-semibold">Due 15 Dec 2026</div>
+                  </div>
+                </div>
+
+                {/* Search & Status Filters */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="relative flex-1 w-full sm:w-80">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="text"
+                      placeholder="Search full paper title, author, code..."
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      className="w-full text-xs pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
+                    />
+                  </div>
+
+                  <select
+                    value={statusFilter}
+                    onChange={e => setStatusFilter(e.target.value)}
+                    className="text-xs py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold w-full sm:w-auto"
+                  >
+                    <option value="all">All Full Papers</option>
+                    <option value="uploaded">Uploaded Manuscripts Only</option>
+                    <option value="accepted for proceedings">Accepted for Proceedings</option>
+                    <option value="under review">Under Review</option>
+                    <option value="revision">Revision Required</option>
+                    <option value="missing">Awaiting Upload (Missing)</option>
+                  </select>
+                </div>
+
+                {/* Full Papers Approvals Table */}
+                <div className="overflow-x-auto border border-slate-100 rounded-2xl">
+                  <table className="w-full text-left text-xs text-slate-700">
+                    <thead className="bg-slate-50 text-slate-900 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                      <tr>
+                        <th className="py-3 px-4">Paper Code</th>
+                        <th className="py-3 px-4">Author &amp; Org</th>
+                        <th className="py-3 px-4">Paper Title &amp; Symposium</th>
+                        <th className="py-3 px-4">Abstract Status</th>
+                        <th className="py-3 px-4">Full Paper Manuscript</th>
+                        <th className="py-3 px-4">Oral Slides (PPT)</th>
+                        <th className="py-3 px-4">Score</th>
+                        <th className="py-3 px-4">Proceedings Status</th>
+                        <th className="py-3 px-4 text-right">Editorial Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredFullPapers.map((p: any, idx) => {
+                        const fpStatus = (p.fullPaperStatus || (p.fullPaperFileData ? 'Submitted' : 'Pending Submission')).toLowerCase();
+                        const isFpAccepted = fpStatus.includes('proceeding') || fpStatus.includes('accept');
+                        const isFpUnder = fpStatus.includes('under review');
+                        const isFpRev = fpStatus.includes('revision');
+                        const isFpRej = fpStatus.includes('reject');
+                        const hasFullPaper = !!(p.fullPaperFileData || p.fullPaperFileName);
+
+                        return (
+                          <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="py-3 px-4 font-mono font-bold text-slate-900">
+                              <span className="bg-slate-100 px-2 py-1 rounded text-[11px] font-bold text-slate-800">
+                                {p.paperCode || p.id}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="font-extrabold text-slate-900">{p.fullName}</div>
+                              <div className="text-[10px] text-slate-400">{p.email}</div>
+                              <div className="text-[10px] text-slate-500 font-medium">{p.companyName}</div>
+                            </td>
+                            <td className="py-3 px-4 max-w-xs">
+                              <div className="font-bold text-slate-900 line-clamp-1" title={p.paperTitle}>
+                                {p.paperTitle}
+                              </div>
+                              <div className="text-[10px] text-blue-700 font-semibold truncate">
+                                Track {p.symposiumId}: {p.symposiumTitle}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                {p.status || 'Submitted'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 min-w-[210px]">
+                              {/* 1. FULL PAPER MANUSCRIPT */}
+                              <div className="p-1.5 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
+                                <div className="flex items-center justify-between gap-1">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <FileCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                    {hasFullPaper ? (
+                                      <span className="font-bold text-slate-800 truncate max-w-[110px]" title={p.fullPaperFileName || 'Manuscript.pdf'}>
+                                        {p.fullPaperFileName || 'Manuscript.pdf'}
+                                      </span>
+                                    ) : (
+                                      <span className="text-amber-800 font-semibold italic text-[10px]">Due 15 Dec 2026</span>
+                                    )}
+                                  </div>
+                                  <label className="text-[9px] font-bold text-slate-600 hover:text-slate-900 cursor-pointer underline shrink-0">
+                                    <span>{hasFullPaper ? 'Replace' : 'Attach'}</span>
+                                    <input
+                                      type="file"
+                                      accept=".pdf,.doc,.docx"
+                                      className="hidden"
+                                      onChange={e => {
+                                        const file = e.target.files?.[0];
+                                        if (file) handleUploadPaperFile(p.paperCode || p.id, file, 'full_paper');
+                                      }}
+                                    />
+                                  </label>
+                                </div>
+
+                                {hasFullPaper && (
+                                  <div className="flex items-center gap-1 pt-0.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleViewFile(p.fullPaperFileData, p.fullPaperFileName || 'FullPaper.pdf')}
+                                      className="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[9px] font-bold flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Eye className="w-2.5 h-2.5" />
+                                      <span>View Manuscript</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDownloadSingleFile(p.fullPaperFileData, p.fullPaperFileName || `${p.paperCode || p.id}_FullPaper.pdf`)}
+                                      className="px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[9px] font-bold flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Download className="w-2.5 h-2.5" />
+                                      <span>Download</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 min-w-[170px]">
+                              {/* 2. PRESENTATION SLIDES (PPT) */}
+                              <div className="p-1.5 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
+                                <div className="flex items-center justify-between gap-1">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <Presentation className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                                    {p.presentationFileData ? (
+                                      <span className="font-bold text-slate-800 truncate max-w-[90px]" title={p.presentationFileName || 'Slides.pptx'}>
+                                        {p.presentationFileName || 'Slides.pptx'}
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-400 italic text-[10px]">Due 25 Dec</span>
+                                    )}
+                                  </div>
+                                  <label className="text-[9px] font-bold text-slate-600 hover:text-slate-900 cursor-pointer underline shrink-0">
+                                    <span>{p.presentationFileData ? 'Replace' : 'Attach'}</span>
+                                    <input
+                                      type="file"
+                                      accept=".ppt,.pptx,.pdf"
+                                      className="hidden"
+                                      onChange={e => {
+                                        const file = e.target.files?.[0];
+                                        if (file) handleUploadPaperFile(p.paperCode || p.id, file, 'presentation');
+                                      }}
+                                    />
+                                  </label>
+                                </div>
+
+                                {p.presentationFileData && (
+                                  <div className="flex items-center gap-1 pt-0.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleViewFile(p.presentationFileData, p.presentationFileName || 'Presentation.pptx')}
+                                      className="px-2 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded text-[9px] font-bold flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Eye className="w-2.5 h-2.5" />
+                                      <span>View PPT</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDownloadSingleFile(p.presentationFileData, p.presentationFileName || `${p.paperCode || p.id}_Presentation.pptx`)}
+                                      className="px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[9px] font-bold flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Download className="w-2.5 h-2.5" />
+                                      <span>DL</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 font-bold text-blue-700">
+                              {p.fullPaperScore ? `${p.fullPaperScore}/10` : 'Pending'}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
+                                isFpAccepted ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                                isFpUnder ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                                isFpRev ? 'bg-amber-50 text-amber-800 border border-amber-300' :
+                                isFpRej ? 'bg-rose-50 text-rose-700 border border-rose-200' :
+                                hasFullPaper ? 'bg-purple-50 text-purple-700 border border-purple-200' :
+                                'bg-slate-100 text-slate-500 border border-slate-200'
+                              }`}>
+                                {p.fullPaperStatus || (hasFullPaper ? 'Submitted' : 'Awaiting Upload')}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                {/* Quick Approve for Proceedings Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickFullPaperDecision(p.paperCode || p.id, 'Accepted for Proceedings')}
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs ${
+                                    isFpAccepted 
+                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
+                                      : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                  }`}
+                                  title="Approve camera-ready manuscript for ISBN Proceedings"
+                                >
+                                  <BookOpen className="w-3 h-3 stroke-[2.5]" />
+                                  <span>{isFpAccepted ? 'Proceedings Approved' : 'Approve Proceedings'}</span>
+                                </button>
+
+                                {/* Quick Under Review Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickFullPaperDecision(p.paperCode || p.id, 'Under Review')}
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs ${
+                                    isFpUnder
+                                      ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                                      : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200'
+                                  }`}
+                                  title="Mark Full Paper as Under Technical Review"
+                                >
+                                  <Clock className="w-3 h-3 stroke-[2.5]" />
+                                  <span>{isFpUnder ? 'In Review' : 'Review'}</span>
+                                </button>
+
+                                {/* Quick Request Revision Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    openReviewModal(p, 'full_paper');
+                                    setPaperStatusInput('Revision Required');
+                                  }}
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs ${
+                                    isFpRev
+                                      ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                      : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200'
+                                  }`}
+                                  title="Request Manuscript Revision"
+                                >
+                                  <AlertCircle className="w-3 h-3 stroke-[2.5]" />
+                                  <span>Revision</span>
+                                </button>
+
+                                {/* Quick Reject Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickFullPaperDecision(p.paperCode || p.id, 'Rejected')}
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs ${
+                                    isFpRej
+                                      ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                                      : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'
+                                  }`}
+                                  title="Reject Full Paper Manuscript"
+                                >
+                                  <X className="w-3 h-3 stroke-[3]" />
+                                  <span>Reject</span>
+                                </button>
+
+                                {/* Review / Score Modal Trigger */}
+                                <button
+                                  type="button"
+                                  onClick={() => openReviewModal(p, 'full_paper')}
+                                  className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[10px] font-bold cursor-pointer transition-colors shadow-2xs flex items-center gap-1"
+                                  title="Score full manuscript, record committee evaluation, and give feedback"
+                                >
+                                  <MessageSquare className="w-3 h-3" />
+                                  <span>Score / Review</span>
+                                </button>
+
+                                {/* Delete Entry Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeletePaper(p.paperCode || p.id, p.paperTitle)}
+                                  className="p-1 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                                  title="Permanently remove paper from database"
+                                >
+                                  <Trash2 className="w-3 h-3 text-rose-600 shrink-0" />
+                                  <span>Delete</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* DEDICATED ABSTRACT TEXT READING MODAL */}
+            {abstractTextModalPaper && (
+              <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+                <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+                  <div className="flex items-center justify-between border-b pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-black bg-purple-100 text-purple-900 px-2.5 py-1 rounded-lg">
+                        {abstractTextModalPaper.paperCode || abstractTextModalPaper.id}
+                      </span>
+                      <span className="text-xs font-bold text-slate-500">
+                        Track {abstractTextModalPaper.symposiumId}: {abstractTextModalPaper.symposiumTitle}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setAbstractTextModalPaper(null)}
+                      className="text-slate-400 hover:text-slate-600 p-1 rounded-lg cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h3 className="text-base font-black text-slate-900">
+                      {abstractTextModalPaper.paperTitle}
+                    </h3>
+                    
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                      <div><strong>Author:</strong> {abstractTextModalPaper.fullName}</div>
+                      <div>•</div>
+                      <div><strong>Org:</strong> {abstractTextModalPaper.companyName}</div>
+                      <div>•</div>
+                      <div><strong>Email:</strong> {abstractTextModalPaper.email}</div>
+                      <div>•</div>
+                      <div><strong>Format:</strong> {abstractTextModalPaper.presentationType || 'Oral'}</div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[11px] font-extrabold text-slate-700 uppercase tracking-wider">
+                        <span>Submitted Abstract Text</span>
+                        <span className="text-purple-700 font-mono">
+                          {abstractTextModalPaper.abstract ? abstractTextModalPaper.abstract.split(/\s+/).filter(Boolean).length : 0} words
+                        </span>
                       </div>
+                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-800 leading-relaxed font-normal whitespace-pre-wrap max-h-72 overflow-y-auto">
+                        {abstractTextModalPaper.abstract || 'No abstract text entered.'}
+                      </div>
+                    </div>
 
-                      <div className="p-3 bg-slate-50 rounded-xl text-xs space-y-2">
-                        <div className="font-bold text-slate-900">{selectedPaper.paperTitle}</div>
-                        <div className="text-[11px] text-slate-500">{selectedPaper.fullName} ({selectedPaper.companyName})</div>
-                        <p className="text-[11px] text-slate-600 mt-2 line-clamp-3">{selectedPaper.abstract}</p>
+                    {abstractTextModalPaper.keywords && (
+                      <div className="text-xs text-slate-600">
+                        <strong className="text-slate-800">Keywords: </strong> {abstractTextModalPaper.keywords}
+                      </div>
+                    )}
 
-                        {/* Manuscript Document Action in Modal */}
-                        {selectedPaper.fileData ? (
-                          <div className="mt-3 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1.5 text-xs text-emerald-800 font-bold truncate">
-                              <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
-                              <span className="truncate">{selectedPaper.fileName || 'Manuscript Document'}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
+                    {abstractTextModalPaper.coAuthors && (
+                      <div className="text-xs text-slate-600">
+                        <strong className="text-slate-800">Co-Authors: </strong> {abstractTextModalPaper.coAuthors}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const p = abstractTextModalPaper;
+                          setAbstractTextModalPaper(null);
+                          openReviewModal(p, 'abstract');
+                        }}
+                        className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer shadow-xs"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>Score &amp; Review Abstract</span>
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setAbstractTextModalPaper(null)}
+                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
+                    >
+                      Close Preview
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* DYNAMIC REVIEW EVALUATION MODAL (Abstract Review vs Full Paper Manuscript Review) */}
+            {selectedPaper && (
+              <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+                <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+                  <div className="flex items-center justify-between border-b pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2.5 h-2.5 rounded-full ${reviewModalType === 'full_paper' ? 'bg-blue-600' : 'bg-purple-600'}`} />
+                      <h4 className="font-extrabold text-slate-900 text-sm">
+                        {reviewModalType === 'full_paper' ? 'Full Paper Manuscript Review' : 'Abstract Screening & Review'}: {selectedPaper.paperCode || selectedPaper.id}
+                      </h4>
+                    </div>
+                    <button onClick={() => setSelectedPaper(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Mode Selector Tabs inside Modal */}
+                  <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReviewModalType('abstract');
+                        setScoreInput(selectedPaper.reviewScore || 8.5);
+                        setCommentsInput(selectedPaper.reviewComments || '');
+                        setPaperStatusInput(selectedPaper.status || 'Accepted for Oral Presentation');
+                      }}
+                      className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                        reviewModalType === 'abstract' ? 'bg-white text-purple-800 shadow-2xs font-black' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Abstract Decision</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReviewModalType('full_paper');
+                        setScoreInput(selectedPaper.fullPaperScore || 8.5);
+                        setCommentsInput(selectedPaper.fullPaperReviewComments || '');
+                        setPaperStatusInput(selectedPaper.fullPaperStatus || 'Accepted for Proceedings');
+                      }}
+                      className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                        reviewModalType === 'full_paper' ? 'bg-white text-blue-800 shadow-2xs font-black' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <FileCheck className="w-3.5 h-3.5" />
+                      <span>Full Paper Decision</span>
+                    </button>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50 rounded-2xl text-xs space-y-2 border border-slate-200">
+                    <div className="font-bold text-slate-900 line-clamp-1">{selectedPaper.paperTitle}</div>
+                    <div className="text-[11px] text-slate-500 font-medium">
+                      Author: <span className="font-bold text-slate-700">{selectedPaper.fullName}</span> ({selectedPaper.companyName})
+                    </div>
+                    <div className="text-[10px] text-purple-700 font-bold">
+                      Symposium Track {selectedPaper.symposiumId}: {selectedPaper.symposiumTitle}
+                    </div>
+
+                    {/* Review context documents */}
+                    {reviewModalType === 'full_paper' ? (
+                      <div className="mt-2 space-y-2 pt-2 border-t border-slate-200">
+                        <div className="flex items-center justify-between p-2 bg-blue-50/80 border border-blue-200 rounded-xl">
+                          <div className="flex items-center gap-1.5 text-xs text-blue-900 font-bold truncate">
+                            <FileCheck className="w-4 h-4 text-blue-600 shrink-0" />
+                            <span className="truncate">{selectedPaper.fullPaperFileName || 'Camera-ready Manuscript'}</span>
+                          </div>
+                          {selectedPaper.fullPaperFileData ? (
+                            <div className="flex items-center gap-1 shrink-0">
                               <button
                                 type="button"
-                                onClick={() => handleViewPaperPdf(selectedPaper)}
-                                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer shadow-xs"
+                                onClick={() => handleViewFile(selectedPaper.fullPaperFileData, selectedPaper.fullPaperFileName || 'FullPaper.pdf')}
+                                className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer"
                               >
-                                <Eye className="w-3.5 h-3.5" />
+                                <Eye className="w-3 h-3" />
                                 <span>View PDF</span>
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleDownloadPaperFile(selectedPaper)}
-                                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer shadow-xs"
+                                onClick={() => handleDownloadSingleFile(selectedPaper.fullPaperFileData, selectedPaper.fullPaperFileName || `${selectedPaper.paperCode || selectedPaper.id}_FullPaper.pdf`)}
+                                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer"
                               >
-                                <Download className="w-3.5 h-3.5" />
-                                <span>Download</span>
+                                <Download className="w-3 h-3" />
+                                <span>DL</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-amber-800 font-semibold italic">Not uploaded yet (Due 15 Dec)</span>
+                          )}
+                        </div>
+
+                        {selectedPaper.presentationFileData && (
+                          <div className="flex items-center justify-between p-2 bg-purple-50/80 border border-purple-200 rounded-xl">
+                            <div className="flex items-center gap-1.5 text-xs text-purple-900 font-bold truncate">
+                              <Presentation className="w-4 h-4 text-purple-600 shrink-0" />
+                              <span className="truncate">{selectedPaper.presentationFileName || 'Presentation Slides'}</span>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleViewFile(selectedPaper.presentationFileData, selectedPaper.presentationFileName || 'Presentation.pptx')}
+                                className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                              >
+                                <Eye className="w-3 h-3" />
+                                <span>View PPT</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadSingleFile(selectedPaper.presentationFileData, selectedPaper.presentationFileName || `${selectedPaper.paperCode || selectedPaper.id}_Presentation.pptx`)}
+                                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                              >
+                                <Download className="w-3 h-3" />
+                                <span>DL</span>
                               </button>
                             </div>
                           </div>
-                        ) : (
-                          <div className="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
-                            <span className="text-[11px] text-amber-800 font-semibold">
-                              Manuscript document due 15 Dec 2026.
-                            </span>
-                            <label className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer shadow-xs">
-                              <UploadCloud className="w-3.5 h-3.5" />
-                              <span>Attach PDF</span>
-                              <input
-                                type="file"
-                                accept=".pdf,.doc,.docx"
-                                className="hidden"
-                                onChange={e => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleUploadPaperFile(selectedPaper.paperCode || selectedPaper.id, file);
-                                }}
-                              />
-                            </label>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="mt-2 space-y-2 pt-2 border-t border-slate-200">
+                        <p className="text-[11px] text-slate-600 line-clamp-3 leading-relaxed">
+                          {selectedPaper.abstract || 'No abstract text entered.'}
+                        </p>
+                        {(selectedPaper.abstractFileData || selectedPaper.fileData) && (
+                          <div className="flex items-center justify-between p-2 bg-purple-50/80 border border-purple-200 rounded-xl">
+                            <div className="flex items-center gap-1.5 text-xs text-purple-900 font-bold truncate">
+                              <FileText className="w-4 h-4 text-purple-600 shrink-0" />
+                              <span className="truncate">{selectedPaper.abstractFileName || selectedPaper.fileName || 'Abstract PDF'}</span>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleViewFile(selectedPaper.abstractFileData || selectedPaper.fileData, selectedPaper.abstractFileName || 'Abstract.pdf')}
+                                className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                              >
+                                <Eye className="w-3 h-3" />
+                                <span>View PDF</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadSingleFile(selectedPaper.abstractFileData || selectedPaper.fileData, selectedPaper.abstractFileName || `${selectedPaper.paperCode || selectedPaper.id}_Abstract.pdf`)}
+                                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                              >
+                                <Download className="w-3 h-3" />
+                                <span>DL</span>
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
+                    )}
+                  </div>
 
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1">Peer Review Score (0.0 to 10.0)</label>
-                          <input
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            max="10"
-                            value={scoreInput}
-                            onChange={e => setScoreInput(parseFloat(e.target.value) || 0)}
-                            className="w-full text-xs p-2.5 bg-slate-50 border rounded-xl"
-                          />
-                        </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        {reviewModalType === 'full_paper' ? 'Technical Evaluation Score (0.0 to 10.0)' : 'Abstract Peer Review Score (0.0 to 10.0)'}
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="10"
+                        value={scoreInput}
+                        onChange={e => setScoreInput(parseFloat(e.target.value) || 0)}
+                        className="w-full text-xs p-2.5 bg-slate-50 border rounded-xl"
+                      />
+                    </div>
 
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1">Editorial Decision / Status</label>
-                          <select
-                            value={paperStatusInput}
-                            onChange={e => setPaperStatusInput(e.target.value)}
-                            className="w-full text-xs p-2.5 bg-slate-50 border rounded-xl font-bold"
-                          >
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        {reviewModalType === 'full_paper' ? 'Proceedings Editorial Decision' : 'Abstract Editorial Decision'}
+                      </label>
+                      <select
+                        value={paperStatusInput}
+                        onChange={e => setPaperStatusInput(e.target.value)}
+                        className="w-full text-xs p-2.5 bg-slate-50 border rounded-xl font-bold"
+                      >
+                        {reviewModalType === 'full_paper' ? (
+                          <>
+                            <option value="Submitted">Submitted (Awaiting Technical Review)</option>
+                            <option value="Under Review">Under Review (Technical Committee)</option>
+                            <option value="Accepted for Proceedings">Accepted for Proceedings (ISBN Publication)</option>
+                            <option value="Revision Required">Revision Required (Camera-Ready Changes)</option>
+                            <option value="Rejected">Rejected</option>
+                          </>
+                        ) : (
+                          <>
                             <option value="Submitted">Submitted (Awaiting Review)</option>
                             <option value="Under Review">Under Review</option>
                             <option value="Accepted for Oral Presentation">Accepted for Oral Presentation</option>
                             <option value="Accepted for Poster Presentation">Accepted for Poster Presentation</option>
                             <option value="Revision Required">Revision Required (Changes Needed)</option>
                             <option value="Rejected">Rejected</option>
-                          </select>
-                        </div>
+                          </>
+                        )}
+                      </select>
+                    </div>
 
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1">Committee Comments &amp; Changes Requested (Shown to Author)</label>
-                          <textarea
-                            rows={4}
-                            value={commentsInput}
-                            onChange={e => setCommentsInput(e.target.value)}
-                            className="w-full text-xs p-2.5 bg-slate-50 border rounded-xl font-medium"
-                            placeholder="Enter feedback or required revisions for the author. This will be displayed live on the author's portal..."
-                          />
-                        </div>
-                      </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        {reviewModalType === 'full_paper' 
+                          ? 'Technical Committee Feedback on Manuscript (Shown to Author)' 
+                          : 'Abstract Review Comments & Instructions (Shown to Author)'}
+                      </label>
+                      <textarea
+                        rows={4}
+                        value={commentsInput}
+                        onChange={e => setCommentsInput(e.target.value)}
+                        className="w-full text-xs p-2.5 bg-slate-50 border rounded-xl font-medium"
+                        placeholder={reviewModalType === 'full_paper' 
+                          ? 'Enter technical manuscript feedback, formatting corrections, or publication approval comments for the author...' 
+                          : 'Enter feedback or required revisions for the author. This will be displayed live on the author portal...'}
+                      />
+                    </div>
+                  </div>
 
-                      <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t">
-                        <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {reviewModalType === 'full_paper' ? (
+                        <>
                           <button
                             type="button"
                             onClick={() => {
-                              handleQuickPaperDecision(selectedPaper.paperCode || selectedPaper.id, 'Under Review');
+                              handleQuickFullPaperDecision(selectedPaper.paperCode || selectedPaper.id, 'Accepted for Proceedings');
                               setSelectedPaper(null);
                             }}
-                            className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
+                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
                           >
-                            <Clock className="w-3.5 h-3.5 stroke-[2.5]" />
-                            <span>Mark Under Review</span>
+                            <BookOpen className="w-3.5 h-3.5" />
+                            <span>Approve Proceedings</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => {
-                              handleQuickPaperDecision(selectedPaper.paperCode || selectedPaper.id, 'Accepted for Oral Presentation');
+                              handleQuickFullPaperDecision(selectedPaper.paperCode || selectedPaper.id, 'Under Review');
+                              setSelectedPaper(null);
+                            }}
+                            className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
+                          >
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>Mark In Review</span>
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleQuickAbstractDecision(selectedPaper.paperCode || selectedPaper.id, 'Accepted for Oral Presentation');
                               setSelectedPaper(null);
                             }}
                             className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
                           >
                             <Check className="w-3.5 h-3.5 stroke-[3]" />
-                            <span>Quick Approve</span>
+                            <span>Approve Oral</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => {
-                              handleQuickPaperDecision(selectedPaper.paperCode || selectedPaper.id, 'Rejected');
+                              handleQuickAbstractDecision(selectedPaper.paperCode || selectedPaper.id, 'Accepted for Poster Presentation');
                               setSelectedPaper(null);
                             }}
-                            className="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
+                            className="px-2.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
                           >
-                            <X className="w-3.5 h-3.5 stroke-[3]" />
-                            <span>Quick Reject</span>
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            <span>Approve Poster</span>
                           </button>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => setSelectedPaper(null)} className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl cursor-pointer">Cancel</button>
-                          <button onClick={handleSavePaperReview} className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5">
-                            <Check className="w-3.5 h-3.5" />
-                            <span>Save &amp; Update Author</span>
-                          </button>
-                        </div>
-                      </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setSelectedPaper(null)} className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl cursor-pointer">
+                        Cancel
+                      </button>
+                      <button onClick={handleSavePaperReview} className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Save &amp; Update Author</span>
+                      </button>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             )}
 

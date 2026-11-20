@@ -104,6 +104,10 @@ export async function dbGetPapers(filters?: { symposiumId?: string | null; statu
           abstract_file_data as "abstractFileData",
           full_paper_file_name as "fullPaperFileName",
           full_paper_file_data as "fullPaperFileData",
+          full_paper_status as "fullPaperStatus",
+          full_paper_review_comments as "fullPaperReviewComments",
+          full_paper_score as "fullPaperScore",
+          full_paper_reviewed_by as "fullPaperReviewedBy",
           presentation_file_name as "presentationFileName",
           presentation_file_data as "presentationFileData",
           submission_date as "submissionDate",
@@ -117,6 +121,7 @@ export async function dbGetPapers(filters?: { symposiumId?: string | null; statu
         // Fallback abstract file to legacy file_data if abstract_file_data not explicitly populated
         p.abstractFileName = p.abstractFileName || p.fileName;
         p.abstractFileData = p.abstractFileData || p.fileData;
+        p.fullPaperStatus = p.fullPaperStatus || ((p.fullPaperFileName || p.fullPaperFileData) ? 'Submitted' : 'Pending Submission');
 
         const key = `${(p.email || '').trim().toLowerCase()}:::${(p.paperTitle || '').trim().toLowerCase()}`;
         if (!seen.has(key)) {
@@ -388,6 +393,7 @@ export async function dbAttachPaperFile(
             SET 
               full_paper_file_name = ${file.fileName},
               full_paper_file_data = ${file.fileData},
+              full_paper_status = 'Submitted',
               file_name = ${file.fileName},
               file_type = ${file.fileType || 'application/pdf'},
               file_size = ${file.fileSize || 'Unknown'},
@@ -426,6 +432,7 @@ export async function dbAttachPaperFile(
       } else {
         paper.fullPaperFileName = file.fileName;
         paper.fullPaperFileData = file.fileData;
+        paper.fullPaperStatus = 'Submitted';
         paper.fileName = file.fileName;
         paper.fileData = file.fileData;
       }
@@ -474,22 +481,43 @@ export async function dbDeleteRegistration(ticketId: string): Promise<boolean> {
   return true;
 }
 
-export async function dbUpdatePaperDecision(paperCode: string, score?: number, comments?: string, status?: string, assignedReviewer?: string, reviewerEmail?: string): Promise<boolean> {
+export async function dbUpdatePaperDecision(
+  paperCode: string, 
+  score?: number, 
+  comments?: string, 
+  status?: string, 
+  assignedReviewer?: string, 
+  reviewerEmail?: string,
+  reviewType: 'abstract' | 'full_paper' = 'abstract'
+): Promise<boolean> {
   const sql = getDb();
   const now = new Date().toISOString();
 
   if (sql) {
     try {
-      await sql`
-        UPDATE papers
-        SET 
-          review_score = COALESCE(${score ?? null}, review_score),
-          review_comments = COALESCE(${comments ?? null}, review_comments),
-          status = COALESCE(${status ?? null}, status),
-          reviewed_by = COALESCE(${reviewerEmail ?? null}, reviewed_by),
-          updated_at = ${now}
-        WHERE paper_code = ${paperCode} OR id = ${paperCode};
-      `;
+      if (reviewType === 'full_paper') {
+        await sql`
+          UPDATE papers
+          SET 
+            full_paper_score = COALESCE(${score ?? null}, full_paper_score),
+            full_paper_review_comments = COALESCE(${comments ?? null}, full_paper_review_comments),
+            full_paper_status = COALESCE(${status ?? null}, full_paper_status),
+            full_paper_reviewed_by = COALESCE(${reviewerEmail ?? null}, full_paper_reviewed_by),
+            updated_at = ${now}
+          WHERE paper_code = ${paperCode} OR id = ${paperCode};
+        `;
+      } else {
+        await sql`
+          UPDATE papers
+          SET 
+            review_score = COALESCE(${score ?? null}, review_score),
+            review_comments = COALESCE(${comments ?? null}, review_comments),
+            status = COALESCE(${status ?? null}, status),
+            reviewed_by = COALESCE(${reviewerEmail ?? null}, reviewed_by),
+            updated_at = ${now}
+          WHERE paper_code = ${paperCode} OR id = ${paperCode};
+        `;
+      }
     } catch (err) {
       console.warn('[DB] Error updating paper decision in DB:', err);
     }
@@ -498,12 +526,18 @@ export async function dbUpdatePaperDecision(paperCode: string, score?: number, c
   const store = getStore();
   const paper = store.papers.find(p => p.paperCode === paperCode || p.id === paperCode);
   if (paper) {
-    if (score !== undefined) paper.reviewScore = Number(score);
-    if (comments !== undefined) paper.reviewComments = comments;
-    if (status !== undefined) paper.status = status;
+    if (reviewType === 'full_paper') {
+      if (score !== undefined) paper.fullPaperScore = Number(score);
+      if (comments !== undefined) paper.fullPaperReviewComments = comments;
+      if (status !== undefined) paper.fullPaperStatus = status;
+    } else {
+      if (score !== undefined) paper.reviewScore = Number(score);
+      if (comments !== undefined) paper.reviewComments = comments;
+      if (status !== undefined) paper.status = status;
+    }
     if (assignedReviewer !== undefined) paper.assignedReviewer = assignedReviewer;
     paper.updatedAt = now;
-    paper.reviewedBy = reviewerEmail;
+    if (reviewerEmail) paper.reviewedBy = reviewerEmail;
     saveStore(store);
     return true;
   }

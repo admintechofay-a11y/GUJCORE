@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { paperCode, score, comments, status, assignedReviewer } = body;
+    const { paperCode, score, comments, status, assignedReviewer, reviewType = 'abstract' } = body;
 
     if (!paperCode) {
       return NextResponse.json(
@@ -52,27 +52,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await dbUpdatePaperDecision(paperCode, score, comments, status, assignedReviewer, session.email);
+    await dbUpdatePaperDecision(paperCode, score, comments, status, assignedReviewer, session.email, reviewType);
 
     // Forward review score to WordPress REST API if connected
-    forwardToWordPress('/papers/score', 'POST', { paperCode, score, comments, status });
+    forwardToWordPress('/papers/score', 'POST', { paperCode, score, comments, status, reviewType });
 
     // Audit log
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
     await dbAppendAuditLog({
       userId: session.userId,
       userEmail: session.email,
-      action: 'SCORE_TECHNICAL_PAPER',
+      action: reviewType === 'full_paper' ? 'REVIEW_FULL_PAPER_MANUSCRIPT' : 'SCORE_TECHNICAL_PAPER',
       resourceType: 'Paper',
       resourceId: paperCode,
-      details: `Score: ${score !== undefined ? score : 'N/A'}/10. Decision: '${status || 'Updated'}'. Reviewer: ${session.email}`,
+      details: `${reviewType === 'full_paper' ? 'Full Paper' : 'Abstract'} Decision: '${status || 'Updated'}'. Score: ${score !== undefined ? score : 'N/A'}/10. Reviewer: ${session.email}`,
       ipAddress: ip,
       status: 'Success'
     });
 
     return NextResponse.json({
       success: true,
-      message: `Paper ${paperCode} review decisions saved in live database.`
+      message: `${reviewType === 'full_paper' ? 'Full paper manuscript' : 'Abstract'} decision for paper ${paperCode} saved in live database.`
     });
   } catch (err: any) {
     return NextResponse.json(

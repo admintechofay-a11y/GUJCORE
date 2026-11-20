@@ -98,6 +98,9 @@ export interface PaperSubmission {
   fileData?: string;
   reviewScore?: number;
   reviewComments?: string;
+  fullPaperStatus?: 'Pending Submission' | 'Submitted' | 'Under Review' | 'Accepted for Proceedings' | 'Revision Required' | 'Rejected' | string;
+  fullPaperReviewComments?: string;
+  fullPaperScore?: number;
   declarationAgreed?: boolean;
   isPresentingAuthor?: boolean;
 }

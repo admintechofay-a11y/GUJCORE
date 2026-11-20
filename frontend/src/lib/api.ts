@@ -828,12 +828,19 @@ export const api = {
     }
   },
 
-  async updatePaperDecision(paperCode: string, score?: number, comments?: string, status?: string, assignedReviewer?: string): Promise<{ success: boolean; message?: string }> {
+  async updatePaperDecision(
+    paperCode: string, 
+    score?: number, 
+    comments?: string, 
+    status?: string, 
+    assignedReviewer?: string,
+    reviewType: 'abstract' | 'full_paper' = 'abstract'
+  ): Promise<{ success: boolean; message?: string }> {
     try {
       const res = await fetch('/api/admin/papers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paperCode, score, comments, status, assignedReviewer }),
+        body: JSON.stringify({ paperCode, score, comments, status, assignedReviewer, reviewType }),
         credentials: 'include'
       });
       return await res.json();
