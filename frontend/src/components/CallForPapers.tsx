@@ -83,7 +83,7 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
   }, [user]);
 
   // File upload states
-  const [resumeFile, setResumeFile] = useState<{ name: string; size: string; type: string } | null>(null);
+  const [resumeFile, setResumeFile] = useState<{ name: string; size: string; type: string; data?: string } | null>(null);
   const [paperFile, setPaperFile] = useState<{ name: string; size: string; type: string; data?: string } | null>(null);
 
   const [abstractWordCount, setAbstractWordCount] = useState(0);
@@ -114,15 +114,20 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
   const handleResumeSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        alert('File size exceeds 10MB limit. Please choose a smaller file.');
+      if (file.size > 25 * 1024 * 1024) {
+        alert('File size exceeds 25MB limit. Please choose a smaller file.');
         return;
       }
-      setResumeFile({
-        name: file.name,
-        size: formatFileSize(file.size),
-        type: file.type || 'Document'
-      });
+      const reader = new FileReader();
+      reader.onload = () => {
+        setResumeFile({
+          name: file.name,
+          size: formatFileSize(file.size),
+          type: file.type || 'application/pdf',
+          data: reader.result as string
+        });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -201,6 +206,9 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
     setIsSubmitting(true);
     const selectedSymp = SYMPOSIA.find(s => s.id === Number(formData.symposiumId));
 
+    // Whichever file slot the user used (abstract or manuscript), capture file metadata and base64 data
+    const activeFile = paperFile?.data ? paperFile : (resumeFile?.data ? resumeFile : (paperFile || resumeFile || null));
+
     try {
       const res = await api.submitPaper({
         ...formData,
@@ -208,10 +216,10 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
         symposiumTitle: selectedSymp ? selectedSymp.title : 'Corrosion Science',
         resumeFileName: resumeFile ? resumeFile.name : undefined,
         fullPaperFileName: paperFile ? paperFile.name : undefined,
-        fileName: paperFile ? paperFile.name : undefined,
-        fileSize: paperFile ? paperFile.size : undefined,
-        fileType: paperFile ? paperFile.type : undefined,
-        fileData: paperFile?.data ? paperFile.data : undefined,
+        fileName: activeFile ? activeFile.name : undefined,
+        fileSize: activeFile ? activeFile.size : undefined,
+        fileType: activeFile ? activeFile.type : undefined,
+        fileData: activeFile?.data,
         isPresentingAuthor: formData.isPresentingAuthor
       });
 
@@ -681,10 +689,10 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
                     ) : (
                       <div>
                         <UploadCloud className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                        <div className="text-xs font-bold text-slate-800">Upload Author Resume / Bio</div>
-                        <div className="text-[11px] text-slate-400 mt-1">PDF or DOCX (Max 10MB)</div>
+                        <div className="text-xs font-bold text-slate-800">Upload Abstract Document / PDF</div>
+                        <div className="text-[11px] text-slate-400 mt-1">PDF or DOCX (Max 25MB)</div>
                         <span className="mt-3 inline-block bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs px-3.5 py-1.5 rounded-lg border border-slate-200 shadow-2xs transition-colors">
-                          Choose File
+                          Choose Abstract File
                         </span>
                       </div>
                     )}
@@ -729,10 +737,10 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
                     ) : (
                       <div>
                         <FileText className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                        <div className="text-xs font-bold text-slate-800">Full Paper / Extended Manuscript</div>
-                        <div className="text-[11px] text-slate-400 mt-1">Due by 25 November 2026</div>
+                        <div className="text-xs font-bold text-slate-800">Upload Full Paper Manuscript (PDF / DOCX)</div>
+                        <div className="text-[11px] text-slate-400 mt-1">PDF or DOCX (Max 25MB - Due 25 Nov 2026)</div>
                         <span className="mt-3 inline-block bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs px-3.5 py-1.5 rounded-lg border border-slate-200 shadow-2xs transition-colors">
-                          Optional at Abstract stage
+                          Choose Manuscript File
                         </span>
                       </div>
                     )}
