@@ -100,6 +100,12 @@ export async function dbGetPapers(filters?: { symposiumId?: string | null; statu
           file_type as "fileType",
           file_size as "fileSize",
           file_data as "fileData",
+          abstract_file_name as "abstractFileName",
+          abstract_file_data as "abstractFileData",
+          full_paper_file_name as "fullPaperFileName",
+          full_paper_file_data as "fullPaperFileData",
+          presentation_file_name as "presentationFileName",
+          presentation_file_data as "presentationFileData",
           submission_date as "submissionDate",
           submission_date as "submittedAt"
         FROM papers
@@ -108,12 +114,16 @@ export async function dbGetPapers(filters?: { symposiumId?: string | null; statu
       // Deduplicate: If an author submitted the exact same paper title multiple times, keep only 1 entry (favoring scored or latest)
       const seen = new Map<string, any>();
       for (const p of rows || []) {
+        // Fallback abstract file to legacy file_data if abstract_file_data not explicitly populated
+        p.abstractFileName = p.abstractFileName || p.fileName;
+        p.abstractFileData = p.abstractFileData || p.fileData;
+
         const key = `${(p.email || '').trim().toLowerCase()}:::${(p.paperTitle || '').trim().toLowerCase()}`;
         if (!seen.has(key)) {
           seen.set(key, p);
         } else {
           const existing = seen.get(key);
-          if ((!existing.reviewScore && p.reviewScore) || (!existing.fileData && p.fileData)) {
+          if ((!existing.reviewScore && p.reviewScore) || (!existing.fileData && p.fileData) || (!existing.abstractFileData && p.abstractFileData)) {
             seen.set(key, p);
           }
         }
@@ -213,6 +223,12 @@ export async function dbInsertPaper(p: any): Promise<any> {
             file_type = COALESCE(${p.fileType || null}, file_type),
             file_size = COALESCE(${p.fileSize || null}, file_size),
             file_data = COALESCE(${p.fileData || null}, file_data),
+            abstract_file_name = COALESCE(${p.abstractFileName || p.fileName || null}, abstract_file_name),
+            abstract_file_data = COALESCE(${p.abstractFileData || p.fileData || null}, abstract_file_data),
+            full_paper_file_name = COALESCE(${p.fullPaperFileName || null}, full_paper_file_name),
+            full_paper_file_data = COALESCE(${p.fullPaperFileData || null}, full_paper_file_data),
+            presentation_file_name = COALESCE(${p.presentationFileName || null}, presentation_file_name),
+            presentation_file_data = COALESCE(${p.presentationFileData || null}, presentation_file_data),
             updated_at = ${now}
           WHERE id = ${existingId};
         `;
@@ -231,7 +247,10 @@ export async function dbInsertPaper(p: any): Promise<any> {
           id, paper_code, full_name, email, mobile_number, company_name,
           symposium_id, symposium_title, paper_title, presentation_type,
           status, abstract, keywords, co_authors, submission_date,
-          file_name, file_type, file_size, file_data
+          file_name, file_type, file_size, file_data,
+          abstract_file_name, abstract_file_data,
+          full_paper_file_name, full_paper_file_data,
+          presentation_file_name, presentation_file_data
         ) VALUES (
           ${id},
           ${paperCode},
@@ -251,7 +270,13 @@ export async function dbInsertPaper(p: any): Promise<any> {
           ${p.fileName || null},
           ${p.fileType || null},
           ${p.fileSize || null},
-          ${p.fileData || null}
+          ${p.fileData || null},
+          ${p.abstractFileName || p.fileName || null},
+          ${p.abstractFileData || p.fileData || null},
+          ${p.fullPaperFileName || null},
+          ${p.fullPaperFileData || null},
+          ${p.presentationFileName || null},
+          ${p.presentationFileData || null}
         )
         ON CONFLICT (paper_code) DO NOTHING;
       `;
@@ -272,7 +297,13 @@ export async function dbInsertPaper(p: any): Promise<any> {
       fileName: p.fileName,
       fileType: p.fileType,
       fileSize: p.fileSize,
-      fileData: p.fileData
+      fileData: p.fileData,
+      abstractFileName: p.abstractFileName || p.fileName,
+      abstractFileData: p.abstractFileData || p.fileData,
+      fullPaperFileName: p.fullPaperFileName,
+      fullPaperFileData: p.fullPaperFileData,
+      presentationFileName: p.presentationFileName,
+      presentationFileData: p.presentationFileData
     };
     const filtered = store.papers.filter(item => item.id !== id && item.paperCode !== paperCode);
     filtered.unshift(newPaper);
@@ -291,22 +322,48 @@ export async function dbInsertPaper(p: any): Promise<any> {
   };
 }
 
-export async function dbAttachPaperFile(paperCode: string, file: { fileName: string; fileType?: string; fileSize?: string; fileData: string }): Promise<boolean> {
+export async function dbAttachPaperFile(
+  paperCode: string, 
+  file: { fileName: string; fileType?: string; fileSize?: string; fileData: string },
+  docType: 'abstract' | 'full_paper' | 'presentation' = 'full_paper'
+): Promise<boolean> {
   const sql = getDb();
   const now = new Date().toISOString();
 
   if (sql) {
     try {
-      await sql`
-        UPDATE papers
-        SET 
-          file_name = ${file.fileName},
-          file_type = ${file.fileType || 'application/pdf'},
-          file_size = ${file.fileSize || 'Unknown'},
-          file_data = ${file.fileData},
-          updated_at = ${now}
-        WHERE paper_code = ${paperCode} OR id = ${paperCode};
-      `;
+      if (docType === 'abstract') {
+        await sql`
+          UPDATE papers
+          SET 
+            abstract_file_name = ${file.fileName},
+            abstract_file_data = ${file.fileData},
+            updated_at = ${now}
+          WHERE paper_code = ${paperCode} OR id = ${paperCode};
+        `;
+      } else if (docType === 'presentation') {
+        await sql`
+          UPDATE papers
+          SET 
+            presentation_file_name = ${file.fileName},
+            presentation_file_data = ${file.fileData},
+            updated_at = ${now}
+          WHERE paper_code = ${paperCode} OR id = ${paperCode};
+        `;
+      } else {
+        await sql`
+          UPDATE papers
+          SET 
+            full_paper_file_name = ${file.fileName},
+            full_paper_file_data = ${file.fileData},
+            file_name = ${file.fileName},
+            file_type = ${file.fileType || 'application/pdf'},
+            file_size = ${file.fileSize || 'Unknown'},
+            file_data = ${file.fileData},
+            updated_at = ${now}
+          WHERE paper_code = ${paperCode} OR id = ${paperCode};
+        `;
+      }
     } catch (err) {
       console.warn('[DB] Error attaching paper file to DB:', err);
     }
@@ -315,13 +372,59 @@ export async function dbAttachPaperFile(paperCode: string, file: { fileName: str
   const store = getStore();
   const paper = store.papers.find(p => p.paperCode === paperCode || p.id === paperCode);
   if (paper) {
-    paper.fileName = file.fileName;
-    paper.fileType = file.fileType || 'application/pdf';
-    paper.fileSize = file.fileSize || 'Unknown';
-    paper.fileData = file.fileData;
+    if (docType === 'abstract') {
+      paper.abstractFileName = file.fileName;
+      paper.abstractFileData = file.fileData;
+    } else if (docType === 'presentation') {
+      paper.presentationFileName = file.fileName;
+      paper.presentationFileData = file.fileData;
+    } else {
+      paper.fullPaperFileName = file.fileName;
+      paper.fullPaperFileData = file.fileData;
+      paper.fileName = file.fileName;
+      paper.fileData = file.fileData;
+    }
     paper.updatedAt = now;
     saveStore(store);
   }
+  return true;
+}
+
+export async function dbDeletePaper(paperCode: string): Promise<boolean> {
+  const sql = getDb();
+  if (sql) {
+    try {
+      await sql`
+        DELETE FROM papers
+        WHERE paper_code = ${paperCode} OR id = ${paperCode};
+      `;
+    } catch (err) {
+      console.warn('[DB] Error deleting paper from DB:', err);
+    }
+  }
+
+  const store = getStore();
+  store.papers = store.papers.filter(p => p.paperCode !== paperCode && p.id !== paperCode);
+  saveStore(store);
+  return true;
+}
+
+export async function dbDeleteRegistration(ticketId: string): Promise<boolean> {
+  const sql = getDb();
+  if (sql) {
+    try {
+      await sql`
+        DELETE FROM registrations
+        WHERE ticket_id = ${ticketId} OR id = ${ticketId};
+      `;
+    } catch (err) {
+      console.warn('[DB] Error deleting registration from DB:', err);
+    }
+  }
+
+  const store = getStore();
+  store.registrations = store.registrations.filter(r => r.ticketId !== ticketId && r.id !== ticketId);
+  saveStore(store);
   return true;
 }
 

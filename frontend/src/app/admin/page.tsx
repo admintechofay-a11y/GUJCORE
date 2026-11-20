@@ -40,7 +40,9 @@ import {
   PlusCircle,
   HelpCircle,
   UploadCloud,
-  MessageSquare
+  MessageSquare,
+  Trash2,
+  Presentation
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import AnnouncementBar from '@/components/AnnouncementBar';
@@ -259,15 +261,15 @@ export default function AdminPage() {
     }
   };
 
-  // View uploaded manuscript or abstract PDF directly in a new tab
-  const handleViewPaperPdf = (p: any) => {
-    if (!p.fileData) {
-      alert(`No PDF document has been attached for paper #${p.paperCode || p.id} yet. You can attach one using the "Attach PDF" button.`);
+  // View any uploaded document (abstract, paper, or presentation) directly in a new tab
+  const handleViewFile = (fileData?: string, fallbackTitle: string = 'document.pdf') => {
+    if (!fileData) {
+      alert(`No document file is attached for ${fallbackTitle} yet.`);
       return;
     }
     try {
-      if (p.fileData.startsWith('data:')) {
-        const parts = p.fileData.split(',');
+      if (fileData.startsWith('data:')) {
+        const parts = fileData.split(',');
         const mimeMatch = parts[0].match(/:(.*?);/);
         const mimeType = mimeMatch ? mimeMatch[1] : 'application/pdf';
         const byteString = atob(parts[1]);
@@ -280,11 +282,35 @@ export default function AdminPage() {
         const blobUrl = URL.createObjectURL(blob);
         window.open(blobUrl, '_blank');
       } else {
-        window.open(p.fileData, '_blank');
+        window.open(fileData, '_blank');
       }
     } catch {
-      window.open(p.fileData, '_blank');
+      window.open(fileData, '_blank');
     }
+  };
+
+  // Legacy fallback wrapper
+  const handleViewPaperPdf = (p: any) => {
+    handleViewFile(p.abstractFileData || p.fileData, p.abstractFileName || p.fileName || `${p.paperCode || p.id}_Abstract.pdf`);
+  };
+
+  // Download any single file
+  const handleDownloadSingleFile = (fileData?: string, fileName: string = 'document.pdf') => {
+    if (!fileData) {
+      alert(`No file has been uploaded for "${fileName}" yet.`);
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = fileData;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Legacy fallback wrapper
+  const handleDownloadPaperFile = (p: any) => {
+    handleDownloadSingleFile(p.abstractFileData || p.fileData, p.abstractFileName || p.fileName || `${p.paperCode || p.id}_Manuscript.pdf`);
   };
 
   // 1-click Approve, Under Review, or Reject paper decision
@@ -310,27 +336,19 @@ export default function AdminPage() {
     }
   };
 
-  // Download or view uploaded manuscript
-  const handleDownloadPaperFile = (p: any) => {
-    if (p.fileData) {
-      const link = document.createElement('a');
-      link.href = p.fileData;
-      link.download = p.fileName || `${p.paperCode || p.id}_Manuscript.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      alert(`No file has been uploaded for paper #${p.paperCode || p.id} yet. Full text manuscripts are due by 15 December 2026. You can attach one using the "Attach File" button.`);
-    }
-  };
-
-  // Upload or attach manuscript file
-  const handleUploadPaperFile = async (paperCode: string, file: File) => {
+  // Upload or attach abstract, manuscript or presentation file
+  const handleUploadPaperFile = async (
+    paperCode: string, 
+    file: File, 
+    docType: 'abstract' | 'full_paper' | 'presentation' = 'full_paper'
+  ) => {
     if (!file) return;
-    if (file.size > 20 * 1024 * 1024) {
-      alert('File size exceeds 20MB limit.');
+    if (file.size > 30 * 1024 * 1024) {
+      alert('File size exceeds 30MB limit.');
       return;
     }
+    const docLabel = docType === 'abstract' ? 'Abstract' : docType === 'presentation' ? 'Presentation Slide Deck' : 'Full Paper Manuscript';
+    showToast(`Uploading ${docLabel} for paper #${paperCode}...`);
     const reader = new FileReader();
     reader.onload = async () => {
       const base64Data = reader.result as string;
@@ -342,23 +360,66 @@ export default function AdminPage() {
             action: 'attach_file',
             paperCode,
             fileName: file.name,
-            fileType: file.type || 'application/pdf',
+            fileType: file.type || (docType === 'presentation' ? 'application/vnd.ms-powerpoint' : 'application/pdf'),
             fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
-            fileData: base64Data
+            fileData: base64Data,
+            docType
           })
         });
         const json = await res.json();
         if (json.success) {
-          showToast(`Manuscript file uploaded and saved for paper #${paperCode}!`);
+          showToast(`✅ ${docLabel} uploaded and saved for paper #${paperCode}!`);
           loadAllAdminData();
         } else {
-          alert(json.message || 'Failed uploading manuscript.');
+          alert(json.message || `Failed uploading ${docLabel}.`);
         }
       } catch {
-        alert('Error uploading manuscript.');
+        alert(`Error uploading ${docLabel}.`);
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  // Delete Paper Submission from Live Neon DB
+  const handleDeletePaper = async (paperCode: string, title?: string) => {
+    const displayTitle = title ? `"${title}" ` : '';
+    if (!window.confirm(`⚠️ Are you sure you want to PERMANENTLY DELETE paper submission ${displayTitle}(#${paperCode}) from the live database?\n\nThis will remove the author entry and all attached documents. This action CANNOT be undone.`)) {
+      return;
+    }
+    try {
+      showToast(`Deleting paper #${paperCode}...`);
+      const res = await api.deletePaper(paperCode);
+      if (res.success) {
+        showToast(`✅ Paper #${paperCode} successfully deleted from database.`);
+        setPapers(prev => prev.filter(p => (p.paperCode !== paperCode && p.id !== paperCode)));
+        loadAllAdminData();
+      } else {
+        alert(res.message || 'Failed deleting paper submission.');
+      }
+    } catch {
+      alert('Network error while deleting paper.');
+    }
+  };
+
+  // Delete Delegate Registration from Live Neon DB
+  const handleDeleteRegistration = async (ticketId: string, name?: string) => {
+    const displayName = name ? `for "${name}" ` : '';
+    if (!window.confirm(`⚠️ Are you sure you want to PERMANENTLY DELETE delegate registration ${displayName}(Ticket #${ticketId}) from the live database?\n\nThis action CANNOT be undone.`)) {
+      return;
+    }
+    try {
+      showToast(`Deleting registration #${ticketId}...`);
+      const res = await api.deleteRegistration(ticketId);
+      if (res.success) {
+        showToast(`✅ Registration #${ticketId} successfully deleted from database.`);
+        setRegistrations(prev => prev.filter(r => (r.ticketId !== ticketId && r.id !== ticketId)));
+        loadAllAdminData();
+      } else {
+        alert(res.message || 'Failed deleting delegate registration.');
+      }
+    } catch {
+      alert('Network error while deleting registration.');
+    }
   };
 
   // Booth allocation save
@@ -860,7 +921,7 @@ export default function AdminPage() {
                           <th className="py-3 px-4">Primary Author</th>
                           <th className="py-3 px-4">Author Contact &amp; Org</th>
                           <th className="py-3 px-4">Paper Title &amp; Symposium</th>
-                          <th className="py-3 px-4">Manuscript Document</th>
+                          <th className="py-3 px-4">Uploaded Documents (Abstract / Paper / PPT)</th>
                           <th className="py-3 px-4">Score</th>
                           <th className="py-3 px-4">Status</th>
                           <th className="py-3 px-4 text-right">Review Action</th>
@@ -897,46 +958,161 @@ export default function AdminPage() {
                                   Track {p.symposiumId}: {p.symposiumTitle}
                                 </div>
                               </td>
-                              <td className="py-3 px-4">
-                                {p.fileData ? (
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleViewPaperPdf(p)}
-                                      className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
-                                      title="View Paper PDF directly in new browser tab"
-                                    >
-                                      <Eye className="w-3 h-3 text-blue-600 shrink-0" />
-                                      <span>View PDF</span>
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDownloadPaperFile(p)}
-                                      className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
-                                      title={p.fileName || 'Download Manuscript PDF'}
-                                    >
-                                      <Download className="w-3 h-3 text-emerald-700 shrink-0" />
-                                      <span>Download</span>
-                                    </button>
+                              <td className="py-3 px-4 min-w-[240px]">
+                                <div className="space-y-1.5 text-[10px]">
+                                  {/* 1. ABSTRACT DOCUMENT */}
+                                  <div className="flex items-center justify-between gap-1 p-1.5 bg-slate-50 border border-slate-200 rounded-lg">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <FileText className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                                      <span className="font-bold text-slate-800">Abstract:</span>
+                                      {(p.abstractFileData || p.fileData) ? (
+                                        <span className="text-slate-600 truncate max-w-[85px]" title={p.abstractFileName || p.fileName || 'Abstract.pdf'}>
+                                          {p.abstractFileName || p.fileName || 'Abstract.pdf'}
+                                        </span>
+                                      ) : (
+                                        <span className="text-amber-700 font-semibold italic">Missing</span>
+                                      )}
+                                    </div>
+                                    {(p.abstractFileData || p.fileData) ? (
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleViewFile(p.abstractFileData || p.fileData, p.abstractFileName || 'Abstract.pdf')}
+                                          className="px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
+                                          title="View Abstract PDF"
+                                        >
+                                          <Eye className="w-2.5 h-2.5" />
+                                          <span>View</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDownloadSingleFile(p.abstractFileData || p.fileData, p.abstractFileName || `${p.paperCode || p.id}_Abstract.pdf`)}
+                                          className="px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
+                                          title="Download Abstract"
+                                        >
+                                          <Download className="w-2.5 h-2.5" />
+                                          <span>DL</span>
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <label className="px-1.5 py-0.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[9px] font-bold cursor-pointer flex items-center gap-0.5 shrink-0 shadow-2xs">
+                                        <UploadCloud className="w-2.5 h-2.5 text-slate-500" />
+                                        <span>Attach</span>
+                                        <input
+                                          type="file"
+                                          accept=".pdf,.doc,.docx"
+                                          className="hidden"
+                                          onChange={e => {
+                                            const file = e.target.files?.[0];
+                                            if (file) handleUploadPaperFile(p.paperCode || p.id, file, 'abstract');
+                                          }}
+                                        />
+                                      </label>
+                                    )}
                                   </div>
-                                ) : (
-                                  <div className="flex items-center gap-1.5">
-                                    <label className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold cursor-pointer flex items-center gap-1 transition-colors border border-slate-200">
-                                      <UploadCloud className="w-3 h-3 text-slate-500" />
-                                      <span>Attach PDF</span>
-                                      <input
-                                        type="file"
-                                        accept=".pdf,.doc,.docx"
-                                        className="hidden"
-                                        onChange={e => {
-                                          const file = e.target.files?.[0];
-                                          if (file) handleUploadPaperFile(p.paperCode || p.id, file);
-                                        }}
-                                      />
-                                    </label>
-                                    <span className="text-[9px] text-slate-400 whitespace-nowrap">Due 15 Dec</span>
+
+                                  {/* 2. FULL PAPER MANUSCRIPT */}
+                                  <div className="flex items-center justify-between gap-1 p-1.5 bg-slate-50 border border-slate-200 rounded-lg">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <FileCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                      <span className="font-bold text-slate-800">Paper:</span>
+                                      {p.fullPaperFileData ? (
+                                        <span className="text-slate-600 truncate max-w-[85px]" title={p.fullPaperFileName || 'Paper.pdf'}>
+                                          {p.fullPaperFileName || 'Manuscript.pdf'}
+                                        </span>
+                                      ) : (
+                                        <span className="text-slate-400 font-medium italic">Due 15 Dec</span>
+                                      )}
+                                    </div>
+                                    {p.fullPaperFileData ? (
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleViewFile(p.fullPaperFileData, p.fullPaperFileName || 'FullPaper.pdf')}
+                                          className="px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
+                                          title="View Full Paper Manuscript"
+                                        >
+                                          <Eye className="w-2.5 h-2.5" />
+                                          <span>View</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDownloadSingleFile(p.fullPaperFileData, p.fullPaperFileName || `${p.paperCode || p.id}_FullPaper.pdf`)}
+                                          className="px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
+                                          title="Download Full Paper"
+                                        >
+                                          <Download className="w-2.5 h-2.5" />
+                                          <span>DL</span>
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <label className="px-1.5 py-0.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[9px] font-bold cursor-pointer flex items-center gap-0.5 shrink-0 shadow-2xs">
+                                        <UploadCloud className="w-2.5 h-2.5 text-slate-500" />
+                                        <span>Attach</span>
+                                        <input
+                                          type="file"
+                                          accept=".pdf,.doc,.docx"
+                                          className="hidden"
+                                          onChange={e => {
+                                            const file = e.target.files?.[0];
+                                            if (file) handleUploadPaperFile(p.paperCode || p.id, file, 'full_paper');
+                                          }}
+                                        />
+                                      </label>
+                                    )}
                                   </div>
-                                )}
+
+                                  {/* 3. PRESENTATION SLIDES (PPT) */}
+                                  <div className="flex items-center justify-between gap-1 p-1.5 bg-slate-50 border border-slate-200 rounded-lg">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <Presentation className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                                      <span className="font-bold text-slate-800">PPT:</span>
+                                      {p.presentationFileData ? (
+                                        <span className="text-slate-600 truncate max-w-[85px]" title={p.presentationFileName || 'Presentation.pptx'}>
+                                          {p.presentationFileName || 'Slides.pptx'}
+                                        </span>
+                                      ) : (
+                                        <span className="text-slate-400 font-medium italic">Due 25 Dec</span>
+                                      )}
+                                    </div>
+                                    {p.presentationFileData ? (
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleViewFile(p.presentationFileData, p.presentationFileName || 'Presentation.pptx')}
+                                          className="px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
+                                          title="View Presentation"
+                                        >
+                                          <Eye className="w-2.5 h-2.5" />
+                                          <span>View</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDownloadSingleFile(p.presentationFileData, p.presentationFileName || `${p.paperCode || p.id}_Presentation.pptx`)}
+                                          className="px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
+                                          title="Download Presentation"
+                                        >
+                                          <Download className="w-2.5 h-2.5" />
+                                          <span>DL</span>
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <label className="px-1.5 py-0.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[9px] font-bold cursor-pointer flex items-center gap-0.5 shrink-0 shadow-2xs">
+                                        <UploadCloud className="w-2.5 h-2.5 text-slate-500" />
+                                        <span>Attach</span>
+                                        <input
+                                          type="file"
+                                          accept=".ppt,.pptx,.pdf"
+                                          className="hidden"
+                                          onChange={e => {
+                                            const file = e.target.files?.[0];
+                                            if (file) handleUploadPaperFile(p.paperCode || p.id, file, 'presentation');
+                                          }}
+                                        />
+                                      </label>
+                                    )}
+                                  </div>
+                                </div>
                               </td>
                               <td className="py-3 px-4 font-bold text-purple-700">
                                 {p.reviewScore ? `${p.reviewScore}/10` : 'Pending'}
@@ -1013,6 +1189,17 @@ export default function AdminPage() {
                                   >
                                     <MessageSquare className="w-3 h-3" />
                                     <span>Review / Score</span>
+                                  </button>
+
+                                  {/* Delete Entry Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeletePaper(p.paperCode || p.id, p.paperTitle)}
+                                    className="p-1 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                                    title="Permanently remove this paper submission from the live database"
+                                  >
+                                    <Trash2 className="w-3 h-3 text-rose-600 shrink-0" />
+                                    <span>Delete</span>
                                   </button>
                                 </div>
                               </td>
@@ -1099,21 +1286,32 @@ export default function AdminPage() {
                                 </span>
                               </td>
                               <td className="py-3 px-4 text-right">
-                                {!isPaid ? (
+                                <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                  {!isPaid ? (
+                                    <button
+                                      onClick={() => handleUpdateDelegateStatus(reg.ticketId || reg.id, 'Confirmed')}
+                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold cursor-pointer shadow-2xs"
+                                    >
+                                      Confirm Pass
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleUpdateDelegateStatus(reg.ticketId || reg.id, 'Pending')}
+                                      className="px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-lg text-[10px] font-bold cursor-pointer"
+                                    >
+                                      Hold Pass
+                                    </button>
+                                  )}
                                   <button
-                                    onClick={() => handleUpdateDelegateStatus(reg.ticketId || reg.id, 'Confirmed')}
-                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold cursor-pointer shadow-2xs"
+                                    type="button"
+                                    onClick={() => handleDeleteRegistration(reg.ticketId || reg.id, reg.fullName)}
+                                    className="p-1 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                                    title="Permanently delete delegate registration from database"
                                   >
-                                    Confirm Pass
+                                    <Trash2 className="w-3 h-3 text-rose-600 shrink-0" />
+                                    <span>Delete</span>
                                   </button>
-                                ) : (
-                                  <button
-                                    onClick={() => handleUpdateDelegateStatus(reg.ticketId || reg.id, 'Pending')}
-                                    className="px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-lg text-[10px] font-bold cursor-pointer"
-                                  >
-                                    Hold Pass
-                                  </button>
-                                )}
+                                </div>
                               </td>
                             </tr>
                           );
@@ -1304,7 +1502,7 @@ export default function AdminPage() {
                         <th className="py-3 px-4">Paper Code</th>
                         <th className="py-3 px-4">Author &amp; Org</th>
                         <th className="py-3 px-4">Symposium &amp; Title</th>
-                        <th className="py-3 px-4">Manuscript Document</th>
+                        <th className="py-3 px-4">Uploaded Documents (Abstract / Paper / PPT)</th>
                         <th className="py-3 px-4">Score</th>
                         <th className="py-3 px-4">Status</th>
                         <th className="py-3 px-4 text-right">Review</th>
@@ -1324,46 +1522,161 @@ export default function AdminPage() {
                               <div className="font-bold text-slate-900 truncate">{p.paperTitle}</div>
                               <div className="text-[11px] text-slate-500 truncate">{p.symposiumTitle}</div>
                             </td>
-                            <td className="py-3 px-4">
-                              {p.fileData ? (
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleViewPaperPdf(p)}
-                                    className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
-                                    title="View Paper PDF directly in new browser tab"
-                                  >
-                                    <Eye className="w-3 h-3 text-blue-600 shrink-0" />
-                                    <span>View PDF</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDownloadPaperFile(p)}
-                                    className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
-                                    title={p.fileName || 'Download Manuscript PDF'}
-                                  >
-                                    <Download className="w-3 h-3 text-emerald-700 shrink-0" />
-                                    <span>Download</span>
-                                  </button>
+                            <td className="py-3 px-4 min-w-[240px]">
+                              <div className="space-y-1.5 text-[10px]">
+                                {/* 1. ABSTRACT DOCUMENT */}
+                                <div className="flex items-center justify-between gap-1 p-1.5 bg-slate-50 border border-slate-200 rounded-lg">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <FileText className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                                    <span className="font-bold text-slate-800">Abstract:</span>
+                                    {(p.abstractFileData || p.fileData) ? (
+                                      <span className="text-slate-600 truncate max-w-[85px]" title={p.abstractFileName || p.fileName || 'Abstract.pdf'}>
+                                        {p.abstractFileName || p.fileName || 'Abstract.pdf'}
+                                      </span>
+                                    ) : (
+                                      <span className="text-amber-700 font-semibold italic">Missing</span>
+                                    )}
+                                  </div>
+                                  {(p.abstractFileData || p.fileData) ? (
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleViewFile(p.abstractFileData || p.fileData, p.abstractFileName || 'Abstract.pdf')}
+                                        className="px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
+                                        title="View Abstract PDF"
+                                      >
+                                        <Eye className="w-2.5 h-2.5" />
+                                        <span>View</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDownloadSingleFile(p.abstractFileData || p.fileData, p.abstractFileName || `${p.paperCode || p.id}_Abstract.pdf`)}
+                                        className="px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
+                                        title="Download Abstract"
+                                      >
+                                        <Download className="w-2.5 h-2.5" />
+                                        <span>DL</span>
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <label className="px-1.5 py-0.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[9px] font-bold cursor-pointer flex items-center gap-0.5 shrink-0 shadow-2xs">
+                                      <UploadCloud className="w-2.5 h-2.5 text-slate-500" />
+                                      <span>Attach</span>
+                                      <input
+                                        type="file"
+                                        accept=".pdf,.doc,.docx"
+                                        className="hidden"
+                                        onChange={e => {
+                                          const file = e.target.files?.[0];
+                                          if (file) handleUploadPaperFile(p.paperCode || p.id, file, 'abstract');
+                                        }}
+                                      />
+                                    </label>
+                                  )}
                                 </div>
-                              ) : (
-                                <div className="flex items-center gap-1.5">
-                                  <label className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold cursor-pointer flex items-center gap-1 transition-colors border border-slate-200">
-                                    <UploadCloud className="w-3 h-3 text-slate-500" />
-                                    <span>Attach PDF</span>
-                                    <input
-                                      type="file"
-                                      accept=".pdf,.doc,.docx"
-                                      className="hidden"
-                                      onChange={e => {
-                                        const file = e.target.files?.[0];
-                                        if (file) handleUploadPaperFile(p.paperCode || p.id, file);
-                                      }}
-                                    />
-                                  </label>
-                                  <span className="text-[9px] text-slate-400 whitespace-nowrap">Due 15 Dec</span>
+
+                                {/* 2. FULL PAPER MANUSCRIPT */}
+                                <div className="flex items-center justify-between gap-1 p-1.5 bg-slate-50 border border-slate-200 rounded-lg">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <FileCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                    <span className="font-bold text-slate-800">Paper:</span>
+                                    {p.fullPaperFileData ? (
+                                      <span className="text-slate-600 truncate max-w-[85px]" title={p.fullPaperFileName || 'Paper.pdf'}>
+                                        {p.fullPaperFileName || 'Manuscript.pdf'}
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-400 font-medium italic">Due 15 Dec</span>
+                                    )}
+                                  </div>
+                                  {p.fullPaperFileData ? (
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleViewFile(p.fullPaperFileData, p.fullPaperFileName || 'FullPaper.pdf')}
+                                        className="px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
+                                        title="View Full Paper Manuscript"
+                                      >
+                                        <Eye className="w-2.5 h-2.5" />
+                                        <span>View</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDownloadSingleFile(p.fullPaperFileData, p.fullPaperFileName || `${p.paperCode || p.id}_FullPaper.pdf`)}
+                                        className="px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
+                                        title="Download Full Paper"
+                                      >
+                                        <Download className="w-2.5 h-2.5" />
+                                        <span>DL</span>
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <label className="px-1.5 py-0.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[9px] font-bold cursor-pointer flex items-center gap-0.5 shrink-0 shadow-2xs">
+                                      <UploadCloud className="w-2.5 h-2.5 text-slate-500" />
+                                      <span>Attach</span>
+                                      <input
+                                        type="file"
+                                        accept=".pdf,.doc,.docx"
+                                        className="hidden"
+                                        onChange={e => {
+                                          const file = e.target.files?.[0];
+                                          if (file) handleUploadPaperFile(p.paperCode || p.id, file, 'full_paper');
+                                        }}
+                                      />
+                                    </label>
+                                  )}
                                 </div>
-                              )}
+
+                                {/* 3. PRESENTATION SLIDES (PPT) */}
+                                <div className="flex items-center justify-between gap-1 p-1.5 bg-slate-50 border border-slate-200 rounded-lg">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <Presentation className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                                    <span className="font-bold text-slate-800">PPT:</span>
+                                    {p.presentationFileData ? (
+                                      <span className="text-slate-600 truncate max-w-[85px]" title={p.presentationFileName || 'Presentation.pptx'}>
+                                        {p.presentationFileName || 'Slides.pptx'}
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-400 font-medium italic">Due 25 Dec</span>
+                                    )}
+                                  </div>
+                                  {p.presentationFileData ? (
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleViewFile(p.presentationFileData, p.presentationFileName || 'Presentation.pptx')}
+                                        className="px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
+                                        title="View Presentation"
+                                      >
+                                        <Eye className="w-2.5 h-2.5" />
+                                        <span>View</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDownloadSingleFile(p.presentationFileData, p.presentationFileName || `${p.paperCode || p.id}_Presentation.pptx`)}
+                                        className="px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
+                                        title="Download Presentation"
+                                      >
+                                        <Download className="w-2.5 h-2.5" />
+                                        <span>DL</span>
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <label className="px-1.5 py-0.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[9px] font-bold cursor-pointer flex items-center gap-0.5 shrink-0 shadow-2xs">
+                                      <UploadCloud className="w-2.5 h-2.5 text-slate-500" />
+                                      <span>Attach</span>
+                                      <input
+                                        type="file"
+                                        accept=".ppt,.pptx,.pdf"
+                                        className="hidden"
+                                        onChange={e => {
+                                          const file = e.target.files?.[0];
+                                          if (file) handleUploadPaperFile(p.paperCode || p.id, file, 'presentation');
+                                        }}
+                                      />
+                                    </label>
+                                  )}
+                                </div>
+                              </div>
                             </td>
                             <td className="py-3 px-4 font-bold text-purple-700">
                               {p.reviewScore ? `${p.reviewScore}/10` : 'Pending'}
@@ -1440,6 +1753,17 @@ export default function AdminPage() {
                                 >
                                   <MessageSquare className="w-3 h-3" />
                                   <span>Review / Score</span>
+                                </button>
+
+                                {/* Delete Entry Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeletePaper(p.paperCode || p.id, p.paperTitle)}
+                                  className="p-1 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                                  title="Permanently remove this paper submission from the live database"
+                                >
+                                  <Trash2 className="w-3 h-3 text-rose-600 shrink-0" />
+                                  <span>Delete</span>
                                 </button>
                               </div>
                             </td>

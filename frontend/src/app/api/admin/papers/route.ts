@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest, hasCapability } from '@/lib/server/auth';
-import { dbGetPapers, dbUpdatePaperDecision, dbAppendAuditLog } from '@/lib/server/db';
+import { dbGetPapers, dbUpdatePaperDecision, dbDeletePaper, dbAppendAuditLog } from '@/lib/server/db';
 import { forwardToWordPress } from '@/lib/server/store';
 
 export async function GET(request: NextRequest) {
@@ -77,6 +77,52 @@ export async function POST(request: NextRequest) {
   } catch (err: any) {
     return NextResponse.json(
       { success: false, message: 'Failed saving review decision.' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = getSessionFromRequest(request);
+    if (!session || !hasCapability(session.role, 'manage_papers')) {
+      return NextResponse.json(
+        { success: false, message: 'Access denied: Insufficient permissions to delete papers.' },
+        { status: 403 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const paperCode = searchParams.get('paperCode') || searchParams.get('id');
+
+    if (!paperCode) {
+      return NextResponse.json(
+        { success: false, message: 'paperCode is required for deletion.' },
+        { status: 400 }
+      );
+    }
+
+    await dbDeletePaper(paperCode);
+
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
+    await dbAppendAuditLog({
+      userId: session.userId,
+      userEmail: session.email,
+      action: 'DELETE_TECHNICAL_PAPER',
+      resourceType: 'Paper',
+      resourceId: paperCode,
+      details: `Paper #${paperCode} permanently deleted by administrator ${session.email}`,
+      ipAddress: ip,
+      status: 'Success'
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Paper #${paperCode} deleted from database successfully.`
+    });
+  } catch (err: any) {
+    return NextResponse.json(
+      { success: false, message: 'Failed deleting paper.' },
       { status: 500 }
     );
   }

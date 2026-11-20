@@ -279,8 +279,8 @@ export const api = {
     return { success: true, data: combined };
   },
 
-  // 2b-2. Attach or Upload Revised Manuscript File to Server & DB
-  async attachManuscript(paperCode: string, fileData: string, fileName?: string, fileSize?: string, email?: string): Promise<{ success: boolean; message?: string }> {
+  // 2b-2. Attach or Upload Revised Manuscript or Presentation File to Server & DB
+  async attachManuscript(paperCode: string, fileData: string, fileName?: string, fileSize?: string, email?: string, docType: 'abstract' | 'full_paper' | 'presentation' = 'full_paper'): Promise<{ success: boolean; message?: string }> {
     try {
       const res = await fetch('/api/papers', {
         method: 'POST',
@@ -289,9 +289,10 @@ export const api = {
           action: 'attach_file',
           paperCode,
           fileData,
-          fileName: fileName || 'manuscript.pdf',
+          fileName: fileName || (docType === 'presentation' ? 'presentation.pptx' : 'manuscript.pdf'),
           fileSize: fileSize || 'Unknown',
-          email: email || ''
+          email: email || '',
+          docType
         })
       });
       return await res.json();
@@ -757,6 +758,32 @@ export const api = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, status, internalNotes, assignedTo }),
+        credentials: 'include'
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  // Admin: Delete Paper Submission
+  async deletePaper(paperCode: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const res = await fetch(`/api/admin/papers?paperCode=${encodeURIComponent(paperCode)}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  // Admin: Delete Delegate Registration
+  async deleteRegistration(ticketId: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const res = await fetch(`/api/admin/registrations?ticketId=${encodeURIComponent(ticketId)}`, {
+        method: 'DELETE',
         credentials: 'include'
       });
       return await res.json();

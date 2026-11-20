@@ -87,7 +87,11 @@ export interface PaperSubmission {
   coAuthors?: string;
   resumeFileName?: string;
   fullPaperFileName?: string;
+  fullPaperFileData?: string;
+  abstractFileName?: string;
+  abstractFileData?: string;
   presentationFileName?: string;
+  presentationFileData?: string;
   fileName?: string;
   fileSize?: string;
   fileType?: string;

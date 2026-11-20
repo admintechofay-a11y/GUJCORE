@@ -192,7 +192,7 @@ export default function DashboardPage() {
     reader.onload = async () => {
       const fileData = reader.result as string;
       try {
-        const res = await api.attachManuscript(activeUploadPaperId, fileData, fileName, fileSize, user?.email);
+        const res = await api.attachManuscript(activeUploadPaperId, fileData, fileName, fileSize, user?.email, 'full_paper');
         if (res.success) {
           showToast(`✅ Manuscript "${fileName}" uploaded to live server successfully!`);
           fetchLiveDashboardData(true);
@@ -212,26 +212,34 @@ export default function DashboardPage() {
     const file = e.target.files?.[0];
     if (!file || !activeUploadPaperId) return;
 
+    if (file.size > 30 * 1024 * 1024) {
+      alert('File size exceeds 30MB limit. Please upload a smaller PowerPoint presentation file.');
+      return;
+    }
+
     const fileName = file.name;
     const fileSize = formatFileSize(file.size);
 
-    setPapers(prev => {
-      const updated = prev.map(p => {
-        if (p.id === activeUploadPaperId) {
-          return {
-            ...p,
-            presentationFileName: `${fileName} (${fileSize})`
-          };
-        }
-        return p;
-      });
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('gujcorr_papers', JSON.stringify(updated));
-      }
-      return updated;
-    });
+    showToast(`Uploading presentation slides "${fileName}" to server...`);
 
-    showToast(`✅ Oral presentation slides "${fileName}" attached successfully to paper #${activeUploadPaperId}!`);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const fileData = reader.result as string;
+      try {
+        const res = await api.attachManuscript(activeUploadPaperId, fileData, fileName, fileSize, user?.email, 'presentation');
+        if (res.success) {
+          showToast(`✅ Oral presentation slides "${fileName}" uploaded to live server successfully!`);
+          fetchLiveDashboardData(true);
+        } else {
+          setPapers(prev => prev.map(p => (p.paperCode === activeUploadPaperId || p.id === activeUploadPaperId) ? { ...p, presentationFileName: `${fileName} (${fileSize})` } : p));
+          showToast(`Presentation attached locally: ${fileName}`);
+        }
+      } catch {
+        setPapers(prev => prev.map(p => (p.paperCode === activeUploadPaperId || p.id === activeUploadPaperId) ? { ...p, presentationFileName: `${fileName} (${fileSize})` } : p));
+        showToast(`Presentation attached locally: ${fileName}`);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleScoreSubmit = (paperId: string) => {

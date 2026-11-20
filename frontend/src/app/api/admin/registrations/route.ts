@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest, hasCapability } from '@/lib/server/auth';
-import { dbGetRegistrations, dbUpdateRegistrationStatus, dbAppendAuditLog } from '@/lib/server/db';
+import { dbGetRegistrations, dbUpdateRegistrationStatus, dbDeleteRegistration, dbAppendAuditLog } from '@/lib/server/db';
 import { forwardToWordPress } from '@/lib/server/store';
 
 export async function GET(request: NextRequest) {
@@ -76,6 +76,52 @@ export async function POST(request: NextRequest) {
   } catch (err: any) {
     return NextResponse.json(
       { success: false, message: 'Failed updating registration status.' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = getSessionFromRequest(request);
+    if (!session || !hasCapability(session.role, 'manage_registrations')) {
+      return NextResponse.json(
+        { success: false, message: 'Access denied: Insufficient permissions to delete registrations.' },
+        { status: 403 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const ticketId = searchParams.get('ticketId') || searchParams.get('id');
+
+    if (!ticketId) {
+      return NextResponse.json(
+        { success: false, message: 'ticketId is required for deletion.' },
+        { status: 400 }
+      );
+    }
+
+    await dbDeleteRegistration(ticketId);
+
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
+    await dbAppendAuditLog({
+      userId: session.userId,
+      userEmail: session.email,
+      action: 'DELETE_DELEGATE_REGISTRATION',
+      resourceType: 'Registration',
+      resourceId: ticketId,
+      details: `Delegate registration #${ticketId} permanently deleted by administrator ${session.email}`,
+      ipAddress: ip,
+      status: 'Success'
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Registration #${ticketId} deleted from database successfully.`
+    });
+  } catch (err: any) {
+    return NextResponse.json(
+      { success: false, message: 'Failed deleting registration.' },
       { status: 500 }
     );
   }

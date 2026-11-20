@@ -317,8 +317,8 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
     setIsSubmitting(true);
     const selectedSymp = SYMPOSIA.find(s => s.id === Number(formData.symposiumId));
 
-    // Whichever file slot the user used (abstract or manuscript), capture file metadata and base64 data
-    const activeFile = paperFile?.data ? paperFile : (resumeFile?.data ? resumeFile : (paperFile || resumeFile || null));
+    // Capture both abstract file and full manuscript file data independently
+    const activeFile = resumeFile?.data ? resumeFile : (paperFile?.data ? paperFile : (resumeFile || paperFile || null));
 
     try {
       const res = await api.submitPaper({
@@ -326,7 +326,10 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
         symposiumId: Number(formData.symposiumId),
         symposiumTitle: selectedSymp ? selectedSymp.title : 'Corrosion Science',
         resumeFileName: resumeFile ? resumeFile.name : undefined,
+        abstractFileName: resumeFile ? resumeFile.name : (paperFile ? paperFile.name : undefined),
+        abstractFileData: resumeFile?.data || paperFile?.data,
         fullPaperFileName: paperFile ? paperFile.name : undefined,
+        fullPaperFileData: paperFile?.data,
         fileName: activeFile ? activeFile.name : undefined,
         fileSize: activeFile ? activeFile.size : undefined,
         fileType: activeFile ? activeFile.type : undefined,

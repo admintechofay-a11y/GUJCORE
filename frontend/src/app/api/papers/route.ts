@@ -28,28 +28,29 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      const docType = body.docType || 'full_paper';
       await dbAttachPaperFile(body.paperCode, {
-        fileName: body.fileName || 'manuscript.pdf',
-        fileType: body.fileType || 'application/pdf',
+        fileName: body.fileName || (docType === 'presentation' ? 'presentation.pptx' : 'manuscript.pdf'),
+        fileType: body.fileType || (docType === 'presentation' ? 'application/vnd.ms-powerpoint' : 'application/pdf'),
         fileSize: body.fileSize || 'Unknown',
         fileData: body.fileData
-      });
+      }, docType);
 
       const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
       await dbAppendAuditLog({
         userId: 'author_or_admin',
         userEmail: body.email || 'author@gujcorr.org',
-        action: 'ATTACH_PAPER_MANUSCRIPT',
+        action: docType === 'presentation' ? 'ATTACH_PAPER_PRESENTATION' : 'ATTACH_PAPER_MANUSCRIPT',
         resourceType: 'Paper',
         resourceId: body.paperCode,
-        details: `Attached manuscript file: ${body.fileName || 'manuscript.pdf'} (${body.fileSize || 'N/A'})`,
+        details: `Attached ${docType} file: ${body.fileName || 'document'} (${body.fileSize || 'N/A'})`,
         ipAddress: ip,
         status: 'Success'
       });
 
       return NextResponse.json({
         success: true,
-        message: `Manuscript for paper #${body.paperCode} saved to live database successfully.`
+        message: `${docType === 'presentation' ? 'Presentation slide deck' : 'Document'} for paper #${body.paperCode} saved to live database successfully.`
       });
     }
 
