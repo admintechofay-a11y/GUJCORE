@@ -22,7 +22,10 @@ import {
   Loader2,
   Zap,
   CreditCard,
-  LayoutDashboard
+  LayoutDashboard,
+  Mail,
+  Lock,
+  UserCheck
 } from 'lucide-react';
 import { SYMPOSIA } from '../data/mockData';
 import { api } from '../lib/api';
@@ -34,9 +37,20 @@ interface CallForPapersProps {
 }
 
 export default function CallForPapers({ preselectedSymposiumId }: CallForPapersProps) {
-  const { user } = useAuth();
+  const { user, login, register: authRegister, logout, isLoading: isAuthLoadingSession } = useAuth();
   const resumeInputRef = useRef<HTMLInputElement>(null);
   const paperInputRef = useRef<HTMLInputElement>(null);
+
+  // Author Authentication Gate state (for non-authenticated authors)
+  const [authMode, setAuthMode] = useState<'signin' | 'register'>('signin');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authFullName, setAuthFullName] = useState('');
+  const [authMobile, setAuthMobile] = useState('');
+  const [authOrg, setAuthOrg] = useState('');
+  const [authDesignation, setAuthDesignation] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     fullName: user?.fullName || '',
@@ -81,6 +95,77 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
       }));
     }
   }, [user]);
+
+  // Handle Author Sign In
+  const handleAuthSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setIsAuthSubmitting(true);
+
+    if (!authEmail || !authEmail.includes('@')) {
+      setAuthError('Please enter a valid email address.');
+      setIsAuthSubmitting(false);
+      return;
+    }
+    if (!authPassword || authPassword.length < 4) {
+      setAuthError('Please enter your account password.');
+      setIsAuthSubmitting(false);
+      return;
+    }
+
+    try {
+      const res = await login(authEmail, authPassword, 'Author');
+      if (!res.success) {
+        setAuthError(res.message || 'Invalid email or password. Please verify and try again.');
+      }
+    } catch {
+      setAuthError('Authentication error. Please try again.');
+    } finally {
+      setIsAuthSubmitting(false);
+    }
+  };
+
+  // Handle New Author Registration
+  const handleAuthRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setIsAuthSubmitting(true);
+
+    if (!authFullName.trim()) {
+      setAuthError('Please enter your full name (with Dr./Prof./Mr./Ms. title).');
+      setIsAuthSubmitting(false);
+      return;
+    }
+    if (!authEmail || !authEmail.includes('@')) {
+      setAuthError('Please enter a valid email address.');
+      setIsAuthSubmitting(false);
+      return;
+    }
+    if (!authPassword || authPassword.length < 4) {
+      setAuthError('Password must be at least 4 characters.');
+      setIsAuthSubmitting(false);
+      return;
+    }
+
+    try {
+      const res = await authRegister({
+        fullName: authFullName.trim(),
+        email: authEmail.trim().toLowerCase(),
+        password: authPassword,
+        mobileNumber: authMobile.trim(),
+        organization: authOrg.trim(),
+        designation: authDesignation.trim(),
+        role: 'Author'
+      });
+      if (!res.success) {
+        setAuthError(res.message || 'Could not create author account.');
+      }
+    } catch {
+      setAuthError('Registration error occurred.');
+    } finally {
+      setIsAuthSubmitting(false);
+    }
+  };
 
   // File upload states
   const [resumeFile, setResumeFile] = useState<{ name: string; size: string; type: string; data?: string } | null>(null);
@@ -405,8 +490,252 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
               </button>
             </div>
           </div>
+        ) : isAuthLoadingSession ? (
+          <div className="bg-white rounded-3xl p-12 border border-slate-200 shadow-md text-center space-y-3 max-w-xl mx-auto">
+            <Loader2 className="w-8 h-8 text-red-600 animate-spin mx-auto" />
+            <p className="text-xs text-slate-500 font-bold">Verifying author authentication session...</p>
+          </div>
+        ) : !user ? (
+          /* ============================================================== */
+          /* AUTHOR AUTHENTICATION GATE (Login Required Before Submission)  */
+          /* ============================================================== */
+          <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-xl max-w-xl mx-auto space-y-6 animate-in fade-in">
+            <div className="text-center space-y-2">
+              <div className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto shadow-xs">
+                <Lock className="w-7 h-7" />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-red-700 bg-red-50 border border-red-200 px-3 py-1 rounded-full inline-block">
+                Author Sign In Required
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Sign In to Submit Research Abstract
+              </h3>
+              <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
+                To submit research abstracts, upload manuscripts, and track technical review decisions, you must be logged into your Author account.
+              </p>
+            </div>
+
+            {/* Mode Selector Tabs */}
+            <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+              <button
+                type="button"
+                onClick={() => { setAuthMode('signin'); setAuthError(''); }}
+                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  authMode === 'signin'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                Sign In (Existing Author)
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAuthMode('register'); setAuthError(''); }}
+                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  authMode === 'register'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                Create Author Account
+              </button>
+            </div>
+
+            {/* Error Message Alert */}
+            {authError && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl flex items-center gap-2 animate-in fade-in">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                <span>{authError}</span>
+              </div>
+            )}
+
+            {/* Form: Sign In */}
+            {authMode === 'signin' ? (
+              <form onSubmit={handleAuthSignIn} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Author Email Address</label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <input
+                      type="email"
+                      required
+                      placeholder="author@university.edu or gmail.com"
+                      value={authEmail}
+                      onChange={e => setAuthEmail(e.target.value)}
+                      className="w-full text-xs pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Password</label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <input
+                      type="password"
+                      required
+                      placeholder="Enter your account password"
+                      value={authPassword}
+                      onChange={e => setAuthPassword(e.target.value)}
+                      className="w-full text-xs pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isAuthSubmitting}
+                  className="w-full py-3.5 bg-red-600 hover:bg-red-700 disabled:bg-slate-400 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md cursor-pointer transition-colors"
+                >
+                  {isAuthSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Verifying Credentials...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Sign In &amp; Continue to Abstract Form</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+            ) : (
+              /* Form: Register New Author */
+              <form onSubmit={handleAuthRegister} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Full Name (with Dr. / Prof. / Mr. Title)</label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Dr. Rajesh Kumar or Prof. Priya Sharma"
+                      value={authFullName}
+                      onChange={e => setAuthFullName(e.target.value)}
+                      className="w-full text-xs pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <input
+                      type="email"
+                      required
+                      placeholder="your.email@organization.com"
+                      value={authEmail}
+                      onChange={e => setAuthEmail(e.target.value)}
+                      className="w-full text-xs pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Mobile / WhatsApp</label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="+91 98765 43210"
+                      value={authMobile}
+                      onChange={e => setAuthMobile(e.target.value)}
+                      className="w-full text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Organization / Institute</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. IIT Bombay, ONGC, IOCL"
+                      value={authOrg}
+                      onChange={e => setAuthOrg(e.target.value)}
+                      className="w-full text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Designation</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Assistant Professor, Chief Materials Engineer"
+                    value={authDesignation}
+                    onChange={e => setAuthDesignation(e.target.value)}
+                    className="w-full text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Create Password</label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <input
+                      type="password"
+                      required
+                      minLength={4}
+                      placeholder="Create account password (min 4 chars)"
+                      value={authPassword}
+                      onChange={e => setAuthPassword(e.target.value)}
+                      className="w-full text-xs pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isAuthSubmitting}
+                  className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md cursor-pointer transition-colors"
+                >
+                  {isAuthSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Creating Author Account...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Register &amp; Open Submission Form</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            <div className="text-center pt-2">
+              <Link href="/login" className="text-[11px] font-bold text-slate-500 hover:text-slate-800 underline">
+                Need delegate or exhibition login? Visit Central Sign In &rarr;
+              </Link>
+            </div>
+          </div>
         ) : (
           <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-xl space-y-8" suppressHydrationWarning>
+            {/* Authenticated Author Banner */}
+            <div className="p-3.5 bg-teal-50 border border-teal-200 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-teal-700 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                  {user.fullName?.charAt(0) || 'A'}
+                </div>
+                <div>
+                  <div className="font-extrabold text-teal-950 flex items-center gap-1.5">
+                    <span>Logged In as {user.fullName}</span>
+                    <span className="text-[9px] bg-teal-100 text-teal-800 border border-teal-300 font-extrabold px-2 py-0.5 rounded-full uppercase">
+                      {user.role || 'Author'}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-teal-700">{user.email} {user.organization ? `• ${user.organization}` : ''}</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={logout}
+                className="text-[11px] font-bold text-teal-800 hover:text-red-600 underline cursor-pointer"
+              >
+                Sign Out / Switch Account
+              </button>
+            </div>
             
             {/* Top Error Alert */}
             {errorMessage && (
