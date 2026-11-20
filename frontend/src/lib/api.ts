@@ -75,33 +75,34 @@ export const api = {
     };
   },
 
-  // 1b. Fetch All Delegate Registrations (WordPress DB + Local Storage)
+  // 1b. Fetch All Delegate Registrations (Live PostgreSQL Server + Local Storage)
   async getRegistrations(): Promise<{ success: boolean; data: DelegateRegistration[] }> {
-    let wpList: DelegateRegistration[] = [];
+    let serverList: DelegateRegistration[] = [];
     try {
-      const res = await fetch(`${WP_API_BASE}/registrations`, {
+      const res = await fetch('/api/registrations', {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(4000)
+        headers: { 'Content-Type': 'application/json' }
       });
       if (res.ok) {
         const json = await res.json();
         if (json.data && Array.isArray(json.data)) {
-          wpList = json.data;
+          serverList = json.data;
         }
       }
     } catch (err) {
-      console.warn('WordPress getRegistrations:', err);
+      console.warn('[API] getRegistrations error:', err);
     }
 
     let localList: DelegateRegistration[] = [];
     if (typeof window !== 'undefined') {
-      localList = JSON.parse(localStorage.getItem(STORAGE_KEYS.REGISTRATIONS) || '[]');
+      try {
+        localList = JSON.parse(localStorage.getItem(STORAGE_KEYS.REGISTRATIONS) || '[]');
+      } catch {}
     }
 
-    // Merge without duplicates (favoring wpList or localList)
+    // Merge: Server DB is primary source of truth, fallback to local entries
     const map = new Map<string, DelegateRegistration>();
-    wpList.forEach(r => map.set(r.ticketId || r.id, r));
+    serverList.forEach(r => map.set(r.ticketId || r.id, r));
     localList.forEach(r => {
       const key = r.ticketId || r.id;
       if (!map.has(key)) {
@@ -111,7 +112,9 @@ export const api = {
 
     const combined = Array.from(map.values());
     if (typeof window !== 'undefined' && combined.length > 0) {
-      localStorage.setItem(STORAGE_KEYS.REGISTRATIONS, JSON.stringify(combined));
+      try {
+        localStorage.setItem(STORAGE_KEYS.REGISTRATIONS, JSON.stringify(combined.slice(0, 50)));
+      } catch {}
     }
 
     return { success: true, data: combined };
@@ -228,44 +231,73 @@ export const api = {
     };
   },
 
-  // 2b. Fetch All Papers (WordPress DB + Local Storage)
+  // 2b. Fetch All Papers (Live PostgreSQL Server + Local Storage)
   async getPapers(): Promise<{ success: boolean; data: PaperSubmission[] }> {
-    let wpList: PaperSubmission[] = [];
+    let serverList: PaperSubmission[] = [];
     try {
-      const res = await fetch(`${WP_API_BASE}/papers`, {
+      const res = await fetch('/api/papers', {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(4000)
+        headers: { 'Content-Type': 'application/json' }
       });
       if (res.ok) {
         const json = await res.json();
         if (json.data && Array.isArray(json.data)) {
-          wpList = json.data;
+          serverList = json.data;
         }
       }
     } catch (err) {
-      console.warn('WordPress getPapers:', err);
+      console.warn('[API] getPapers error:', err);
     }
 
     let localList: PaperSubmission[] = [];
     if (typeof window !== 'undefined') {
-      localList = JSON.parse(localStorage.getItem(STORAGE_KEYS.PAPERS) || '[]');
+      try {
+        localList = JSON.parse(localStorage.getItem(STORAGE_KEYS.PAPERS) || '[]');
+      } catch {}
     }
 
+    // Server DB has canonical live review status and comments
     const map = new Map<string, PaperSubmission>();
-    wpList.forEach(p => map.set(p.id, p));
+    serverList.forEach(p => {
+      const key = p.paperCode || p.id;
+      map.set(key, p);
+    });
     localList.forEach(p => {
-      if (!map.has(p.id)) {
-        map.set(p.id, p);
+      const key = p.paperCode || p.id;
+      if (!map.has(key)) {
+        map.set(key, p);
       }
     });
 
     const combined = Array.from(map.values());
     if (typeof window !== 'undefined' && combined.length > 0) {
-      localStorage.setItem(STORAGE_KEYS.PAPERS, JSON.stringify(combined));
+      try {
+        localStorage.setItem(STORAGE_KEYS.PAPERS, JSON.stringify(combined.slice(0, 50)));
+      } catch {}
     }
 
     return { success: true, data: combined };
+  },
+
+  // 2b-2. Attach or Upload Revised Manuscript File to Server & DB
+  async attachManuscript(paperCode: string, fileData: string, fileName?: string, fileSize?: string, email?: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const res = await fetch('/api/papers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'attach_file',
+          paperCode,
+          fileData,
+          fileName: fileName || 'manuscript.pdf',
+          fileSize: fileSize || 'Unknown',
+          email: email || ''
+        })
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
   },
 
   // 2c. Update Paper Peer Review & Score

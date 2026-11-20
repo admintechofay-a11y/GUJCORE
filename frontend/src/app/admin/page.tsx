@@ -39,7 +39,8 @@ import {
   X,
   PlusCircle,
   HelpCircle,
-  UploadCloud
+  UploadCloud,
+  MessageSquare
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import AnnouncementBar from '@/components/AnnouncementBar';
@@ -286,10 +287,11 @@ export default function AdminPage() {
     }
   };
 
-  // 1-click Approve or Reject paper decision
+  // 1-click Approve, Under Review, or Reject paper decision
   const handleQuickPaperDecision = async (paperCode: string, newStatus: string) => {
     const isApprove = newStatus.includes('Accepted');
-    const actionLabel = isApprove ? 'APPROVE' : 'REJECT';
+    const isUnder = newStatus.toLowerCase().includes('under review');
+    const actionLabel = isApprove ? 'APPROVE' : isUnder ? 'MARK AS UNDER REVIEW' : 'REJECT';
     if (!window.confirm(`Are you sure you want to ${actionLabel} paper #${paperCode}?`)) {
       return;
     }
@@ -297,7 +299,7 @@ export default function AdminPage() {
     try {
       const res = await api.updatePaperDecision(paperCode, undefined, undefined, newStatus);
       if (res.success) {
-        showToast(`Paper #${paperCode} successfully marked as "${newStatus}".`);
+        showToast(`Paper #${paperCode} successfully updated to "${newStatus}".`);
         setPapers(prev => prev.map(p => (p.paperCode === paperCode || p.id === paperCode) ? { ...p, status: newStatus } : p));
         loadAllAdminData();
       } else {
@@ -866,7 +868,11 @@ export default function AdminPage() {
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {papers.map((p: any, idx) => {
-                          const isAcc = (p.status || '').toLowerCase().includes('accepted');
+                          const s = (p.status || '').toLowerCase();
+                          const isAcc = s.includes('accept');
+                          const isUnder = s.includes('under review');
+                          const isRev = s.includes('revision');
+                          const isRej = s.includes('reject');
                           return (
                             <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
                               <td className="py-3 px-4 font-mono font-bold text-slate-900">
@@ -937,7 +943,11 @@ export default function AdminPage() {
                               </td>
                               <td className="py-3 px-4">
                                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
-                                  isAcc ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-purple-50 text-purple-700 border border-purple-200'
+                                  isAcc ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                                  isUnder ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                                  isRev ? 'bg-amber-50 text-amber-800 border border-amber-300' :
+                                  isRej ? 'bg-rose-50 text-rose-700 border border-rose-200' :
+                                  'bg-purple-50 text-purple-700 border border-purple-200'
                                 }`}>
                                   {p.status || 'Submitted'}
                                 </span>
@@ -959,12 +969,27 @@ export default function AdminPage() {
                                     <span>{isAcc ? 'Approved' : 'Approve'}</span>
                                   </button>
 
+                                  {/* Quick Under Review Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickPaperDecision(p.paperCode || p.id, 'Under Review')}
+                                    className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs ${
+                                      isUnder
+                                        ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                                        : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200'
+                                    }`}
+                                    title="Mark paper as Under Review"
+                                  >
+                                    <Clock className="w-3 h-3 stroke-[2.5]" />
+                                    <span>{isUnder ? 'In Review' : 'Under Review'}</span>
+                                  </button>
+
                                   {/* Quick Reject Button */}
                                   <button
                                     type="button"
                                     onClick={() => handleQuickPaperDecision(p.paperCode || p.id, 'Rejected')}
                                     className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs ${
-                                      (p.status || '').toLowerCase().includes('reject')
+                                      isRej
                                         ? 'bg-rose-100 text-rose-800 border border-rose-300'
                                         : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'
                                     }`}
@@ -983,10 +1008,11 @@ export default function AdminPage() {
                                       setCommentsInput(p.reviewComments || '');
                                       setPaperStatusInput(p.status || 'Accepted for Oral Presentation');
                                     }}
-                                    className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[10px] font-bold cursor-pointer transition-colors shadow-2xs"
-                                    title="Score / Editorial Review"
+                                    className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[10px] font-bold cursor-pointer transition-colors shadow-2xs flex items-center gap-1"
+                                    title="Score, add comments, and request changes for author"
                                   >
-                                    Score
+                                    <MessageSquare className="w-3 h-3" />
+                                    <span>Review / Score</span>
                                   </button>
                                 </div>
                               </td>
@@ -1344,9 +1370,13 @@ export default function AdminPage() {
                             </td>
                             <td className="py-3 px-4">
                               <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
-                                isAcc ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-purple-50 text-purple-700 border border-purple-200'
+                                isAcc ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                                (p.status || '').toLowerCase().includes('under review') ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                                (p.status || '').toLowerCase().includes('revision') ? 'bg-amber-50 text-amber-800 border border-amber-300' :
+                                (p.status || '').toLowerCase().includes('reject') ? 'bg-rose-50 text-rose-700 border border-rose-200' :
+                                'bg-purple-50 text-purple-700 border border-purple-200'
                               }`}>
-                                {p.status}
+                                {p.status || 'Submitted'}
                               </span>
                             </td>
                             <td className="py-3 px-4 text-right">
@@ -1364,6 +1394,21 @@ export default function AdminPage() {
                                 >
                                   <Check className="w-3 h-3 stroke-[3]" />
                                   <span>{isAcc ? 'Approved' : 'Approve'}</span>
+                                </button>
+
+                                {/* Quick Under Review Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickPaperDecision(p.paperCode || p.id, 'Under Review')}
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs ${
+                                    (p.status || '').toLowerCase().includes('under review')
+                                      ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                                      : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200'
+                                  }`}
+                                  title="Mark paper as Under Review"
+                                >
+                                  <Clock className="w-3 h-3 stroke-[2.5]" />
+                                  <span>{(p.status || '').toLowerCase().includes('under review') ? 'In Review' : 'Under Review'}</span>
                                 </button>
 
                                 {/* Quick Reject Button */}
@@ -1390,10 +1435,11 @@ export default function AdminPage() {
                                     setCommentsInput(p.reviewComments || '');
                                     setPaperStatusInput(p.status || 'Accepted for Oral Presentation');
                                   }}
-                                  className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[10px] font-bold cursor-pointer transition-colors shadow-2xs"
-                                  title="Detailed Scoring & Review"
+                                  className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[10px] font-bold cursor-pointer transition-colors shadow-2xs flex items-center gap-1"
+                                  title="Detailed Scoring, Review & Author Comments"
                                 >
-                                  Score
+                                  <MessageSquare className="w-3 h-3" />
+                                  <span>Review / Score</span>
                                 </button>
                               </div>
                             </td>
@@ -1481,40 +1527,53 @@ export default function AdminPage() {
                         </div>
 
                         <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1">Editorial Decision</label>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">Editorial Decision / Status</label>
                           <select
                             value={paperStatusInput}
                             onChange={e => setPaperStatusInput(e.target.value)}
                             className="w-full text-xs p-2.5 bg-slate-50 border rounded-xl font-bold"
                           >
+                            <option value="Submitted">Submitted (Awaiting Review)</option>
+                            <option value="Under Review">Under Review</option>
                             <option value="Accepted for Oral Presentation">Accepted for Oral Presentation</option>
                             <option value="Accepted for Poster Presentation">Accepted for Poster Presentation</option>
-                            <option value="Revision Required">Revision Required</option>
+                            <option value="Revision Required">Revision Required (Changes Needed)</option>
                             <option value="Rejected">Rejected</option>
                           </select>
                         </div>
 
                         <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1">Committee Comments &amp; Rationale</label>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">Committee Comments &amp; Changes Requested (Shown to Author)</label>
                           <textarea
-                            rows={3}
+                            rows={4}
                             value={commentsInput}
                             onChange={e => setCommentsInput(e.target.value)}
-                            className="w-full text-xs p-2.5 bg-slate-50 border rounded-xl"
-                            placeholder="Enter review committee feedback..."
+                            className="w-full text-xs p-2.5 bg-slate-50 border rounded-xl font-medium"
+                            placeholder="Enter feedback or required revisions for the author. This will be displayed live on the author's portal..."
                           />
                         </div>
                       </div>
 
                       <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleQuickPaperDecision(selectedPaper.paperCode || selectedPaper.id, 'Under Review');
+                              setSelectedPaper(null);
+                            }}
+                            className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
+                          >
+                            <Clock className="w-3.5 h-3.5 stroke-[2.5]" />
+                            <span>Mark Under Review</span>
+                          </button>
                           <button
                             type="button"
                             onClick={() => {
                               handleQuickPaperDecision(selectedPaper.paperCode || selectedPaper.id, 'Accepted for Oral Presentation');
                               setSelectedPaper(null);
                             }}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
+                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
                           >
                             <Check className="w-3.5 h-3.5 stroke-[3]" />
                             <span>Quick Approve</span>
@@ -1525,7 +1584,7 @@ export default function AdminPage() {
                               handleQuickPaperDecision(selectedPaper.paperCode || selectedPaper.id, 'Rejected');
                               setSelectedPaper(null);
                             }}
-                            className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
+                            className="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
                           >
                             <X className="w-3.5 h-3.5 stroke-[3]" />
                             <span>Quick Reject</span>
@@ -1533,7 +1592,10 @@ export default function AdminPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <button onClick={() => setSelectedPaper(null)} className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl cursor-pointer">Cancel</button>
-                          <button onClick={handleSavePaperReview} className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer">Save &amp; Audit Log</button>
+                          <button onClick={handleSavePaperReview} className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5">
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Save &amp; Update Author</span>
+                          </button>
                         </div>
                       </div>
                     </div>
