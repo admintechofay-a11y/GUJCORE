@@ -325,44 +325,77 @@ export async function dbInsertPaper(p: any): Promise<any> {
 export async function dbAttachPaperFile(
   paperCode: string, 
   file: { fileName: string; fileType?: string; fileSize?: string; fileData: string },
-  docType: 'abstract' | 'full_paper' | 'presentation' = 'full_paper'
+  docType: 'abstract' | 'full_paper' | 'presentation' = 'full_paper',
+  chunkIndex?: number
 ): Promise<boolean> {
   const sql = getDb();
   const now = new Date().toISOString();
+  const isAppend = typeof chunkIndex === 'number' && chunkIndex > 0;
 
   if (sql) {
     try {
       if (docType === 'abstract') {
-        await sql`
-          UPDATE papers
-          SET 
-            abstract_file_name = ${file.fileName},
-            abstract_file_data = ${file.fileData},
-            updated_at = ${now}
-          WHERE paper_code = ${paperCode} OR id = ${paperCode};
-        `;
+        if (isAppend) {
+          await sql`
+            UPDATE papers
+            SET 
+              abstract_file_data = COALESCE(abstract_file_data, '') || ${file.fileData},
+              updated_at = ${now}
+            WHERE paper_code = ${paperCode} OR id = ${paperCode};
+          `;
+        } else {
+          await sql`
+            UPDATE papers
+            SET 
+              abstract_file_name = ${file.fileName},
+              abstract_file_data = ${file.fileData},
+              updated_at = ${now}
+            WHERE paper_code = ${paperCode} OR id = ${paperCode};
+          `;
+        }
       } else if (docType === 'presentation') {
-        await sql`
-          UPDATE papers
-          SET 
-            presentation_file_name = ${file.fileName},
-            presentation_file_data = ${file.fileData},
-            updated_at = ${now}
-          WHERE paper_code = ${paperCode} OR id = ${paperCode};
-        `;
+        if (isAppend) {
+          await sql`
+            UPDATE papers
+            SET 
+              presentation_file_data = COALESCE(presentation_file_data, '') || ${file.fileData},
+              updated_at = ${now}
+            WHERE paper_code = ${paperCode} OR id = ${paperCode};
+          `;
+        } else {
+          await sql`
+            UPDATE papers
+            SET 
+              presentation_file_name = ${file.fileName},
+              presentation_file_data = ${file.fileData},
+              updated_at = ${now}
+            WHERE paper_code = ${paperCode} OR id = ${paperCode};
+          `;
+        }
       } else {
-        await sql`
-          UPDATE papers
-          SET 
-            full_paper_file_name = ${file.fileName},
-            full_paper_file_data = ${file.fileData},
-            file_name = ${file.fileName},
-            file_type = ${file.fileType || 'application/pdf'},
-            file_size = ${file.fileSize || 'Unknown'},
-            file_data = ${file.fileData},
-            updated_at = ${now}
-          WHERE paper_code = ${paperCode} OR id = ${paperCode};
-        `;
+        if (isAppend) {
+          await sql`
+            UPDATE papers
+            SET 
+              full_paper_file_data = COALESCE(full_paper_file_data, '') || ${file.fileData},
+              file_data = COALESCE(file_data, '') || ${file.fileData},
+              updated_at = ${now}
+            WHERE paper_code = ${paperCode} OR id = ${paperCode};
+          `;
+        } else {
+          await sql`
+            UPDATE papers
+            SET 
+              full_paper_file_name = ${file.fileName},
+              full_paper_file_data = ${file.fileData},
+              file_name = ${file.fileName},
+              file_type = ${file.fileType || 'application/pdf'},
+              file_size = ${file.fileSize || 'Unknown'},
+              file_data = ${file.fileData},
+              updated_at = ${now}
+            WHERE paper_code = ${paperCode} OR id = ${paperCode};
+          `;
+        }
       }
     } catch (err) {
       console.warn('[DB] Error attaching paper file to DB:', err);
@@ -373,16 +406,29 @@ export async function dbAttachPaperFile(
   const paper = store.papers.find(p => p.paperCode === paperCode || p.id === paperCode);
   if (paper) {
     if (docType === 'abstract') {
-      paper.abstractFileName = file.fileName;
-      paper.abstractFileData = file.fileData;
+      if (isAppend) {
+        paper.abstractFileData = (paper.abstractFileData || '') + file.fileData;
+      } else {
+        paper.abstractFileName = file.fileName;
+        paper.abstractFileData = file.fileData;
+      }
     } else if (docType === 'presentation') {
-      paper.presentationFileName = file.fileName;
-      paper.presentationFileData = file.fileData;
+      if (isAppend) {
+        paper.presentationFileData = (paper.presentationFileData || '') + file.fileData;
+      } else {
+        paper.presentationFileName = file.fileName;
+        paper.presentationFileData = file.fileData;
+      }
     } else {
-      paper.fullPaperFileName = file.fileName;
-      paper.fullPaperFileData = file.fileData;
-      paper.fileName = file.fileName;
-      paper.fileData = file.fileData;
+      if (isAppend) {
+        paper.fullPaperFileData = (paper.fullPaperFileData || '') + file.fileData;
+        paper.fileData = (paper.fileData || '') + file.fileData;
+      } else {
+        paper.fullPaperFileName = file.fileName;
+        paper.fullPaperFileData = file.fileData;
+        paper.fileName = file.fileName;
+        paper.fileData = file.fileData;
+      }
     }
     paper.updatedAt = now;
     saveStore(store);

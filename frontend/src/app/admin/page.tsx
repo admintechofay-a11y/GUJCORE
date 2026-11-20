@@ -352,29 +352,13 @@ export default function AdminPage() {
     const reader = new FileReader();
     reader.onload = async () => {
       const base64Data = reader.result as string;
-      try {
-        const res = await fetch('/api/papers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'attach_file',
-            paperCode,
-            fileName: file.name,
-            fileType: file.type || (docType === 'presentation' ? 'application/vnd.ms-powerpoint' : 'application/pdf'),
-            fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
-            fileData: base64Data,
-            docType
-          })
-        });
-        const json = await res.json();
-        if (json.success) {
-          showToast(`✅ ${docLabel} uploaded and saved for paper #${paperCode}!`);
-          loadAllAdminData();
-        } else {
-          alert(json.message || `Failed uploading ${docLabel}.`);
-        }
-      } catch {
-        alert(`Error uploading ${docLabel}.`);
+      const fileSize = `${(file.size / (1024 * 1024)).toFixed(2)} MB`;
+      const res = await api.attachManuscript(paperCode, base64Data, file.name, fileSize, user?.email, docType);
+      if (res.success) {
+        showToast(`✅ ${docLabel} uploaded and saved for paper #${paperCode}!`);
+        loadAllAdminData();
+      } else {
+        alert(res.message || `Failed uploading ${docLabel}.`);
       }
     };
     reader.readAsDataURL(file);

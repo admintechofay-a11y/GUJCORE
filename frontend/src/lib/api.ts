@@ -150,14 +150,28 @@ export const api = {
   // 2. Submit Author Paper / Abstract
   async submitPaper(data: Omit<PaperSubmission, 'id' | 'submissionDate' | 'status'>): Promise<{ success: boolean; data: PaperSubmission; message: string }> {
     const paperCode = 'GUJ27-PAP-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    
+    // Extract heavy base64 strings so initial paper creation payload is tiny (~3KB) and NEVER hits 413
+    const { 
+      abstractFileData, 
+      fullPaperFileData, 
+      presentationFileData,
+      fileData, 
+      ...metadata 
+    } = data;
+
     const newPaper: PaperSubmission = {
-      ...data,
+      ...metadata,
       id: paperCode,
+      paperCode: paperCode,
       submissionDate: new Date().toISOString(),
-      status: 'Submitted'
+      status: 'Submitted',
+      abstractFileName: data.abstractFileName || data.resumeFileName || data.fileName,
+      fullPaperFileName: data.fullPaperFileName,
+      presentationFileName: data.presentationFileName
     };
 
-    // Primary: Post to live Next.js / Neon Database API
+    // Primary: Post paper metadata to live Next.js / Neon Database API (payload is ~3KB)
     try {
       const serverRes = await fetch('/api/papers', {
         method: 'POST',
@@ -193,7 +207,46 @@ export const api = {
       };
     }
 
-    // Secondary: Forward to WordPress if configured
+    // Secondary: Upload Abstract Document (with auto-chunking to stay safely under 4.5MB limit)
+    const abstractDataToUpload = abstractFileData || fileData;
+    if (abstractDataToUpload) {
+      try {
+        const uploadRes = await this.attachManuscript(
+          paperCode, 
+          abstractDataToUpload, 
+          newPaper.abstractFileName || 'Abstract.pdf', 
+          newPaper.fileSize, 
+          newPaper.email, 
+          'abstract'
+        );
+        if (!uploadRes.success) {
+          console.warn('[API] Abstract upload notice:', uploadRes.message);
+        }
+      } catch (err) {
+        console.warn('[API] Error uploading abstract file:', err);
+      }
+    }
+
+    // Tertiary: Upload Full Paper Manuscript (if provided)
+    if (fullPaperFileData) {
+      try {
+        const uploadRes = await this.attachManuscript(
+          paperCode, 
+          fullPaperFileData, 
+          newPaper.fullPaperFileName || 'Manuscript.pdf', 
+          newPaper.fileSize, 
+          newPaper.email, 
+          'full_paper'
+        );
+        if (!uploadRes.success) {
+          console.warn('[API] Full paper upload notice:', uploadRes.message);
+        }
+      } catch (err) {
+        console.warn('[API] Error uploading full paper manuscript:', err);
+      }
+    }
+
+    // Quaternary: Forward to WordPress if configured
     try {
       if (WP_API_BASE && !WP_API_BASE.includes('localhost')) {
         await fetch(`${WP_API_BASE}/papers`, {
@@ -213,12 +266,11 @@ export const api = {
     // Safe LocalStorage caching: NEVER store large base64 fileData in browser localStorage (5MB quota limit)
     if (typeof window !== 'undefined') {
       try {
-        const { fileData, ...paperForLocal } = newPaper;
         const existing: PaperSubmission[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.PAPERS) || '[]');
         const filtered = existing.filter(p => p.id !== paperCode);
-        filtered.unshift(paperForLocal as PaperSubmission);
+        filtered.unshift(newPaper);
         localStorage.setItem(STORAGE_KEYS.PAPERS, JSON.stringify(filtered.slice(0, 30)));
-        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify({ role: 'author', data: paperForLocal }));
+        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify({ role: 'author', data: newPaper }));
       } catch (storageErr) {
         console.warn('[STORAGE] LocalStorage quota reached, skipping cache:', storageErr);
       }
@@ -279,26 +331,78 @@ export const api = {
     return { success: true, data: combined };
   },
 
-  // 2b-2. Attach or Upload Revised Manuscript or Presentation File to Server & DB
-  async attachManuscript(paperCode: string, fileData: string, fileName?: string, fileSize?: string, email?: string, docType: 'abstract' | 'full_paper' | 'presentation' = 'full_paper'): Promise<{ success: boolean; message?: string }> {
-    try {
-      const res = await fetch('/api/papers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'attach_file',
-          paperCode,
-          fileData,
-          fileName: fileName || (docType === 'presentation' ? 'presentation.pptx' : 'manuscript.pdf'),
-          fileSize: fileSize || 'Unknown',
-          email: email || '',
-          docType
-        })
-      });
-      return await res.json();
-    } catch (err: any) {
-      return { success: false, message: err.message };
+  // 2b-2. Attach or Upload Revised Manuscript or Presentation File to Server & DB with chunking
+  async attachManuscript(
+    paperCode: string, 
+    fileData: string, 
+    fileName?: string, 
+    fileSize?: string, 
+    email?: string, 
+    docType: 'abstract' | 'full_paper' | 'presentation' = 'full_paper'
+  ): Promise<{ success: boolean; message?: string }> {
+    if (!fileData) {
+      return { success: true };
     }
+
+    // Keep individual chunk sizes <= 1.5MB (1,500,000 characters) to prevent Vercel / proxy 413 errors
+    const CHUNK_SIZE = 1_500_000;
+    const totalLen = fileData.length;
+
+    if (totalLen <= CHUNK_SIZE) {
+      try {
+        const res = await fetch('/api/papers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'attach_file',
+            paperCode,
+            fileData,
+            fileName: fileName || (docType === 'presentation' ? 'presentation.pptx' : 'manuscript.pdf'),
+            fileSize: fileSize || 'Unknown',
+            email: email || '',
+            docType,
+            chunkIndex: 0
+          })
+        });
+        return await res.json();
+      } catch (err: any) {
+        return { success: false, message: err.message };
+      }
+    }
+
+    // Multi-chunk sequential upload for large files
+    const totalChunks = Math.ceil(totalLen / CHUNK_SIZE);
+    for (let i = 0; i < totalChunks; i++) {
+      const chunk = fileData.substring(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+      try {
+        const res = await fetch('/api/papers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'attach_file',
+            paperCode,
+            fileData: chunk,
+            fileName: fileName || (docType === 'presentation' ? 'presentation.pptx' : 'manuscript.pdf'),
+            fileSize: fileSize || 'Unknown',
+            email: email || '',
+            docType,
+            chunkIndex: i,
+            totalChunks
+          })
+        });
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          return { success: false, message: errJson.message || `File upload chunk ${i + 1}/${totalChunks} failed (${res.status}).` };
+        }
+      } catch (err: any) {
+        return { success: false, message: err.message || `Network error during file upload chunk ${i + 1}/${totalChunks}.` };
+      }
+    }
+
+    return { 
+      success: true, 
+      message: `${docType === 'presentation' ? 'Presentation slides' : docType === 'abstract' ? 'Abstract' : 'Full paper'} uploaded successfully.` 
+    };
   },
 
   // 2c. Update Paper Peer Review & Score

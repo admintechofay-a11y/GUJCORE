@@ -29,24 +29,27 @@ export async function POST(request: NextRequest) {
       }
 
       const docType = body.docType || 'full_paper';
+      const chunkIndex = typeof body.chunkIndex === 'number' ? body.chunkIndex : undefined;
       await dbAttachPaperFile(body.paperCode, {
         fileName: body.fileName || (docType === 'presentation' ? 'presentation.pptx' : 'manuscript.pdf'),
         fileType: body.fileType || (docType === 'presentation' ? 'application/vnd.ms-powerpoint' : 'application/pdf'),
         fileSize: body.fileSize || 'Unknown',
         fileData: body.fileData
-      }, docType);
+      }, docType, chunkIndex);
 
-      const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
-      await dbAppendAuditLog({
-        userId: 'author_or_admin',
-        userEmail: body.email || 'author@gujcorr.org',
-        action: docType === 'presentation' ? 'ATTACH_PAPER_PRESENTATION' : 'ATTACH_PAPER_MANUSCRIPT',
-        resourceType: 'Paper',
-        resourceId: body.paperCode,
-        details: `Attached ${docType} file: ${body.fileName || 'document'} (${body.fileSize || 'N/A'})`,
-        ipAddress: ip,
-        status: 'Success'
-      });
+      if (chunkIndex === undefined || chunkIndex === 0) {
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
+        await dbAppendAuditLog({
+          userId: 'author_or_admin',
+          userEmail: body.email || 'author@gujcorr.org',
+          action: docType === 'presentation' ? 'ATTACH_PAPER_PRESENTATION' : docType === 'abstract' ? 'ATTACH_PAPER_ABSTRACT' : 'ATTACH_PAPER_MANUSCRIPT',
+          resourceType: 'Paper',
+          resourceId: body.paperCode,
+          details: `Attached ${docType} file: ${body.fileName || 'document'} (${body.fileSize || 'N/A'})`,
+          ipAddress: ip,
+          status: 'Success'
+        });
+      }
 
       return NextResponse.json({
         success: true,
