@@ -234,7 +234,7 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
         return;
       }
       if (file.size > 3.2 * 1024 * 1024) {
-        alert(`Notice: "${file.name}" is ${formatFileSize(file.size)}. Your paper details will be registered directly, and please email your large manuscript directly to iim.barodachapter@gmail.com.`);
+        alert(`Notice: "${file.name}" is ${formatFileSize(file.size)}. Your paper details will be registered directly, and please email your large full paper directly to iim.barodachapter@gmail.com.`);
         setPaperFile({
           name: file.name,
           size: `${formatFileSize(file.size)} (Large file - email copy)`,
@@ -520,7 +520,7 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
                 Sign In to Submit Research Abstract
               </h3>
               <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
-                To submit research abstracts, upload manuscripts, and track technical review decisions, you must be logged into your Author account.
+                To submit research abstracts, upload full papers, and track technical review decisions, you must be logged into your Author account.
               </p>
             </div>
 
@@ -1069,7 +1069,7 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
                     )}
                   </div>
 
-                  {/* File 2: Full Paper / Extended Manuscript */}
+                  {/* File 2: Full Paper */}
                   <div
                     onClick={() => paperInputRef.current?.click()}
                     className={`p-5 rounded-2xl border-2 border-dashed transition-all cursor-pointer text-center relative ${
@@ -1095,7 +1095,7 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
                           {paperFile.name}
                         </div>
                         <div className="text-[11px] text-teal-700 font-bold">
-                          {paperFile.size} &bull; Manuscript Attached
+                          {paperFile.size} &bull; Full Paper Attached
                         </div>
                         <button
                           type="button"
@@ -1108,10 +1108,10 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
                     ) : (
                       <div>
                         <FileText className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                        <div className="text-xs font-bold text-slate-800">Upload Full Paper Manuscript (PDF / DOCX)</div>
+                        <div className="text-xs font-bold text-slate-800">Upload Full Paper (PDF / DOCX)</div>
                         <div className="text-[11px] text-slate-400 mt-1">PDF or DOCX (Max 25MB - Due 15 Dec 2026)</div>
                         <span className="mt-3 inline-block bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs px-3.5 py-1.5 rounded-lg border border-slate-200 shadow-2xs transition-colors">
-                          Choose Manuscript File
+                          Choose Full Paper File
                         </span>
                       </div>
                     )}

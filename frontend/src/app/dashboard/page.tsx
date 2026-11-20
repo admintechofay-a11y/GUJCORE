@@ -186,7 +186,7 @@ export default function DashboardPage() {
     const fileName = file.name;
     const fileSize = formatFileSize(file.size);
 
-    showToast(`Uploading manuscript "${fileName}" to server...`);
+    showToast(`Uploading full paper "${fileName}" to server...`);
 
     const reader = new FileReader();
     reader.onload = async () => {
@@ -194,15 +194,15 @@ export default function DashboardPage() {
       try {
         const res = await api.attachManuscript(activeUploadPaperId, fileData, fileName, fileSize, user?.email, 'full_paper');
         if (res.success) {
-          showToast(`✅ Manuscript "${fileName}" uploaded to live server successfully!`);
+          showToast(`✅ Full Paper "${fileName}" uploaded to live server successfully!`);
           fetchLiveDashboardData(true);
         } else {
           setPapers(prev => prev.map(p => (p.paperCode === activeUploadPaperId || p.id === activeUploadPaperId) ? { ...p, fullPaperFileName: `${fileName} (${fileSize})`, fileName } : p));
-          showToast(`Manuscript attached locally: ${fileName}`);
+          showToast(`Full Paper attached locally: ${fileName}`);
         }
       } catch {
         setPapers(prev => prev.map(p => (p.paperCode === activeUploadPaperId || p.id === activeUploadPaperId) ? { ...p, fullPaperFileName: `${fileName} (${fileSize})`, fileName } : p));
-        showToast(`Manuscript attached locally: ${fileName}`);
+        showToast(`Full Paper attached locally: ${fileName}`);
       }
     };
     reader.readAsDataURL(file);
@@ -490,7 +490,7 @@ export default function DashboardPage() {
                   Research Papers &amp; Abstract Tracking
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Track the peer-review status of your abstracts across 14 symposia, download acceptance letters, and upload camera-ready manuscripts.
+                  Track the peer-review status of your abstracts across 14 symposia, download acceptance letters, and upload camera-ready full papers.
                 </p>
               </div>
 
@@ -629,7 +629,7 @@ export default function DashboardPage() {
                           <span>
                             {isAcc && 'Congratulations! Your abstract has been accepted for presentation at GUJCORR 2027. Your official Acceptance Letter is ready below.'}
                             {isUnder && 'Your submission is currently under active peer-review by the Technical Review Committee. Check back here for updates.'}
-                            {isRev && 'The Technical Committee has requested revisions to your paper. Please read the review comments below and upload your updated manuscript.'}
+                            {isRev && 'The Technical Committee has requested revisions to your paper. Please read the review comments below and upload your updated full paper.'}
                             {isRej && 'We regret to inform you that this paper was not accepted for the technical conference program.'}
                             {!isAcc && !isUnder && !isRev && !isRej && 'Your abstract has been successfully submitted and queued for Technical Review Committee review.'}
                           </span>
@@ -675,7 +675,7 @@ export default function DashboardPage() {
                             {isRev && (
                               <div className="mt-3 pt-2.5 border-t border-amber-300/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                                 <span className="text-[11px] font-bold text-amber-900">
-                                  ⚠️ Please revise your document according to the comments above and upload your updated manuscript.
+                                  ⚠️ Please revise your document according to the comments above and upload your updated full paper.
                                 </span>
                                 <button
                                   type="button"
@@ -683,7 +683,7 @@ export default function DashboardPage() {
                                   className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
                                 >
                                   <Upload className="w-3.5 h-3.5" />
-                                  <span>Upload Revised Manuscript</span>
+                                  <span>Upload Revised Full Paper</span>
                                 </button>
                               </div>
                             )}
@@ -705,12 +705,12 @@ export default function DashboardPage() {
                               <div className="flex items-center gap-2">
                                 <FileCheck className="w-4 h-4 text-current shrink-0" />
                                 <span className="text-xs font-black uppercase tracking-wider">
-                                  Technical Review Committee Comments (Full Paper Manuscript)
+                                  Technical Review Committee Comments (Full Paper)
                                 </span>
                               </div>
                               {paper.fullPaperScore && (
                                 <span className="text-xs font-black px-2.5 py-0.5 rounded-lg bg-white shadow-2xs border border-current/20">
-                                  Manuscript Score: {paper.fullPaperScore} / 10
+                                  Full Paper Score: {paper.fullPaperScore} / 10
                                 </span>
                               )}
                             </div>
@@ -722,7 +722,7 @@ export default function DashboardPage() {
                             {(paper.fullPaperStatus || '').toLowerCase().includes('revision') && (
                               <div className="mt-3 pt-2.5 border-t border-amber-300/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                                 <span className="text-[11px] font-bold text-amber-900">
-                                  ⚠️ Please revise your manuscript according to the comments above and upload the updated file.
+                                  ⚠️ Please revise your full paper according to the comments above and upload the updated file.
                                 </span>
                                 <button
                                   type="button"
@@ -730,7 +730,7 @@ export default function DashboardPage() {
                                   className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
                                 >
                                   <Upload className="w-3.5 h-3.5" />
-                                  <span>Upload Revised Manuscript</span>
+                                  <span>Upload Revised Full Paper</span>
                                 </button>
                               </div>
                             )}
@@ -743,7 +743,7 @@ export default function DashboardPage() {
                             {(paper.fileName || paper.fullPaperFileName) && (
                               <div className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-2.5 py-1 rounded-lg font-semibold">
                                 <FileCheck className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>Manuscript: <strong>{paper.fileName || paper.fullPaperFileName}</strong></span>
+                                <span>Full Paper: <strong>{paper.fileName || paper.fullPaperFileName}</strong></span>
                               </div>
                             )}
                             {paper.fileData && (
@@ -816,7 +816,7 @@ export default function DashboardPage() {
                             </span>
                           )}
 
-                          {/* 2. Upload Final / Revised Manuscript */}
+                          {/* 2. Upload Final / Revised Full Paper */}
                           <button
                             onClick={() => triggerManuscriptUpload(paper.paperCode || paper.id)}
                             className={`text-xs font-bold px-3.5 py-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-98 border ${
@@ -824,10 +824,10 @@ export default function DashboardPage() {
                                 ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-600'
                                 : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200'
                             }`}
-                            title="Attach camera-ready full manuscript (.docx, .pdf) - Due 15 Dec 2026"
+                            title="Attach camera-ready full paper (.docx, .pdf) - Due 15 Dec 2026"
                           >
                             <Upload className="w-3.5 h-3.5" /> 
-                            <span>{paper.fullPaperFileName || paper.fileName ? 'Replace Manuscript' : 'Upload Final Manuscript'}</span>
+                            <span>{paper.fullPaperFileName || paper.fileName ? 'Replace Full Paper' : 'Upload Full Paper'}</span>
                           </button>
 
                           {/* 3. Upload Oral PPT */}
@@ -998,13 +998,13 @@ export default function DashboardPage() {
                   <span className="text-[10px] font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded uppercase">
                     DOCX Template
                   </span>
-                  <h4 className="font-extrabold text-slate-900 text-base">Full-Text Paper Manuscript</h4>
+                  <h4 className="font-extrabold text-slate-900 text-base">Full-Text Paper</h4>
                   <p className="text-xs text-slate-500">
                     Complete paper formatting guide with two-column layout, figures, tables, and reference IEEE styling.
                   </p>
                 </div>
                 <button
-                  onClick={() => downloadTemplate('Full Paper Manuscript Template', 'GUJCORR_2027_FullPaper_Template.docx')}
+                  onClick={() => downloadTemplate('Full Paper Template', 'GUJCORR_2027_FullPaper_Template.docx')}
                   className="w-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                 >
                   <Download className="w-3.5 h-3.5" /> Download (.docx)

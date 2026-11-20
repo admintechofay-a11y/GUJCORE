@@ -109,7 +109,7 @@ export default function AcceptanceLetterModal({ isOpen, onClose, paperData }: Ac
             </p>
 
             <p>
-              Your paper has been scheduled for inclusion in the official Conference Proceedings (ISBN registered). Please submit your final camera-ready manuscript and presentation slides through your author dashboard prior to <strong>15th December 2026</strong>.
+              Your paper has been scheduled for inclusion in the official Conference Proceedings (ISBN registered). Please submit your final full paper and presentation slides through your author dashboard prior to <strong>15th December 2026</strong>.
             </p>
 
             <p>

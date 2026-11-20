@@ -28,7 +28,7 @@ export default function CallForPapersPage() {
         badge="Technical Proceedings"
         title="Author Submission"
         highlightedTitle="Portal"
-        description="Submit your structured 200–250 word research abstract across 14 technical symposia. Accepted peer-reviewed manuscripts will be featured in official conference proceedings."
+        description="Submit your structured 200–250 word research abstract across 14 technical symposia. Accepted peer-reviewed full papers will be featured in official conference proceedings."
         breadcrumbs={[{ label: 'Call for Papers' }]}
       />
       

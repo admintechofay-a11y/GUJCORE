@@ -401,7 +401,7 @@ export default function AdminPage() {
       alert('File size exceeds 30MB limit.');
       return;
     }
-    const docLabel = docType === 'abstract' ? 'Abstract' : docType === 'presentation' ? 'Presentation Slide Deck' : 'Full Paper Manuscript';
+    const docLabel = docType === 'abstract' ? 'Abstract' : docType === 'presentation' ? 'Presentation Slide Deck' : 'Full Paper';
     showToast(`Uploading ${docLabel} for paper #${paperCode}...`);
     const reader = new FileReader();
     reader.onload = async () => {
@@ -628,7 +628,7 @@ export default function AdminPage() {
   };
 
   const exportFullPapersCsv = () => {
-    const headers = ['Paper Code', 'Author Name', 'Email', 'Mobile', 'Organization', 'Symposium ID', 'Symposium Title', 'Paper Title', 'Abstract Decision', 'Manuscript File', 'Proceedings Status', 'Manuscript Score', 'Reviewer Feedback'];
+    const headers = ['Paper Code', 'Author Name', 'Email', 'Mobile', 'Organization', 'Symposium ID', 'Symposium Title', 'Paper Title', 'Abstract Decision', 'Full Paper File', 'Proceedings Status', 'Full Paper Score', 'Reviewer Feedback'];
     const rows = papers.map(p => [
       p.paperCode || p.id,
       `"${p.fullName}"`,
@@ -1111,14 +1111,14 @@ export default function AdminPage() {
                                     )}
                                   </div>
 
-                                  {/* 2. FULL PAPER MANUSCRIPT */}
+                                  {/* 2. FULL PAPER */}
                                   <div className="flex items-center justify-between gap-1 p-1.5 bg-slate-50 border border-slate-200 rounded-lg">
                                     <div className="flex items-center gap-1.5 min-w-0">
                                       <FileCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                                       <span className="font-bold text-slate-800">Paper:</span>
                                       {p.fullPaperFileData ? (
-                                        <span className="text-slate-600 truncate max-w-[85px]" title={p.fullPaperFileName || 'Paper.pdf'}>
-                                          {p.fullPaperFileName || 'Manuscript.pdf'}
+                                        <span className="text-slate-600 truncate max-w-[85px]" title={p.fullPaperFileName || 'FullPaper.pdf'}>
+                                          {p.fullPaperFileName || 'FullPaper.pdf'}
                                         </span>
                                       ) : (
                                         <span className="text-slate-400 font-medium italic">Due 15 Dec</span>
@@ -1130,7 +1130,7 @@ export default function AdminPage() {
                                           type="button"
                                           onClick={() => handleViewFile(p.fullPaperFileData, p.fullPaperFileName || 'FullPaper.pdf')}
                                           className="px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shadow-2xs"
-                                          title="View Full Paper Manuscript"
+                                          title="View Full Paper"
                                         >
                                           <Eye className="w-2.5 h-2.5" />
                                           <span>View</span>
@@ -1929,7 +1929,7 @@ export default function AdminPage() {
                 {/* 4 Summary Stat Cards for Full Papers */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="bg-blue-50/60 border border-blue-200 p-4 rounded-2xl space-y-1">
-                    <div className="text-[10px] font-extrabold uppercase text-blue-700 tracking-wider">Manuscripts Received</div>
+                    <div className="text-[10px] font-extrabold uppercase text-blue-700 tracking-wider">Full Papers Received</div>
                     <div className="text-2xl font-black text-blue-900">{papersWithFullPaper.length}</div>
                     <div className="text-[10px] text-blue-700 font-semibold">Camera-ready uploaded</div>
                   </div>
@@ -1946,7 +1946,7 @@ export default function AdminPage() {
                     <div className="text-[10px] text-amber-800 font-semibold">Changes needed by author</div>
                   </div>
                   <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl space-y-1">
-                    <div className="text-[10px] font-extrabold uppercase text-slate-600 tracking-wider">Awaiting Manuscript</div>
+                    <div className="text-[10px] font-extrabold uppercase text-slate-600 tracking-wider">Awaiting Full Paper</div>
                     <div className="text-2xl font-black text-slate-800">
                       {Math.max(0, papers.length - papersWithFullPaper.length)}
                     </div>
@@ -1973,7 +1973,7 @@ export default function AdminPage() {
                     className="text-xs py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl font-bold w-full sm:w-auto"
                   >
                     <option value="all">All Full Papers</option>
-                    <option value="uploaded">Uploaded Manuscripts Only</option>
+                    <option value="uploaded">Uploaded Full Papers Only</option>
                     <option value="accepted for proceedings">Accepted for Proceedings</option>
                     <option value="under review">Under Review</option>
                     <option value="revision">Revision Required</option>
@@ -1990,7 +1990,7 @@ export default function AdminPage() {
                         <th className="py-3 px-4">Author &amp; Org</th>
                         <th className="py-3 px-4">Paper Title &amp; Symposium</th>
                         <th className="py-3 px-4">Abstract Status</th>
-                        <th className="py-3 px-4">Full Paper Manuscript</th>
+                        <th className="py-3 px-4">Full Paper</th>
                         <th className="py-3 px-4">Oral Slides (PPT)</th>
                         <th className="py-3 px-4">Score</th>
                         <th className="py-3 px-4">Proceedings Status</th>
@@ -2032,14 +2032,14 @@ export default function AdminPage() {
                               </span>
                             </td>
                             <td className="py-3 px-4 min-w-[210px]">
-                              {/* 1. FULL PAPER MANUSCRIPT */}
+                              {/* 1. FULL PAPER */}
                               <div className="p-1.5 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
                                 <div className="flex items-center justify-between gap-1">
                                   <div className="flex items-center gap-1.5 min-w-0">
                                     <FileCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                                     {hasFullPaper ? (
-                                      <span className="font-bold text-slate-800 truncate max-w-[110px]" title={p.fullPaperFileName || 'Manuscript.pdf'}>
-                                        {p.fullPaperFileName || 'Manuscript.pdf'}
+                                      <span className="font-bold text-slate-800 truncate max-w-[110px]" title={p.fullPaperFileName || 'FullPaper.pdf'}>
+                                        {p.fullPaperFileName || 'FullPaper.pdf'}
                                       </span>
                                     ) : (
                                       <span className="text-amber-800 font-semibold italic text-[10px]">Due 15 Dec 2026</span>
@@ -2067,7 +2067,7 @@ export default function AdminPage() {
                                       className="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[9px] font-bold flex items-center gap-1 cursor-pointer"
                                     >
                                       <Eye className="w-2.5 h-2.5" />
-                                      <span>View Manuscript</span>
+                                      <span>View Full Paper</span>
                                     </button>
                                     <button
                                       type="button"
@@ -2157,7 +2157,7 @@ export default function AdminPage() {
                                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
                                       : 'bg-emerald-600 hover:bg-emerald-700 text-white'
                                   }`}
-                                  title="Approve camera-ready manuscript for ISBN Proceedings"
+                                  title="Approve full paper for ISBN Proceedings"
                                 >
                                   <BookOpen className="w-3 h-3 stroke-[2.5]" />
                                   <span>{isFpAccepted ? 'Proceedings Approved' : 'Approve Proceedings'}</span>
@@ -2190,7 +2190,7 @@ export default function AdminPage() {
                                       ? 'bg-amber-100 text-amber-800 border border-amber-300'
                                       : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200'
                                   }`}
-                                  title="Request Manuscript Revision"
+                                  title="Request Full Paper Revision"
                                 >
                                   <AlertCircle className="w-3 h-3 stroke-[2.5]" />
                                   <span>Revision</span>
@@ -2205,7 +2205,7 @@ export default function AdminPage() {
                                       ? 'bg-rose-100 text-rose-800 border border-rose-300'
                                       : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'
                                   }`}
-                                  title="Reject Full Paper Manuscript"
+                                  title="Reject Full Paper"
                                 >
                                   <X className="w-3 h-3 stroke-[3]" />
                                   <span>Reject</span>
@@ -2216,7 +2216,7 @@ export default function AdminPage() {
                                   type="button"
                                   onClick={() => openReviewModal(p, 'full_paper')}
                                   className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[10px] font-bold cursor-pointer transition-colors shadow-2xs flex items-center gap-1"
-                                  title="Score full manuscript, record committee evaluation, and give feedback"
+                                  title="Score full paper, record committee evaluation, and give feedback"
                                 >
                                   <MessageSquare className="w-3 h-3" />
                                   <span>Score / Review</span>
@@ -2332,7 +2332,7 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* DYNAMIC REVIEW EVALUATION MODAL (Abstract Review vs Full Paper Manuscript Review) */}
+            {/* DYNAMIC REVIEW EVALUATION MODAL (Abstract Review vs Full Paper Review) */}
             {selectedPaper && (
               <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
                 <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
@@ -2340,7 +2340,7 @@ export default function AdminPage() {
                     <div className="flex items-center gap-2">
                       <span className={`w-2.5 h-2.5 rounded-full ${reviewModalType === 'full_paper' ? 'bg-blue-600' : 'bg-purple-600'}`} />
                       <h4 className="font-extrabold text-slate-900 text-sm">
-                        {reviewModalType === 'full_paper' ? 'Full Paper Manuscript Review' : 'Abstract Screening & Review'}: {selectedPaper.paperCode || selectedPaper.id}
+                        {reviewModalType === 'full_paper' ? 'Full Paper Review' : 'Abstract Screening & Review'}: {selectedPaper.paperCode || selectedPaper.id}
                       </h4>
                     </div>
                     <button onClick={() => setSelectedPaper(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
@@ -2397,7 +2397,7 @@ export default function AdminPage() {
                         <div className="flex items-center justify-between p-2 bg-blue-50/80 border border-blue-200 rounded-xl">
                           <div className="flex items-center gap-1.5 text-xs text-blue-900 font-bold truncate">
                             <FileCheck className="w-4 h-4 text-blue-600 shrink-0" />
-                            <span className="truncate">{selectedPaper.fullPaperFileName || 'Camera-ready Manuscript'}</span>
+                            <span className="truncate">{selectedPaper.fullPaperFileName || 'Full Paper Document'}</span>
                           </div>
                           {selectedPaper.fullPaperFileData ? (
                             <div className="flex items-center gap-1 shrink-0">
@@ -2534,7 +2534,7 @@ export default function AdminPage() {
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         {reviewModalType === 'full_paper' 
-                          ? 'Technical Committee Feedback on Manuscript (Shown to Author)' 
+                          ? 'Technical Committee Feedback on Full Paper (Shown to Author)' 
                           : 'Abstract Review Comments & Instructions (Shown to Author)'}
                       </label>
                       <textarea
@@ -2543,7 +2543,7 @@ export default function AdminPage() {
                         onChange={e => setCommentsInput(e.target.value)}
                         className="w-full text-xs p-2.5 bg-slate-50 border rounded-xl font-medium"
                         placeholder={reviewModalType === 'full_paper' 
-                          ? 'Enter technical manuscript feedback, formatting corrections, or publication approval comments for the author...' 
+                          ? 'Enter technical full paper feedback, formatting corrections, or publication approval comments for the author...' 
                           : 'Enter feedback or required revisions for the author. This will be displayed live on the author portal...'}
                       />
                     </div>
