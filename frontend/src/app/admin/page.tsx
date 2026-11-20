@@ -654,18 +654,6 @@ export default function AdminPage() {
                     className="w-full text-xs sm:text-sm pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-red-500 focus:outline-none"
                   />
                 </div>
-                <div className="flex items-center justify-between pt-1.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLoginEmail('admin@gujcorr.org');
-                      setLoginPassword('GujCorr@2027#Secret');
-                    }}
-                    className="text-[11px] text-blue-600 hover:text-blue-800 font-bold underline cursor-pointer"
-                  >
-                    Auto-Fill Admin Credentials (admin@gujcorr.org)
-                  </button>
-                </div>
               </div>
 
               <button
