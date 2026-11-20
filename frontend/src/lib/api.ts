@@ -57,11 +57,15 @@ export const api = {
     }
 
     if (typeof window !== 'undefined') {
-      const existing: DelegateRegistration[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.REGISTRATIONS) || '[]');
-      const filtered = existing.filter(r => r.ticketId !== ticketId && r.id !== ticketId);
-      filtered.unshift(newReg);
-      localStorage.setItem(STORAGE_KEYS.REGISTRATIONS, JSON.stringify(filtered));
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify({ role: 'delegate', data: newReg }));
+      try {
+        const existing: DelegateRegistration[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.REGISTRATIONS) || '[]');
+        const filtered = existing.filter(r => r.ticketId !== ticketId && r.id !== ticketId);
+        filtered.unshift(newReg);
+        localStorage.setItem(STORAGE_KEYS.REGISTRATIONS, JSON.stringify(filtered.slice(0, 30)));
+        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify({ role: 'delegate', data: newReg }));
+      } catch (storageErr) {
+        console.warn('[STORAGE] LocalStorage quota reached, skipping cache:', storageErr);
+      }
     }
 
     return {
@@ -166,9 +170,24 @@ export const api = {
         if (json.success && json.data) {
           console.log('[API] Paper saved in Neon Database:', json.data);
         }
+      } else {
+        const json = await serverRes.json().catch(() => ({}));
+        console.warn('[API] Server returned error status:', serverRes.status, json);
+        return {
+          success: false,
+          data: newPaper,
+          message: json.message || `Server error (${serverRes.status}). Please try again.`
+        };
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('[API] Next.js papers endpoint notice:', err);
+      return {
+        success: false,
+        data: newPaper,
+        message: err.name === 'TimeoutError' || err.name === 'AbortError'
+          ? 'Upload timed out. Please check your internet connection or use a smaller file.'
+          : (err.message || 'Network error while submitting paper.')
+      };
     }
 
     // Secondary: Forward to WordPress if configured
@@ -188,12 +207,18 @@ export const api = {
       // ignore
     }
 
+    // Safe LocalStorage caching: NEVER store large base64 fileData in browser localStorage (5MB quota limit)
     if (typeof window !== 'undefined') {
-      const existing: PaperSubmission[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.PAPERS) || '[]');
-      const filtered = existing.filter(p => p.id !== paperCode);
-      filtered.unshift(newPaper);
-      localStorage.setItem(STORAGE_KEYS.PAPERS, JSON.stringify(filtered));
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify({ role: 'author', data: newPaper }));
+      try {
+        const { fileData, ...paperForLocal } = newPaper;
+        const existing: PaperSubmission[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.PAPERS) || '[]');
+        const filtered = existing.filter(p => p.id !== paperCode);
+        filtered.unshift(paperForLocal as PaperSubmission);
+        localStorage.setItem(STORAGE_KEYS.PAPERS, JSON.stringify(filtered.slice(0, 30)));
+        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify({ role: 'author', data: paperForLocal }));
+      } catch (storageErr) {
+        console.warn('[STORAGE] LocalStorage quota reached, skipping cache:', storageErr);
+      }
     }
 
     return {

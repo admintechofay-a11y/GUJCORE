@@ -118,6 +118,16 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
         alert('File size exceeds 25MB limit. Please choose a smaller file.');
         return;
       }
+      if (file.size > 3.2 * 1024 * 1024) {
+        alert(`Notice: "${file.name}" is ${formatFileSize(file.size)}. Your paper details will be registered directly, and please email your large document directly to iim.barodachapter@gmail.com.`);
+        setResumeFile({
+          name: file.name,
+          size: `${formatFileSize(file.size)} (Large file - email copy)`,
+          type: file.type || 'application/pdf',
+          data: undefined
+        });
+        return;
+      }
       const reader = new FileReader();
       reader.onload = () => {
         setResumeFile({
@@ -136,6 +146,16 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
     if (file) {
       if (file.size > 25 * 1024 * 1024) {
         alert('File size exceeds 25MB limit. Please choose a smaller file.');
+        return;
+      }
+      if (file.size > 3.2 * 1024 * 1024) {
+        alert(`Notice: "${file.name}" is ${formatFileSize(file.size)}. Your paper details will be registered directly, and please email your large manuscript directly to iim.barodachapter@gmail.com.`);
+        setPaperFile({
+          name: file.name,
+          size: `${formatFileSize(file.size)} (Large file - email copy)`,
+          type: file.type || 'application/pdf',
+          data: undefined
+        });
         return;
       }
       const reader = new FileReader();
@@ -247,9 +267,12 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
         // Scroll to top of section for viewing confirmation
         const section = document.getElementById('call-for-papers');
         if (section) section.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        setErrorMessage(res.message || 'Submission error. Please check required fields and try again.');
       }
-    } catch {
-      setErrorMessage('Submission error. Please try again or email iim.barodachapter@gmail.com.');
+    } catch (err: any) {
+      console.error('[CallForPapers] Submit error:', err);
+      setErrorMessage(err?.message || 'Submission error. Please try again or email iim.barodachapter@gmail.com.');
     } finally {
       setIsSubmitting(false);
     }

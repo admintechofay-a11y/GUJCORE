@@ -154,6 +154,7 @@ export async function dbInsertPaper(p: any): Promise<any> {
   const id = p.id || ('GUJ27-PAP-' + Math.random().toString(36).substring(2, 8).toUpperCase());
   const paperCode = p.paperCode || id;
   const now = new Date().toISOString();
+  const sympId = parseInt(String(p.symposiumId || 1), 10) || 1;
 
   if (sql) {
     try {
@@ -166,13 +167,13 @@ export async function dbInsertPaper(p: any): Promise<any> {
         ) VALUES (
           ${id},
           ${paperCode},
-          ${p.fullName || ''},
+          ${p.fullName || 'Anonymous Author'},
           ${p.email || ''},
           ${p.mobileNumber || ''},
           ${p.companyName || p.organization || ''},
-          ${p.symposiumId || 1},
+          ${sympId},
           ${p.symposiumTitle || 'Corrosion Science'},
-          ${p.paperTitle || ''},
+          ${p.paperTitle || 'Untitled Paper'},
           ${p.presentationType || 'Oral'},
           ${p.status || 'Submitted'},
           ${p.abstract || ''},
@@ -191,25 +192,35 @@ export async function dbInsertPaper(p: any): Promise<any> {
     }
   }
 
-  // Also update local store
-  const store = getStore();
-  const newPaper = {
+  // Also update local store (safely without crashing)
+  try {
+    const store = getStore();
+    const newPaper = {
+      ...p,
+      id,
+      paperCode,
+      submissionDate: p.submissionDate || now,
+      status: p.status || 'Submitted',
+      fileName: p.fileName,
+      fileType: p.fileType,
+      fileSize: p.fileSize,
+      fileData: p.fileData
+    };
+    const filtered = store.papers.filter(item => item.id !== id && item.paperCode !== paperCode);
+    filtered.unshift(newPaper);
+    store.papers = filtered;
+    saveStore(store);
+  } catch (storeErr) {
+    console.warn('[DB] Error updating local file store:', storeErr);
+  }
+
+  return {
     ...p,
     id,
     paperCode,
     submissionDate: p.submissionDate || now,
-    status: p.status || 'Submitted',
-    fileName: p.fileName,
-    fileType: p.fileType,
-    fileSize: p.fileSize,
-    fileData: p.fileData
+    status: p.status || 'Submitted'
   };
-  const filtered = store.papers.filter(item => item.id !== id && item.paperCode !== paperCode);
-  filtered.unshift(newPaper);
-  store.papers = filtered;
-  saveStore(store);
-
-  return newPaper;
 }
 
 export async function dbAttachPaperFile(paperCode: string, file: { fileName: string; fileType?: string; fileSize?: string; fileData: string }): Promise<boolean> {
