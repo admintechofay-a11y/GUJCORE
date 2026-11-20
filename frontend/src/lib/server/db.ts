@@ -105,7 +105,21 @@ export async function dbGetPapers(filters?: { symposiumId?: string | null; statu
         FROM papers
         ORDER BY submission_date DESC;
       `;
-      let list = rows || [];
+      // Deduplicate: If an author submitted the exact same paper title multiple times, keep only 1 entry (favoring scored or latest)
+      const seen = new Map<string, any>();
+      for (const p of rows || []) {
+        const key = `${(p.email || '').trim().toLowerCase()}:::${(p.paperTitle || '').trim().toLowerCase()}`;
+        if (!seen.has(key)) {
+          seen.set(key, p);
+        } else {
+          const existing = seen.get(key);
+          if ((!existing.reviewScore && p.reviewScore) || (!existing.fileData && p.fileData)) {
+            seen.set(key, p);
+          }
+        }
+      }
+      let list = Array.from(seen.values());
+
       if (filters?.symposiumId && filters.symposiumId !== 'all') {
         list = list.filter((p: any) => String(p.symposiumId) === String(filters.symposiumId));
       }
@@ -129,7 +143,20 @@ export async function dbGetPapers(filters?: { symposiumId?: string | null; statu
   }
 
   const store = getStore();
-  let list = [...store.papers];
+  const seenStore = new Map<string, any>();
+  for (const p of store.papers || []) {
+    const key = `${(p.email || '').trim().toLowerCase()}:::${(p.paperTitle || '').trim().toLowerCase()}`;
+    if (!seenStore.has(key)) {
+      seenStore.set(key, p);
+    } else {
+      const existing = seenStore.get(key);
+      if ((!existing.reviewScore && p.reviewScore) || (!existing.fileData && p.fileData)) {
+        seenStore.set(key, p);
+      }
+    }
+  }
+  let list = Array.from(seenStore.values());
+
   if (filters?.symposiumId && filters.symposiumId !== 'all') {
     list = list.filter(p => String(p.symposiumId) === String(filters.symposiumId));
   }
@@ -158,6 +185,47 @@ export async function dbInsertPaper(p: any): Promise<any> {
 
   if (sql) {
     try {
+      const cleanEmail = (p.email || '').trim().toLowerCase();
+      const cleanTitle = (p.paperTitle || '').trim().toLowerCase();
+
+      // Check if author already submitted a paper with this exact title
+      const existing = await sql`
+        SELECT id, paper_code as "paperCode"
+        FROM papers
+        WHERE LOWER(email) = ${cleanEmail} AND LOWER(paper_title) = ${cleanTitle}
+        LIMIT 1;
+      `;
+
+      if (existing && existing.length > 0) {
+        const existingId = existing[0].id;
+        const existingCode = existing[0].paperCode;
+        await sql`
+          UPDATE papers
+          SET
+            full_name = COALESCE(${p.fullName || null}, full_name),
+            mobile_number = COALESCE(${p.mobileNumber || null}, mobile_number),
+            company_name = COALESCE(${p.companyName || p.organization || null}, company_name),
+            presentation_type = COALESCE(${p.presentationType || null}, presentation_type),
+            abstract = COALESCE(${p.abstract || null}, abstract),
+            keywords = COALESCE(${p.keywords || null}, keywords),
+            co_authors = COALESCE(${p.coAuthors || null}, co_authors),
+            file_name = COALESCE(${p.fileName || null}, file_name),
+            file_type = COALESCE(${p.fileType || null}, file_type),
+            file_size = COALESCE(${p.fileSize || null}, file_size),
+            file_data = COALESCE(${p.fileData || null}, file_data),
+            updated_at = ${now}
+          WHERE id = ${existingId};
+        `;
+
+        return {
+          ...p,
+          id: existingId,
+          paperCode: existingCode,
+          submissionDate: now,
+          status: p.status || 'Submitted'
+        };
+      }
+
       await sql`
         INSERT INTO papers (
           id, paper_code, full_name, email, mobile_number, company_name,
@@ -188,7 +256,7 @@ export async function dbInsertPaper(p: any): Promise<any> {
         ON CONFLICT (paper_code) DO NOTHING;
       `;
     } catch (err) {
-      console.warn('[DB] Error inserting paper into DB:', err);
+      console.warn('[DB] Error inserting/updating paper in DB:', err);
     }
   }
 
