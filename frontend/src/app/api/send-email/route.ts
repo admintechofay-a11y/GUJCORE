@@ -6,7 +6,12 @@ import {
   getPaymentPendingEmailHtml, 
   getPaymentSuccessEmailHtml, 
   getExhibitionBookedEmailHtml,
-  getContactInquiryEmailHtml 
+  getContactInquiryEmailHtml,
+  getAbstractAcceptedEmailHtml,
+  getAbstractRevisionEmailHtml,
+  getFullPaperAcceptedEmailHtml,
+  getFullPaperRevisionEmailHtml,
+  getPaperStatusNotificationEmailHtml
 } from '@/lib/mailer';
 
 export async function POST(request: NextRequest) {
@@ -65,6 +70,31 @@ export async function POST(request: NextRequest) {
       case 'contact_inquiry':
         subject = `[GUJCORR 2027] We have received your inquiry: ${emailData.subject}`;
         html = getContactInquiryEmailHtml(emailData);
+        break;
+
+      case 'abstract_accepted':
+        subject = `🎉 CONGRATULATIONS: Abstract Accepted for Presentation at GUJCORR 2027 [Paper #${emailData.paperCode}]`;
+        html = getAbstractAcceptedEmailHtml(emailData);
+        break;
+
+      case 'abstract_revision':
+        subject = `[ACTION REQUIRED] GUJCORR 2027: Revisions Requested for Abstract #${emailData.paperCode}`;
+        html = getAbstractRevisionEmailHtml(emailData);
+        break;
+
+      case 'full_paper_accepted':
+        subject = `🎉 ACCEPTED FOR PROCEEDINGS: Full Paper Approved - GUJCORR 2027 [Paper #${emailData.paperCode}]`;
+        html = getFullPaperAcceptedEmailHtml(emailData);
+        break;
+
+      case 'full_paper_revision':
+        subject = `[ACTION REQUIRED] GUJCORR 2027: Revisions Requested for Full Paper #${emailData.paperCode}`;
+        html = getFullPaperRevisionEmailHtml(emailData);
+        break;
+
+      case 'paper_status_update':
+        subject = `[GUJCORR 2027] ${emailData.reviewType === 'full_paper' ? 'Full Paper' : 'Abstract'} Status Update - Paper #${emailData.paperCode}`;
+        html = getPaperStatusNotificationEmailHtml(emailData);
         break;
 
       default:

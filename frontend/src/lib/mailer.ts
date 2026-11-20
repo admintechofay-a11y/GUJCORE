@@ -507,3 +507,389 @@ export function getContactInquiryEmailHtml(data: {
   </html>
   `;
 }
+
+// 7. Abstract Accepted by Technical Committee Notification Template
+export function getAbstractAcceptedEmailHtml(data: {
+  fullName: string;
+  email: string;
+  paperCode: string;
+  paperTitle: string;
+  symposiumTitle: string;
+  symposiumId?: number | string;
+  presentationType?: string;
+  score?: number | string;
+  comments?: string;
+  status?: string;
+  baseUrl?: string;
+}) {
+  const baseUrl = getBaseUrl(data.baseUrl);
+  return `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; padding: 20px; }
+      .card { max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 14px rgba(0,0,0,0.06); }
+      .header { background: #065f46; color: #ffffff; padding: 30px 24px; text-align: center; }
+      .badge { display: inline-block; background: #022c22; color: #6ee7b7; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 4px 12px; border-radius: 6px; margin-bottom: 8px; letter-spacing: 0.5px; }
+      .content { padding: 30px 26px; line-height: 1.6; font-size: 14px; }
+      .box { background: #ecfdf5; border-left: 4px solid #10b981; padding: 16px 20px; border-radius: 8px; margin: 20px 0; }
+      .comments-box { background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #065f46; padding: 14px 18px; border-radius: 8px; margin: 16px 0; font-size: 13px; }
+      .cta { display: inline-block; background: #059669; color: #ffffff !important; font-weight: bold; text-decoration: none; padding: 12px 24px; border-radius: 10px; margin: 8px 4px; }
+      .cta-outline { display: inline-block; background: #ffffff; color: #065f46 !important; font-weight: bold; text-decoration: none; padding: 12px 22px; border-radius: 10px; margin: 8px 4px; border: 1.5px solid #059669; }
+      .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 24px; font-size: 11px; color: #64748b; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="header">
+        <div class="badge">GUJCORR 2027 &bull; Official Acceptance Notification</div>
+        <h2 style="margin:0; font-size:22px;">Congratulations! Your Abstract Has Been Accepted</h2>
+        <p style="margin:6px 0 0 0; font-size:13px; color:#d1fae5;">Technical Review Committee &bull; GUJCORR 2027 (18–20 Feb 2027, Vadodara)</p>
+      </div>
+      <div class="content">
+        <p>Dear <strong>${data.fullName}</strong>,</p>
+        <p>On behalf of the <strong>GUJCORR 2027 Technical Program Committee</strong> (jointly organized by AMPP Gujarat Chapter and The Indian Institute of Metals Baroda Chapter), we are pleased to inform you that your research abstract has been <strong>ACCEPTED</strong> for presentation at the conference.</p>
+        
+        <div class="box">
+          <strong style="color:#065f46; font-size:15px;">Accepted Abstract Details:</strong><br><br>
+          &bull; <strong>Paper Code:</strong> <span style="font-family:monospace; font-weight:bold; color:#065f46; font-size:15px;">#${data.paperCode}</span><br>
+          &bull; <strong>Paper Title:</strong> "${data.paperTitle}"<br>
+          &bull; <strong>Symposium:</strong> Track ${data.symposiumId ? `${data.symposiumId}: ` : ''}${data.symposiumTitle}<br>
+          &bull; <strong>Presentation Format:</strong> <span style="font-weight:bold; color:#047857;">${data.presentationType || 'Oral'} Presentation</span><br>
+          &bull; <strong>Decision Status:</strong> <span style="color:#059669; font-weight:bold;">${data.status || 'Accepted for Oral Presentation'}</span>
+          ${data.score ? `<br>&bull; <strong>Technical Evaluation Score:</strong> <strong>${data.score}/10</strong>` : ''}
+        </div>
+
+        ${data.comments ? `
+        <div class="comments-box">
+          <strong>Review Committee Remarks:</strong><br>
+          <p style="margin:6px 0 0 0; font-style:italic;">"${data.comments}"</p>
+        </div>` : ''}
+
+        <p><strong>Critical Next Milestones for Authors:</strong></p>
+        <ol style="padding-left: 20px; line-height: 1.8;">
+          <li><strong>Download Official Acceptance Letter:</strong> Your formal signed Acceptance Letter is ready on your author portal.</li>
+          <li><strong>Submit Camera-Ready Full Paper:</strong> The deadline to upload your camera-ready full paper manuscript (.pdf or .docx) for publication in the official ISBN Conference Proceedings is <strong>15 December 2026</strong>.</li>
+          <li><strong>Author Delegate Registration:</strong> At least one author must register for the conference by <strong>25 December 2026</strong> to confirm your podium slot in the technical program.</li>
+        </ol>
+
+        <div style="text-align: center; margin-top: 24px;">
+          <a href="${baseUrl}/masterhome" class="cta">Download Acceptance Letter &rarr;</a>
+          <a href="${baseUrl}/registration?from=paper&paperId=${data.paperCode}" class="cta-outline">Register Delegate Pass</a>
+        </div>
+      </div>
+      <div class="footer">
+        <strong>GUJCORR 2027 Technical Committee</strong><br>
+        Department of Metallurgical &amp; Materials Engineering, The M.S. University of Baroda, Vadodara 390001<br>
+        Organized by AMPP Gujarat Chapter &amp; The Indian Institute of Metals Baroda Chapter<br>
+        Email: iim.barodachapter@gmail.com &bull; Phone: +91 99888 81674
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+}
+
+// 8. Abstract Revisions Requested Notification Template
+export function getAbstractRevisionEmailHtml(data: {
+  fullName: string;
+  email: string;
+  paperCode: string;
+  paperTitle: string;
+  symposiumTitle: string;
+  symposiumId?: number | string;
+  presentationType?: string;
+  score?: number | string;
+  comments: string;
+  baseUrl?: string;
+}) {
+  const baseUrl = getBaseUrl(data.baseUrl);
+  return `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; padding: 20px; }
+      .card { max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 14px rgba(0,0,0,0.06); }
+      .header { background: #b45309; color: #ffffff; padding: 30px 24px; text-align: center; }
+      .badge { display: inline-block; background: #78350f; color: #fde68a; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 4px 12px; border-radius: 6px; margin-bottom: 8px; letter-spacing: 0.5px; }
+      .content { padding: 30px 26px; line-height: 1.6; font-size: 14px; }
+      .box { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 16px 20px; border-radius: 8px; margin: 20px 0; }
+      .comments-box { background: #fff7ed; border: 1.5px solid #fed7aa; border-left: 4px solid #ea580c; padding: 16px 20px; border-radius: 8px; margin: 18px 0; }
+      .cta { display: inline-block; background: #d97706; color: #ffffff !important; font-weight: bold; text-decoration: none; padding: 12px 24px; border-radius: 10px; margin-top: 14px; }
+      .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 24px; font-size: 11px; color: #64748b; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="header">
+        <div class="badge">Action Required &bull; Revisions Requested</div>
+        <h2 style="margin:0; font-size:22px;">Revisions Requested for Your Abstract</h2>
+        <p style="margin:6px 0 0 0; font-size:13px; color:#fef3c7;">GUJCORR 2027 Technical Review Committee</p>
+      </div>
+      <div class="content">
+        <p>Dear <strong>${data.fullName}</strong>,</p>
+        <p>The <strong>GUJCORR 2027 Technical Review Committee</strong> has completed the peer review of your abstract submission. Revisions have been requested before final acceptance decision.</p>
+        
+        <div class="box">
+          <strong>Submission Details:</strong><br>
+          &bull; <strong>Paper Code:</strong> <span style="font-family:monospace; font-weight:bold; color:#b45309; font-size:15px;">#${data.paperCode}</span><br>
+          &bull; <strong>Paper Title:</strong> "${data.paperTitle}"<br>
+          &bull; <strong>Symposium:</strong> Track ${data.symposiumId ? `${data.symposiumId}: ` : ''}${data.symposiumTitle}<br>
+          &bull; <strong>Status:</strong> <span style="color:#b45309; font-weight:bold;">Revision Required</span>
+          ${data.score ? `<br>&bull; <strong>Review Score:</strong> <strong>${data.score}/10</strong>` : ''}
+        </div>
+
+        <div class="comments-box">
+          <strong style="color:#9a3412; font-size:14px;">Reviewer Comments &amp; Changes Requested:</strong>
+          <p style="margin:10px 0 0 0; font-weight:600; color:#431407; white-space:pre-wrap;">${data.comments || 'Please revise your abstract according to the conference technical guidelines.'}</p>
+        </div>
+
+        <p><strong>How to submit your revised abstract:</strong></p>
+        <p>Log in to your author portal at the link below, review the committee comments, and update your abstract text or upload your revised document.</p>
+
+        <div style="text-align: center; margin-top: 22px;">
+          <a href="${baseUrl}/masterhome" class="cta">Submit Revised Abstract &rarr;</a>
+        </div>
+      </div>
+      <div class="footer">
+        <strong>GUJCORR 2027 Technical Committee</strong><br>
+        Department of Metallurgical &amp; Materials Engineering, The M.S. University of Baroda, Vadodara 390001<br>
+        Email: iim.barodachapter@gmail.com
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+}
+
+// 9. Full Paper Accepted for ISBN Proceedings Notification Template
+export function getFullPaperAcceptedEmailHtml(data: {
+  fullName: string;
+  email: string;
+  paperCode: string;
+  paperTitle: string;
+  symposiumTitle: string;
+  symposiumId?: number | string;
+  score?: number | string;
+  comments?: string;
+  baseUrl?: string;
+}) {
+  const baseUrl = getBaseUrl(data.baseUrl);
+  return `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; padding: 20px; }
+      .card { max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 14px rgba(0,0,0,0.06); }
+      .header { background: #1e3a8a; color: #ffffff; padding: 30px 24px; text-align: center; }
+      .badge { display: inline-block; background: #0f172a; color: #93c5fd; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 4px 12px; border-radius: 6px; margin-bottom: 8px; letter-spacing: 0.5px; }
+      .content { padding: 30px 26px; line-height: 1.6; font-size: 14px; }
+      .box { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 16px 20px; border-radius: 8px; margin: 20px 0; }
+      .comments-box { background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #1e3a8a; padding: 14px 18px; border-radius: 8px; margin: 16px 0; font-size: 13px; }
+      .cta { display: inline-block; background: #1d4ed8; color: #ffffff !important; font-weight: bold; text-decoration: none; padding: 12px 24px; border-radius: 10px; margin-top: 14px; }
+      .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 24px; font-size: 11px; color: #64748b; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="header">
+        <div class="badge">Official Proceedings Decision &bull; ISBN Publication</div>
+        <h2 style="margin:0; font-size:22px;">Congratulations! Full Paper Accepted for Proceedings</h2>
+        <p style="margin:6px 0 0 0; font-size:13px; color:#bfdbfe;">GUJCORR 2027 Editorial Board &bull; Peer-Reviewed Proceedings</p>
+      </div>
+      <div class="content">
+        <p>Dear <strong>${data.fullName}</strong>,</p>
+        <p>We are delighted to inform you that your camera-ready full paper has been reviewed and officially <strong>ACCEPTED for publication</strong> in the <strong>Official ISBN Conference Proceedings</strong> of <strong>GUJCORR 2027</strong>.</p>
+        
+        <div class="box">
+          <strong style="color:#1e3a8a; font-size:15px;">Proceedings Acceptance Details:</strong><br><br>
+          &bull; <strong>Paper Code:</strong> <span style="font-family:monospace; font-weight:bold; color:#1e3a8a; font-size:15px;">#${data.paperCode}</span><br>
+          &bull; <strong>Paper Title:</strong> "${data.paperTitle}"<br>
+          &bull; <strong>Symposium Track:</strong> Track ${data.symposiumId ? `${data.symposiumId}: ` : ''}${data.symposiumTitle}<br>
+          &bull; <strong>Full Paper Status:</strong> <span style="color:#1d4ed8; font-weight:bold;">Accepted for ISBN Proceedings</span>
+          ${data.score ? `<br>&bull; <strong>Technical Evaluation Score:</strong> <strong>${data.score}/10</strong>` : ''}
+        </div>
+
+        ${data.comments ? `
+        <div class="comments-box">
+          <strong>Review Committee Comments:</strong><br>
+          <p style="margin:6px 0 0 0; font-style:italic;">"${data.comments}"</p>
+        </div>` : ''}
+
+        <p><strong>Next Action Items:</strong></p>
+        <ul style="padding-left: 20px; line-height: 1.8;">
+          <li><strong>Upload Oral Presentation Slide Deck:</strong> Please upload your 16:9 PowerPoint presentation file (.pptx or .pdf) by <strong>25 December 2026</strong> via your author portal.</li>
+          <li><strong>Delegate Registration:</strong> Ensure your author pass is confirmed so your paper is scheduled in the scientific sessions.</li>
+        </ul>
+
+        <div style="text-align: center; margin-top: 24px;">
+          <a href="${baseUrl}/masterhome" class="cta">Access Author Portal &rarr;</a>
+        </div>
+      </div>
+      <div class="footer">
+        <strong>GUJCORR 2027 Technical &amp; Editorial Committee</strong><br>
+        Department of Metallurgical &amp; Materials Engineering, The M.S. University of Baroda, Vadodara 390001<br>
+        Email: iim.barodachapter@gmail.com
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+}
+
+// 10. Full Paper Revisions Requested Notification Template
+export function getFullPaperRevisionEmailHtml(data: {
+  fullName: string;
+  email: string;
+  paperCode: string;
+  paperTitle: string;
+  symposiumTitle: string;
+  symposiumId?: number | string;
+  score?: number | string;
+  comments: string;
+  baseUrl?: string;
+}) {
+  const baseUrl = getBaseUrl(data.baseUrl);
+  return `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; padding: 20px; }
+      .card { max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 14px rgba(0,0,0,0.06); }
+      .header { background: #b45309; color: #ffffff; padding: 30px 24px; text-align: center; }
+      .badge { display: inline-block; background: #78350f; color: #fde68a; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 4px 12px; border-radius: 6px; margin-bottom: 8px; letter-spacing: 0.5px; }
+      .content { padding: 30px 26px; line-height: 1.6; font-size: 14px; }
+      .box { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 16px 20px; border-radius: 8px; margin: 20px 0; }
+      .comments-box { background: #fff7ed; border: 1.5px solid #fed7aa; border-left: 4px solid #ea580c; padding: 16px 20px; border-radius: 8px; margin: 18px 0; }
+      .cta { display: inline-block; background: #d97706; color: #ffffff !important; font-weight: bold; text-decoration: none; padding: 12px 24px; border-radius: 10px; margin-top: 14px; }
+      .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 24px; font-size: 11px; color: #64748b; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="header">
+        <div class="badge">Action Required &bull; Full Paper Revisions</div>
+        <h2 style="margin:0; font-size:22px;">Revisions Required for Your Full Paper</h2>
+        <p style="margin:6px 0 0 0; font-size:13px; color:#fef3c7;">GUJCORR 2027 Technical Review Committee</p>
+      </div>
+      <div class="content">
+        <p>Dear <strong>${data.fullName}</strong>,</p>
+        <p>The <strong>GUJCORR 2027 Editorial &amp; Technical Review Committee</strong> has reviewed your camera-ready full paper manuscript. Specific revisions are required before it can be accepted for the ISBN proceedings volume.</p>
+        
+        <div class="box">
+          <strong>Full Paper Submission Details:</strong><br>
+          &bull; <strong>Paper Code:</strong> <span style="font-family:monospace; font-weight:bold; color:#b45309; font-size:15px;">#${data.paperCode}</span><br>
+          &bull; <strong>Paper Title:</strong> "${data.paperTitle}"<br>
+          &bull; <strong>Symposium:</strong> Track ${data.symposiumId ? `${data.symposiumId}: ` : ''}${data.symposiumTitle}<br>
+          &bull; <strong>Status:</strong> <span style="color:#b45309; font-weight:bold;">Revision Required</span>
+          ${data.score ? `<br>&bull; <strong>Full Paper Score:</strong> <strong>${data.score}/10</strong>` : ''}
+        </div>
+
+        <div class="comments-box">
+          <strong style="color:#9a3412; font-size:14px;">Technical Committee Comments &amp; Required Corrections:</strong>
+          <p style="margin:10px 0 0 0; font-weight:600; color:#431407; white-space:pre-wrap;">${data.comments || 'Please revise your full paper according to the editorial comments and formatting standards.'}</p>
+        </div>
+
+        <p><strong>Instructions to Upload Revised Full Paper:</strong></p>
+        <ol style="padding-left: 20px; line-height: 1.8;">
+          <li>Implement the modifications requested above in your full paper document.</li>
+          <li>Log in to your author portal at the link below.</li>
+          <li>Click <strong>"Replace / Re-upload Full Paper"</strong> to attach your updated PDF or DOCX file before <strong>15 December 2026</strong>.</li>
+        </ol>
+
+        <div style="text-align: center; margin-top: 22px;">
+          <a href="${baseUrl}/masterhome" class="cta">Upload Revised Full Paper &rarr;</a>
+        </div>
+      </div>
+      <div class="footer">
+        <strong>GUJCORR 2027 Technical Committee</strong><br>
+        Department of Metallurgical &amp; Materials Engineering, The M.S. University of Baroda, Vadodara 390001<br>
+        Email: iim.barodachapter@gmail.com
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+}
+
+// 11. General Status Change Notification Template
+export function getPaperStatusNotificationEmailHtml(data: {
+  fullName: string;
+  email: string;
+  paperCode: string;
+  paperTitle: string;
+  symposiumTitle: string;
+  symposiumId?: number | string;
+  reviewType: 'abstract' | 'full_paper';
+  status: string;
+  score?: number | string;
+  comments?: string;
+  baseUrl?: string;
+}) {
+  const baseUrl = getBaseUrl(data.baseUrl);
+  const isFullPaper = data.reviewType === 'full_paper';
+  const docTypeLabel = isFullPaper ? 'Full Paper' : 'Abstract';
+
+  return `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; padding: 20px; }
+      .card { max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 14px rgba(0,0,0,0.05); }
+      .header { background: #334155; color: #ffffff; padding: 28px 24px; text-align: center; }
+      .badge { display: inline-block; background: #0f172a; color: #cbd5e1; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 4px 12px; border-radius: 6px; margin-bottom: 8px; }
+      .content { padding: 28px 24px; line-height: 1.6; font-size: 14px; }
+      .box { background: #f1f5f9; border-left: 4px solid #475569; padding: 14px 18px; border-radius: 8px; margin: 18px 0; }
+      .comments-box { background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #64748b; padding: 14px 18px; border-radius: 8px; margin: 16px 0; }
+      .cta { display: inline-block; background: #0f172a; color: #ffffff !important; font-weight: bold; text-decoration: none; padding: 12px 24px; border-radius: 10px; margin-top: 14px; }
+      .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 24px; font-size: 11px; color: #64748b; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="header">
+        <div class="badge">GUJCORR 2027 &bull; Status Update</div>
+        <h2 style="margin:0; font-size:22px;">${docTypeLabel} Status Update</h2>
+        <p style="margin:6px 0 0 0; font-size:12px; color:#cbd5e1;">Technical Review Committee &bull; GUJCORR 2027</p>
+      </div>
+      <div class="content">
+        <p>Dear <strong>${data.fullName}</strong>,</p>
+        <p>This is to inform you that your <strong>${docTypeLabel}</strong> status for paper <strong>#${data.paperCode}</strong> has been updated by the Technical Review Committee.</p>
+        
+        <div class="box">
+          <strong>Updated Status Details:</strong><br>
+          &bull; <strong>Paper Code:</strong> <span style="font-family:monospace; font-weight:bold;">#${data.paperCode}</span><br>
+          &bull; <strong>Paper Title:</strong> "${data.paperTitle}"<br>
+          &bull; <strong>Track:</strong> ${data.symposiumTitle}<br>
+          &bull; <strong>${docTypeLabel} Status:</strong> <strong>${data.status}</strong>
+          ${data.score ? `<br>&bull; <strong>Score:</strong> ${data.score}/10` : ''}
+        </div>
+
+        ${data.comments ? `
+        <div class="comments-box">
+          <strong>Committee Comments:</strong>
+          <p style="margin:8px 0 0 0; font-style:italic;">"${data.comments}"</p>
+        </div>` : ''}
+
+        <div style="text-align: center;">
+          <a href="${baseUrl}/masterhome" class="cta">View Author Portal &rarr;</a>
+        </div>
+      </div>
+      <div class="footer">
+        <strong>GUJCORR 2027 Technical Secretariat</strong> &bull; iim.barodachapter@gmail.com
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+}

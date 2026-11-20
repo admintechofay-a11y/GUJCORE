@@ -481,6 +481,53 @@ export async function dbDeleteRegistration(ticketId: string): Promise<boolean> {
   return true;
 }
 
+export async function dbGetPaperByCode(paperCode: string): Promise<any | null> {
+  const sql = getDb();
+  if (sql) {
+    try {
+      const rows = await sql`
+        SELECT 
+          id, 
+          paper_code as "paperCode", 
+          full_name as "fullName", 
+          email, 
+          mobile_number as "mobileNumber", 
+          company_name as "companyName", 
+          symposium_id as "symposiumId", 
+          symposium_title as "symposiumTitle", 
+          paper_title as "paperTitle", 
+          presentation_type as "presentationType", 
+          status, 
+          abstract, 
+          keywords, 
+          co_authors as "coAuthors", 
+          review_score as "reviewScore", 
+          review_comments as "reviewComments", 
+          reviewed_by as "reviewedBy", 
+          abstract_file_name as "abstractFileName",
+          full_paper_file_name as "fullPaperFileName",
+          full_paper_status as "fullPaperStatus",
+          full_paper_review_comments as "fullPaperReviewComments",
+          full_paper_score as "fullPaperScore",
+          full_paper_reviewed_by as "fullPaperReviewedBy",
+          presentation_file_name as "presentationFileName",
+          submission_date as "submissionDate"
+        FROM papers
+        WHERE paper_code = ${paperCode} OR id = ${paperCode}
+        LIMIT 1;
+      `;
+      if (rows && rows.length > 0) {
+        return rows[0];
+      }
+    } catch (err) {
+      console.warn('[DB] Error in dbGetPaperByCode:', err);
+    }
+  }
+
+  const store = getStore();
+  return (store.papers || []).find((p: any) => p.paperCode === paperCode || p.id === paperCode) || null;
+}
+
 export async function dbUpdatePaperDecision(
   paperCode: string, 
   score?: number, 

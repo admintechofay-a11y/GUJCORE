@@ -261,9 +261,11 @@ export default function AdminPage() {
       );
       if (res.success) {
         showToast(
-          reviewModalType === 'full_paper'
-            ? `Full Paper #${paperCode} reviewed: Score ${scoreInput}/10, Status: "${paperStatusInput}".`
-            : `Abstract #${paperCode} reviewed: Score ${scoreInput}/10, Status: "${paperStatusInput}".`
+          res.message || (
+            reviewModalType === 'full_paper'
+              ? `Full Paper #${paperCode} reviewed: Score ${scoreInput}/10, Status: "${paperStatusInput}". Notification email sent to author.`
+              : `Abstract #${paperCode} reviewed: Score ${scoreInput}/10, Status: "${paperStatusInput}". Notification email sent to author.`
+          )
         );
         setSelectedPaper(null);
         loadAllAdminData();
@@ -338,7 +340,7 @@ export default function AdminPage() {
 
   // Legacy fallback wrapper
   const handleDownloadPaperFile = (p: any) => {
-    handleDownloadSingleFile(p.abstractFileData || p.fileData, p.abstractFileName || p.fileName || `${p.paperCode || p.id}_Manuscript.pdf`);
+    handleDownloadSingleFile(p.abstractFileData || p.fileData, p.abstractFileName || p.fileName || `${p.paperCode || p.id}_FullPaper.pdf`);
   };
 
   // 1-click Approve, Under Review, or Reject Abstract decision
@@ -353,7 +355,7 @@ export default function AdminPage() {
     try {
       const res = await api.updatePaperDecision(paperCode, undefined, undefined, newStatus, user?.email, 'abstract');
       if (res.success) {
-        showToast(`Abstract #${paperCode} successfully updated to "${newStatus}".`);
+        showToast(res.message || `Abstract #${paperCode} updated to "${newStatus}" and notification email sent to author.`);
         setPapers(prev => prev.map(p => (p.paperCode === paperCode || p.id === paperCode) ? { ...p, status: newStatus } : p));
         loadAllAdminData();
       } else {
@@ -376,7 +378,7 @@ export default function AdminPage() {
     try {
       const res = await api.updatePaperDecision(paperCode, undefined, undefined, newStatus, user?.email, 'full_paper');
       if (res.success) {
-        showToast(`Full Paper #${paperCode} successfully updated to "${newStatus}".`);
+        showToast(res.message || `Full Paper #${paperCode} updated to "${newStatus}" and notification email sent to author.`);
         setPapers(prev => prev.map(p => (p.paperCode === paperCode || p.id === paperCode) ? { ...p, fullPaperStatus: newStatus } : p));
         loadAllAdminData();
       } else {
