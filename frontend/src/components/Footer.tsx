@@ -104,10 +104,10 @@ export default function Footer() {
                 Abstracts Due: 28 Oct 2026
               </p>
               <p className="text-xs text-slate-400">
-                Full Paper: 25 Nov 2026
+                Full Paper: 15 Dec 2026
               </p>
               <p className="text-xs text-slate-400">
-                Presentation Upload: 15 Dec 2026
+                Presentation Upload: 25 Dec 2026
               </p>
               <p className="text-xs text-slate-400">
                 Author Reg. Deadline: 25 Dec 2026

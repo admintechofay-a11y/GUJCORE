@@ -318,7 +318,7 @@ export default function AdminPage() {
       link.click();
       document.body.removeChild(link);
     } else {
-      alert(`No file has been uploaded for paper #${p.paperCode || p.id} yet. Full text manuscripts are due by 25 November 2026. You can attach one using the "Attach File" button.`);
+      alert(`No file has been uploaded for paper #${p.paperCode || p.id} yet. Full text manuscripts are due by 15 December 2026. You can attach one using the "Attach File" button.`);
     }
   };
 
@@ -928,7 +928,7 @@ export default function AdminPage() {
                                         }}
                                       />
                                     </label>
-                                    <span className="text-[9px] text-slate-400 whitespace-nowrap">Due 25 Nov</span>
+                                    <span className="text-[9px] text-slate-400 whitespace-nowrap">Due 15 Dec</span>
                                   </div>
                                 )}
                               </td>
@@ -1335,7 +1335,7 @@ export default function AdminPage() {
                                       }}
                                     />
                                   </label>
-                                  <span className="text-[9px] text-slate-400 whitespace-nowrap">Due 25 Nov</span>
+                                  <span className="text-[9px] text-slate-400 whitespace-nowrap">Due 15 Dec</span>
                                 </div>
                               )}
                             </td>
@@ -1447,7 +1447,7 @@ export default function AdminPage() {
                         ) : (
                           <div className="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
                             <span className="text-[11px] text-amber-800 font-semibold">
-                              Manuscript document due 25 Nov 2026.
+                              Manuscript document due 15 Dec 2026.
                             </span>
                             <label className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer shadow-xs">
                               <UploadCloud className="w-3.5 h-3.5" />

@@ -153,8 +153,8 @@ export const IMPORTANT_DATES: ImportantDateItem[] = [
   {
     id: 2,
     title: "Full Text Paper Due",
-    date: "25 November 2026",
-    rawDate: "2026-11-25",
+    date: "15 December 2026",
+    rawDate: "2026-12-15",
     category: "Manuscript",
     description: "Complete full-length peer-reviewed technical paper manuscript submission.",
     notes: "Peer review feedback and formal acceptance notices issued upon technical review."
@@ -162,8 +162,8 @@ export const IMPORTANT_DATES: ImportantDateItem[] = [
   {
     id: 3,
     title: "Presentation Submission / Upload Due",
-    date: "15 December 2026",
-    rawDate: "2026-12-15",
+    date: "25 December 2026",
+    rawDate: "2026-12-25",
     category: "Presentation",
     description: "PowerPoint slide deck / poster presentation upload for accepted papers.",
     notes: "Formats: PPTX / PDF for oral presentation sessions and poster display panels."

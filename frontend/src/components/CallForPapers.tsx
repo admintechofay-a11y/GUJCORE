@@ -1090,7 +1090,7 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
                       <div>
                         <FileText className="w-8 h-8 text-slate-400 mx-auto mb-2" />
                         <div className="text-xs font-bold text-slate-800">Upload Full Paper Manuscript (PDF / DOCX)</div>
-                        <div className="text-[11px] text-slate-400 mt-1">PDF or DOCX (Max 25MB - Due 25 Nov 2026)</div>
+                        <div className="text-[11px] text-slate-400 mt-1">PDF or DOCX (Max 25MB - Due 15 Dec 2026)</div>
                         <span className="mt-3 inline-block bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs px-3.5 py-1.5 rounded-lg border border-slate-200 shadow-2xs transition-colors">
                           Choose Manuscript File
                         </span>
