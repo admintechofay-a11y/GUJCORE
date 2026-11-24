@@ -1381,7 +1381,11 @@ export default function AdminPage() {
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {registrations.map((reg, idx) => {
-                          const isPaid = (reg.status || '').toLowerCase().includes('confirmed');
+                          const isPaid = (() => {
+                            const s = (reg.status || '').toLowerCase();
+                            if (s.includes('unpaid') || s.includes('provisional') || s.includes('pending') || s.includes('hold')) return false;
+                            return s.includes('confirmed') || s.includes('paid');
+                          })();
                           return (
                             <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
                               <td className="py-3 px-4 font-mono font-bold text-slate-900">
@@ -1402,21 +1406,21 @@ export default function AdminPage() {
                                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
                                   isPaid ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
                                 }`}>
-                                  {reg.status}
+                                  {reg.status || 'Provisional / Unpaid (Pay Later)'}
                                 </span>
                               </td>
                               <td className="py-3 px-4 text-right">
                                 <div className="flex items-center justify-end gap-1.5 flex-wrap">
                                   {!isPaid ? (
                                     <button
-                                      onClick={() => handleUpdateDelegateStatus(reg.ticketId || reg.id, 'Confirmed')}
+                                      onClick={() => handleUpdateDelegateStatus(reg.ticketId || reg.id, 'Confirmed & Paid')}
                                       className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold cursor-pointer shadow-2xs"
                                     >
                                       Confirm Pass
                                     </button>
                                   ) : (
                                     <button
-                                      onClick={() => handleUpdateDelegateStatus(reg.ticketId || reg.id, 'Pending')}
+                                      onClick={() => handleUpdateDelegateStatus(reg.ticketId || reg.id, 'Provisional / Unpaid (Pay Later)')}
                                       className="px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-lg text-[10px] font-bold cursor-pointer"
                                     >
                                       Hold Pass
@@ -1543,7 +1547,11 @@ export default function AdminPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {filteredDelegates.map((reg, idx) => {
-                        const isPaid = (reg.status || '').toLowerCase().includes('confirmed');
+                        const isPaid = (() => {
+                          const s = (reg.status || '').toLowerCase();
+                          if (s.includes('unpaid') || s.includes('provisional') || s.includes('pending') || s.includes('hold')) return false;
+                          return s.includes('confirmed') || s.includes('paid');
+                        })();
                         return (
                           <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
                             <td className="py-3 px-4 font-mono font-bold text-slate-900">{reg.ticketId || reg.id}</td>
@@ -1558,25 +1566,36 @@ export default function AdminPage() {
                               <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
                                 isPaid ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
                               }`}>
-                                {reg.status}
+                                {reg.status || 'Provisional / Unpaid (Pay Later)'}
                               </span>
                             </td>
-                            <td className="py-3 px-4 text-right space-x-1">
-                              {!isPaid ? (
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                {!isPaid ? (
+                                  <button
+                                    onClick={() => handleUpdateDelegateStatus(reg.ticketId || reg.id, 'Confirmed & Paid')}
+                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold cursor-pointer shadow-2xs"
+                                  >
+                                    Confirm Pass
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleUpdateDelegateStatus(reg.ticketId || reg.id, 'Provisional / Unpaid (Pay Later)')}
+                                    className="px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-lg text-[10px] font-bold cursor-pointer"
+                                  >
+                                    Hold Pass
+                                  </button>
+                                )}
                                 <button
-                                  onClick={() => handleUpdateDelegateStatus(reg.ticketId || reg.id, 'Confirmed')}
-                                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold cursor-pointer"
+                                  type="button"
+                                  onClick={() => handleDeleteRegistration(reg.ticketId || reg.id, reg.fullName)}
+                                  className="p-1 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                                  title="Permanently delete delegate registration from database"
                                 >
-                                  Confirm Pass
+                                  <Trash2 className="w-3 h-3 text-rose-600 shrink-0" />
+                                  <span>Delete</span>
                                 </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleUpdateDelegateStatus(reg.ticketId || reg.id, 'Pending')}
-                                  className="px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-lg text-[10px] font-bold cursor-pointer"
-                                >
-                                  Hold Pass
-                                </button>
-                              )}
+                              </div>
                             </td>
                           </tr>
                         );

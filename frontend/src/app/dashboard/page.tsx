@@ -118,9 +118,15 @@ export default function DashboardPage() {
     // Enforce One ID, One Pass rule: pick the canonical single pass (Paid/Confirmed > Provisional > Newest)
     let singlePassList: any[] = [];
     if (filteredRegs.length > 0) {
+      const isPaidStatus = (s?: string) => {
+        if (!s) return false;
+        const str = s.toLowerCase();
+        if (str.includes('unpaid') || str.includes('provisional') || str.includes('pending') || str.includes('hold')) return false;
+        return str.includes('confirmed') || str.includes('paid');
+      };
       const sorted = [...filteredRegs].sort((a, b) => {
-        const aPaid = (a.status || '').toLowerCase().includes('paid') || (a.status || '').toLowerCase().includes('confirmed') ? 1 : 0;
-        const bPaid = (b.status || '').toLowerCase().includes('paid') || (b.status || '').toLowerCase().includes('confirmed') ? 1 : 0;
+        const aPaid = isPaidStatus(a.status) ? 1 : 0;
+        const bPaid = isPaidStatus(b.status) ? 1 : 0;
         if (aPaid !== bPaid) return bPaid - aPaid;
         const aTime = new Date(a.registrationDate || 0).getTime();
         const bTime = new Date(b.registrationDate || 0).getTime();
@@ -1144,9 +1150,11 @@ export default function DashboardPage() {
                       <div>
                         <span className="text-slate-400 block text-[10px]">Payment Status:</span>
                         <strong className="text-slate-900">
-                          {(reg.status || '').toLowerCase().includes('confirmed') && (reg.status || '').toLowerCase().includes('paid')
-                            ? 'Confirmed (₹' + reg.totalAmount?.toLocaleString() + ')'
-                            : 'Provisional / Unpaid (Pay Later)'}
+                          {(() => {
+                            const s = (reg.status || '').toLowerCase();
+                            const isPaid = !(s.includes('unpaid') || s.includes('provisional') || s.includes('pending') || s.includes('hold')) && (s.includes('confirmed') || s.includes('paid'));
+                            return isPaid ? 'Confirmed & Paid (₹' + (reg.totalAmount || 1770)?.toLocaleString() + ')' : 'Provisional / Unpaid (Pay Later)';
+                          })()}
                         </strong>
                       </div>
                       <div className="flex items-center gap-2">

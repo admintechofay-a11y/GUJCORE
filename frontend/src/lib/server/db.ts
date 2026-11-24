@@ -592,6 +592,15 @@ export async function dbUpdatePaperDecision(
 }
 
 // 3. Registrations (Delegates)
+export function isRegistrationPaid(status?: string | null): boolean {
+  if (!status) return false;
+  const s = status.toLowerCase();
+  if (s.includes('unpaid') || s.includes('provisional') || s.includes('pending') || s.includes('hold')) {
+    return false;
+  }
+  return s.includes('confirmed') || s.includes('paid');
+}
+
 export async function dbGetRegistrations(filters?: { status?: string | null; search?: string | null }): Promise<any[]> {
   const sql = getDb();
   if (sql) {
@@ -637,8 +646,8 @@ export async function dbGetRegistrations(filters?: { status?: string | null; sea
           seen.set(key, r);
         } else {
           const existing = seen.get(key);
-          const existingPaid = (existing.status || '').toLowerCase().includes('paid') || (existing.status || '').toLowerCase().includes('confirmed');
-          const currentPaid = (r.status || '').toLowerCase().includes('paid') || (r.status || '').toLowerCase().includes('confirmed');
+          const existingPaid = isRegistrationPaid(existing.status);
+          const currentPaid = isRegistrationPaid(r.status);
           if (!existingPaid && currentPaid) {
             seen.set(key, r);
           }
@@ -676,8 +685,8 @@ export async function dbGetRegistrations(filters?: { status?: string | null; sea
       seenStore.set(key, r);
     } else {
       const existing = seenStore.get(key);
-      const existingPaid = (existing.status || '').toLowerCase().includes('paid') || (existing.status || '').toLowerCase().includes('confirmed');
-      const currentPaid = (r.status || '').toLowerCase().includes('paid') || (r.status || '').toLowerCase().includes('confirmed');
+      const existingPaid = isRegistrationPaid(existing.status);
+      const currentPaid = isRegistrationPaid(r.status);
       if (!existingPaid && currentPaid) {
         seenStore.set(key, r);
       }
@@ -717,7 +726,7 @@ export async function dbInsertRegistration(reg: any): Promise<any> {
           FROM registrations
           WHERE LOWER(TRIM(email)) = ${cleanEmail}
           ORDER BY 
-            CASE WHEN LOWER(status) LIKE '%paid%' OR LOWER(status) LIKE '%confirmed%' THEN 1 ELSE 2 END,
+            CASE WHEN (LOWER(status) LIKE '%paid%' AND LOWER(status) NOT LIKE '%unpaid%') OR LOWER(status) LIKE '%confirmed%' THEN 1 ELSE 2 END,
             registration_date DESC
           LIMIT 1;
         `;
@@ -727,9 +736,9 @@ export async function dbInsertRegistration(reg: any): Promise<any> {
           const canonicalId = existing[0].id || canonicalTicketId;
           const qrCodeUrl = existing[0].qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GUJCORR2027:${canonicalTicketId}`;
           
-          const isNewPaid = (reg.status || '').toLowerCase().includes('paid') || (reg.status || '').toLowerCase().includes('confirmed');
-          const isOldPaid = (existing[0].status || '').toLowerCase().includes('paid') || (existing[0].status || '').toLowerCase().includes('confirmed');
-          const updatedStatus = isNewPaid ? (reg.status || 'Confirmed & Paid') : (isOldPaid ? existing[0].status : (reg.status || existing[0].status || 'Provisional / Unpaid'));
+          const isNewPaid = isRegistrationPaid(reg.status);
+          const isOldPaid = isRegistrationPaid(existing[0].status);
+          const updatedStatus = isNewPaid ? (reg.status || 'Confirmed & Paid') : (isOldPaid ? existing[0].status : (reg.status || existing[0].status || 'Provisional / Unpaid (Pay Later)'));
 
           await sql`
             UPDATE registrations

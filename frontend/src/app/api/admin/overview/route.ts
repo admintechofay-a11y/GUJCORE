@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/server/auth';
-import { dbGetRegistrations, dbGetPapers, dbGetBooths, dbGetInquiries, dbGetAuditLogs } from '@/lib/server/db';
+import { dbGetRegistrations, dbGetPapers, dbGetBooths, dbGetInquiries, dbGetAuditLogs, isRegistrationPaid } from '@/lib/server/db';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -26,16 +26,16 @@ export async function GET(request: NextRequest) {
 
     // 1. Registrations stats
     const totalReg = registrations.length;
-    const confirmedReg = registrations.filter(r => (r.status || '').toLowerCase().includes('confirmed')).length;
-    const pendingReg = registrations.filter(r => (r.status || '').toLowerCase().includes('pending')).length;
+    const confirmedReg = registrations.filter(r => isRegistrationPaid(r.status)).length;
+    const pendingReg = registrations.filter(r => !isRegistrationPaid(r.status)).length;
     
     // Revenue calculations: strict separation between verified and pending
     const verifiedRevenue = registrations
-      .filter(r => (r.status || '').toLowerCase().includes('confirmed'))
+      .filter(r => isRegistrationPaid(r.status))
       .reduce((sum, r) => sum + (Number(r.totalAmount) || 0), 0);
 
     const outstandingRevenue = registrations
-      .filter(r => (r.status || '').toLowerCase().includes('pending'))
+      .filter(r => !isRegistrationPaid(r.status))
       .reduce((sum, r) => sum + (Number(r.totalAmount) || 0), 0);
 
     // Category breakdown
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
         categoryCounts[cat] = { count: 0, revenue: 0 };
       }
       categoryCounts[cat].count += 1;
-      if ((r.status || '').toLowerCase().includes('confirmed')) {
+      if (isRegistrationPaid(r.status)) {
         categoryCounts[cat].revenue += (Number(r.totalAmount) || 0);
       }
     });
