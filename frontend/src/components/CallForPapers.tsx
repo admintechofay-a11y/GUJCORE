@@ -295,6 +295,10 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
       setErrorMessage('Please provide your abstract text.');
       return;
     }
+    if (!formData.keywords.trim()) {
+      setErrorMessage('Please enter keywords (comma separated). Keywords are compulsory.');
+      return;
+    }
     if (!resumeFile && !paperFile) {
       setErrorMessage('Please upload your Abstract Document (PDF or DOCX). Uploading an abstract file is compulsory.');
       const declEl = document.getElementById('declarationSection');
@@ -982,9 +986,12 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Keywords (Comma separated)</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Keywords (Comma separated) <span className="text-red-600 font-black">*</span>
+                    </label>
                     <input
                       type="text"
+                      required
                       placeholder="e.g. Cathodic Protection, EIS, Graphene, MIC"
                       value={formData.keywords}
                       onChange={e => setFormData({ ...formData, keywords: e.target.value })}

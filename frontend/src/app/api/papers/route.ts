@@ -57,9 +57,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (!body.paperTitle || !body.fullName || !body.email) {
+    if (!body.paperTitle || !body.fullName || !body.email || !body.keywords) {
       return NextResponse.json(
-        { success: false, message: 'Paper title, author full name, and email are required.' },
+        { success: false, message: 'Paper title, author full name, email, and keywords are required.' },
         { status: 400 }
       );
     }
