@@ -141,6 +141,23 @@ export default function AdminPage() {
   useEffect(() => {
     if (isStaffAuthorized) {
       loadAllAdminData();
+
+      const handleFocus = () => loadAllAdminData();
+      const handleVisibility = () => {
+        if (document.visibilityState === 'visible') loadAllAdminData();
+      };
+      window.addEventListener('focus', handleFocus);
+      document.addEventListener('visibilitychange', handleVisibility);
+
+      const syncInterval = setInterval(() => {
+        loadAllAdminData();
+      }, 15000);
+
+      return () => {
+        window.removeEventListener('focus', handleFocus);
+        document.removeEventListener('visibilitychange', handleVisibility);
+        clearInterval(syncInterval);
+      };
     }
   }, [isStaffAuthorized]);
 
@@ -152,12 +169,13 @@ export default function AdminPage() {
   const loadAllAdminData = async () => {
     setIsLoadingData(true);
     try {
+      const ts = Date.now();
       const [overRes, regRes, papRes, boothRes, inqRes, cmsRes, userRes, audRes] = await Promise.allSettled([
         api.getAdminOverview(),
-        fetch('/api/admin/registrations', { credentials: 'include' }).then(r => r.json()),
-        fetch('/api/admin/papers', { credentials: 'include' }).then(r => r.json()),
-        fetch('/api/admin/booths', { credentials: 'include' }).then(r => r.json()),
-        fetch('/api/admin/inquiries', { credentials: 'include' }).then(r => r.json()),
+        fetch(`/api/admin/registrations?_t=${ts}`, { credentials: 'include', cache: 'no-store' }).then(r => r.json()),
+        fetch(`/api/admin/papers?_t=${ts}`, { credentials: 'include', cache: 'no-store' }).then(r => r.json()),
+        fetch(`/api/admin/booths?_t=${ts}`, { credentials: 'include', cache: 'no-store' }).then(r => r.json()),
+        fetch(`/api/admin/inquiries?_t=${ts}`, { credentials: 'include', cache: 'no-store' }).then(r => r.json()),
         api.getCmsContent(),
         api.getAdminUsers(),
         api.getAuditLogs('all', 50)

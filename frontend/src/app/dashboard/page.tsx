@@ -155,8 +155,28 @@ export default function DashboardPage() {
     const data = api.getLocalData();
     filterForUser(data.papers || [], data.registrations || []);
 
-    // 2. Fetch live canonical data from database
+    // 2. Fetch live canonical data from database immediately
     fetchLiveDashboardData(true);
+
+    // 3. Keep live synchronized with admin updates: refresh on focus and visibility
+    const handleFocus = () => fetchLiveDashboardData(true);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchLiveDashboardData(true);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    // 4. Auto-sync polling every 10 seconds so author sees real-time status changes and deletions from admin
+    const syncInterval = setInterval(() => {
+      fetchLiveDashboardData(true);
+    }, 10000);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(syncInterval);
+    };
   }, [user, isAdminOrReviewer]);
 
   const showToast = (msg: string) => {

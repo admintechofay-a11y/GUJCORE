@@ -3,6 +3,9 @@ import { getSessionFromRequest, hasCapability } from '@/lib/server/auth';
 import { dbGetRegistrations, dbUpdateRegistrationStatus, dbDeleteRegistration, dbAppendAuditLog } from '@/lib/server/db';
 import { forwardToWordPress } from '@/lib/server/store';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     const session = getSessionFromRequest(request);
@@ -19,10 +22,19 @@ export async function GET(request: NextRequest) {
 
     const list = await dbGetRegistrations({ status, search });
 
-    return NextResponse.json({
-      success: true,
-      data: list
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        data: list
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      }
+    );
   } catch (err: any) {
     return NextResponse.json(
       { success: false, message: 'Failed fetching registrations.' },

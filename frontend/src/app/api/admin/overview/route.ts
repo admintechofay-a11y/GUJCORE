@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/server/auth';
 import { dbGetRegistrations, dbGetPapers, dbGetBooths, dbGetInquiries, dbGetAuditLogs } from '@/lib/server/db';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     const session = getSessionFromRequest(request);

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbGetRegistrations, dbInsertRegistration, dbAppendAuditLog } from '@/lib/server/db';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -8,7 +11,16 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
 
     const list = await dbGetRegistrations({ status, search });
-    return NextResponse.json({ success: true, data: list });
+    return NextResponse.json(
+      { success: true, data: list },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      }
+    );
   } catch (err: any) {
     return NextResponse.json({ success: false, message: 'Failed fetching registrations.' }, { status: 500 });
   }

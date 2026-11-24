@@ -75,24 +75,36 @@ export const api = {
     };
   },
 
-  // 1b. Fetch All Delegate Registrations (Live PostgreSQL Server + Local Storage)
+  // 1b. Fetch All Delegate Registrations (Live PostgreSQL Server Canonical Source)
   async getRegistrations(): Promise<{ success: boolean; data: DelegateRegistration[] }> {
-    let serverList: DelegateRegistration[] = [];
     try {
-      const res = await fetch('/api/registrations', {
+      const res = await fetch(`/api/registrations?_t=${Date.now()}`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+        cache: 'no-store',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
       });
       if (res.ok) {
         const json = await res.json();
         if (json.data && Array.isArray(json.data)) {
-          serverList = json.data;
+          const serverList: DelegateRegistration[] = json.data;
+          // Synchronize local cache with live database so deleted passes are removed immediately
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.setItem(STORAGE_KEYS.REGISTRATIONS, JSON.stringify(serverList.slice(0, 50)));
+            } catch {}
+          }
+          return { success: true, data: serverList };
         }
       }
     } catch (err) {
-      console.warn('[API] getRegistrations error:', err);
+      console.warn('[API] getRegistrations live fetch error:', err);
     }
 
+    // Fallback to local storage ONLY if offline / network error
     let localList: DelegateRegistration[] = [];
     if (typeof window !== 'undefined') {
       try {
@@ -100,24 +112,7 @@ export const api = {
       } catch {}
     }
 
-    // Merge: Server DB is primary source of truth, fallback to local entries
-    const map = new Map<string, DelegateRegistration>();
-    serverList.forEach(r => map.set(r.ticketId || r.id, r));
-    localList.forEach(r => {
-      const key = r.ticketId || r.id;
-      if (!map.has(key)) {
-        map.set(key, r);
-      }
-    });
-
-    const combined = Array.from(map.values());
-    if (typeof window !== 'undefined' && combined.length > 0) {
-      try {
-        localStorage.setItem(STORAGE_KEYS.REGISTRATIONS, JSON.stringify(combined.slice(0, 50)));
-      } catch {}
-    }
-
-    return { success: true, data: combined };
+    return { success: true, data: localList };
   },
 
   // 1c. Update Delegate Status (Confirmed & Paid vs Provisional)
@@ -283,24 +278,37 @@ export const api = {
     };
   },
 
-  // 2b. Fetch All Papers (Live PostgreSQL Server + Local Storage)
+  // 2b. Fetch All Papers (Live PostgreSQL Server Canonical Source)
   async getPapers(): Promise<{ success: boolean; data: PaperSubmission[] }> {
-    let serverList: PaperSubmission[] = [];
     try {
-      const res = await fetch('/api/papers', {
+      const res = await fetch(`/api/papers?_t=${Date.now()}`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+        cache: 'no-store',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
       });
       if (res.ok) {
         const json = await res.json();
         if (json.data && Array.isArray(json.data)) {
-          serverList = json.data;
+          const serverList: PaperSubmission[] = json.data;
+          // Synchronize local cache with live server database:
+          // Deleted entries are immediately removed from localStorage!
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.setItem(STORAGE_KEYS.PAPERS, JSON.stringify(serverList.slice(0, 50)));
+            } catch {}
+          }
+          return { success: true, data: serverList };
         }
       }
     } catch (err) {
-      console.warn('[API] getPapers error:', err);
+      console.warn('[API] getPapers live fetch error:', err);
     }
 
+    // Fallback to local storage ONLY if offline / network error
     let localList: PaperSubmission[] = [];
     if (typeof window !== 'undefined') {
       try {
@@ -308,27 +316,7 @@ export const api = {
       } catch {}
     }
 
-    // Server DB has canonical live review status and comments
-    const map = new Map<string, PaperSubmission>();
-    serverList.forEach(p => {
-      const key = p.paperCode || p.id;
-      map.set(key, p);
-    });
-    localList.forEach(p => {
-      const key = p.paperCode || p.id;
-      if (!map.has(key)) {
-        map.set(key, p);
-      }
-    });
-
-    const combined = Array.from(map.values());
-    if (typeof window !== 'undefined' && combined.length > 0) {
-      try {
-        localStorage.setItem(STORAGE_KEYS.PAPERS, JSON.stringify(combined.slice(0, 50)));
-      } catch {}
-    }
-
-    return { success: true, data: combined };
+    return { success: true, data: localList };
   },
 
   // 2b-2. Attach or Upload Revised Manuscript or Presentation File to Server & DB with chunking
@@ -843,7 +831,33 @@ export const api = {
         body: JSON.stringify({ paperCode, score, comments, status, assignedReviewer, reviewType }),
         credentials: 'include'
       });
-      return await res.json();
+      const data = await res.json();
+      if (data.success && typeof window !== 'undefined') {
+        try {
+          const existing: PaperSubmission[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.PAPERS) || '[]');
+          const updated = existing.map(p => {
+            if (p.paperCode === paperCode || p.id === paperCode) {
+              if (reviewType === 'full_paper') {
+                return {
+                  ...p,
+                  fullPaperScore: score ?? p.fullPaperScore,
+                  fullPaperReviewComments: comments ?? p.fullPaperReviewComments,
+                  fullPaperStatus: status ?? p.fullPaperStatus
+                };
+              }
+              return {
+                ...p,
+                reviewScore: score ?? p.reviewScore,
+                reviewComments: comments ?? p.reviewComments,
+                status: status ?? p.status
+              };
+            }
+            return p;
+          });
+          localStorage.setItem(STORAGE_KEYS.PAPERS, JSON.stringify(updated));
+        } catch {}
+      }
+      return data;
     } catch (err: any) {
       return { success: false, message: err.message };
     }
@@ -884,7 +898,15 @@ export const api = {
         method: 'DELETE',
         credentials: 'include'
       });
-      return await res.json();
+      const data = await res.json();
+      if (data.success && typeof window !== 'undefined') {
+        try {
+          const existing: PaperSubmission[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.PAPERS) || '[]');
+          const filtered = existing.filter(p => p.paperCode !== paperCode && p.id !== paperCode);
+          localStorage.setItem(STORAGE_KEYS.PAPERS, JSON.stringify(filtered));
+        } catch {}
+      }
+      return data;
     } catch (err: any) {
       return { success: false, message: err.message };
     }
@@ -897,7 +919,15 @@ export const api = {
         method: 'DELETE',
         credentials: 'include'
       });
-      return await res.json();
+      const data = await res.json();
+      if (data.success && typeof window !== 'undefined') {
+        try {
+          const existing: DelegateRegistration[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.REGISTRATIONS) || '[]');
+          const filtered = existing.filter(r => r.ticketId !== ticketId && r.id !== ticketId);
+          localStorage.setItem(STORAGE_KEYS.REGISTRATIONS, JSON.stringify(filtered));
+        } catch {}
+      }
+      return data;
     } catch (err: any) {
       return { success: false, message: err.message };
     }
