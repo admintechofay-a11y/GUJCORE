@@ -422,9 +422,15 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
                 <span className="font-bold text-slate-900 text-right truncate max-w-[250px]">{submittedPaper.title}</span>
               </div>
               <div className="flex justify-between border-b border-slate-200 pb-2">
-                <span className="text-slate-500">Attached Resume:</span>
-                <span className="font-semibold text-emerald-700">{resumeFile ? resumeFile.name : 'Author Profile Included'}</span>
+                <span className="text-slate-500">Attached Abstract:</span>
+                <span className="font-semibold text-emerald-700">{resumeFile ? resumeFile.name : (paperFile ? paperFile.name : 'Abstract Document Uploaded')}</span>
               </div>
+              {paperFile && (
+                <div className="flex justify-between border-b border-slate-200 pb-2">
+                  <span className="text-slate-500">Attached Full Paper:</span>
+                  <span className="font-semibold text-teal-700">{paperFile.name}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-slate-500">Peer Review Status:</span>
                 <span className="bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded">Under Technical Review</span>
