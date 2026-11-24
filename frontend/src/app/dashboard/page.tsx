@@ -115,8 +115,22 @@ export default function DashboardPage() {
       return false;
     });
 
+    // Enforce One ID, One Pass rule: pick the canonical single pass (Paid/Confirmed > Provisional > Newest)
+    let singlePassList: any[] = [];
+    if (filteredRegs.length > 0) {
+      const sorted = [...filteredRegs].sort((a, b) => {
+        const aPaid = (a.status || '').toLowerCase().includes('paid') || (a.status || '').toLowerCase().includes('confirmed') ? 1 : 0;
+        const bPaid = (b.status || '').toLowerCase().includes('paid') || (b.status || '').toLowerCase().includes('confirmed') ? 1 : 0;
+        if (aPaid !== bPaid) return bPaid - aPaid;
+        const aTime = new Date(a.registrationDate || 0).getTime();
+        const bTime = new Date(b.registrationDate || 0).getTime();
+        return bTime - aTime;
+      });
+      singlePassList = [sorted[0]];
+    }
+
     setPapers(filteredPapers);
-    setRegistrations(filteredRegs);
+    setRegistrations(singlePassList);
   };
 
   // Live fetch from server database
@@ -422,7 +436,7 @@ export default function DashboardPage() {
             }`}
           >
             <User className="w-4 h-4 text-red-400" />
-            <span>My Pass &amp; QR Badge ({registrations.length})</span>
+            <span>My Pass &amp; QR Badge {registrations.length > 0 ? '(1)' : '(0)'}</span>
           </button>
 
           <button
@@ -1040,12 +1054,21 @@ export default function DashboardPage() {
                 >
                   <FileText className="w-3.5 h-3.5 text-amber-400" /> Proforma Invoice
                 </button>
-                <Link
-                  href="/registration"
-                  className="bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs sm:text-sm px-6 py-3.5 rounded-xl shadow-xs transition-colors flex items-center gap-2 shrink-0"
-                >
-                  <PlusCircle className="w-4 h-4" /> Book Additional Pass
-                </Link>
+                {registrations.length > 0 ? (
+                  <button
+                    onClick={() => window.print()}
+                    className="bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs sm:text-sm px-6 py-3.5 rounded-xl shadow-xs transition-colors flex items-center gap-2 shrink-0 cursor-pointer"
+                  >
+                    <Printer className="w-4 h-4" /> Print Badge
+                  </button>
+                ) : (
+                  <Link
+                    href="/registration"
+                    className="bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs sm:text-sm px-6 py-3.5 rounded-xl shadow-xs transition-colors flex items-center gap-2 shrink-0"
+                  >
+                    <PlusCircle className="w-4 h-4" /> Book Conference Pass
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -1068,7 +1091,7 @@ export default function DashboardPage() {
                 </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="max-w-2xl">
                 {registrations.map((reg) => (
                   <div key={reg.id} className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-5 relative">
                     

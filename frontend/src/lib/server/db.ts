@@ -625,7 +625,27 @@ export async function dbGetRegistrations(filters?: { status?: string | null; sea
         FROM registrations
         ORDER BY registration_date DESC;
       `;
-      let list = rows || [];
+      // Enforce One ID, One Pass rule: Deduplicate by email (Paid/Confirmed > Provisional > latest date)
+      const seen = new Map<string, any>();
+      for (const r of rows || []) {
+        const key = (r.email || '').trim().toLowerCase();
+        if (!key) {
+          seen.set(r.ticketId || r.id, r);
+          continue;
+        }
+        if (!seen.has(key)) {
+          seen.set(key, r);
+        } else {
+          const existing = seen.get(key);
+          const existingPaid = (existing.status || '').toLowerCase().includes('paid') || (existing.status || '').toLowerCase().includes('confirmed');
+          const currentPaid = (r.status || '').toLowerCase().includes('paid') || (r.status || '').toLowerCase().includes('confirmed');
+          if (!existingPaid && currentPaid) {
+            seen.set(key, r);
+          }
+        }
+      }
+      let list = Array.from(seen.values());
+
       if (filters?.status && filters.status !== 'all') {
         list = list.filter((r: any) => (r.status || '').toLowerCase().includes(filters.status!.toLowerCase()));
       }
@@ -645,7 +665,25 @@ export async function dbGetRegistrations(filters?: { status?: string | null; sea
   }
 
   const store = getStore();
-  let list = [...store.registrations];
+  const seenStore = new Map<string, any>();
+  for (const r of store.registrations || []) {
+    const key = (r.email || '').trim().toLowerCase();
+    if (!key) {
+      seenStore.set(r.ticketId || r.id, r);
+      continue;
+    }
+    if (!seenStore.has(key)) {
+      seenStore.set(key, r);
+    } else {
+      const existing = seenStore.get(key);
+      const existingPaid = (existing.status || '').toLowerCase().includes('paid') || (existing.status || '').toLowerCase().includes('confirmed');
+      const currentPaid = (r.status || '').toLowerCase().includes('paid') || (r.status || '').toLowerCase().includes('confirmed');
+      if (!existingPaid && currentPaid) {
+        seenStore.set(key, r);
+      }
+    }
+  }
+  let list = Array.from(seenStore.values());
   if (filters?.status && filters.status !== 'all') {
     list = list.filter(r => (r.status || '').toLowerCase().includes(filters.status!.toLowerCase()));
   }
@@ -663,13 +701,90 @@ export async function dbGetRegistrations(filters?: { status?: string | null; sea
 
 export async function dbInsertRegistration(reg: any): Promise<any> {
   const sql = getDb();
-  const ticketId = reg.ticketId || ('GUJ27-DEL-' + Math.random().toString(36).substring(2, 8).toUpperCase());
-  const id = reg.id || ticketId;
   const now = new Date().toISOString();
-  const qrCodeUrl = reg.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GUJCORR2027:${ticketId}`;
+  const cleanEmail = (reg.email || '').trim().toLowerCase();
 
   if (sql) {
     try {
+      // Check if user with this email already has a registration pass (One ID, One Pass rule)
+      if (cleanEmail) {
+        const existing = await sql`
+          SELECT 
+            id, 
+            ticket_id as "ticketId", 
+            status, 
+            qr_code_url as "qrCodeUrl"
+          FROM registrations
+          WHERE LOWER(TRIM(email)) = ${cleanEmail}
+          ORDER BY 
+            CASE WHEN LOWER(status) LIKE '%paid%' OR LOWER(status) LIKE '%confirmed%' THEN 1 ELSE 2 END,
+            registration_date DESC
+          LIMIT 1;
+        `;
+
+        if (existing && existing.length > 0) {
+          const canonicalTicketId = existing[0].ticketId || existing[0].id;
+          const canonicalId = existing[0].id || canonicalTicketId;
+          const qrCodeUrl = existing[0].qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GUJCORR2027:${canonicalTicketId}`;
+          
+          const isNewPaid = (reg.status || '').toLowerCase().includes('paid') || (reg.status || '').toLowerCase().includes('confirmed');
+          const isOldPaid = (existing[0].status || '').toLowerCase().includes('paid') || (existing[0].status || '').toLowerCase().includes('confirmed');
+          const updatedStatus = isNewPaid ? (reg.status || 'Confirmed & Paid') : (isOldPaid ? existing[0].status : (reg.status || existing[0].status || 'Provisional / Unpaid'));
+
+          await sql`
+            UPDATE registrations
+            SET
+              full_name = COALESCE(${reg.fullName || null}, full_name),
+              gender = COALESCE(${reg.gender || null}, gender),
+              designation = COALESCE(${reg.designation || null}, designation),
+              organization = COALESCE(${reg.organization || null}, organization),
+              department = COALESCE(${reg.department || null}, department),
+              mobile_number = COALESCE(${reg.mobileNumber || null}, mobile_number),
+              country = COALESCE(${reg.country || null}, country),
+              state = COALESCE(${reg.state || null}, state),
+              city = COALESCE(${reg.city || null}, city),
+              address = COALESCE(${reg.address || null}, address),
+              category = COALESCE(${reg.category || null}, category),
+              tier_name = COALESCE(${reg.tierName || null}, tier_name),
+              membership_number = COALESCE(${reg.membershipNumber || null}, membership_number),
+              gst_number = COALESCE(${reg.gstNumber || null}, gst_number),
+              base_amount = COALESCE(${reg.baseAmount ?? null}, base_amount),
+              gst_amount = COALESCE(${reg.gstAmount ?? null}, gst_amount),
+              total_amount = COALESCE(${reg.totalAmount ?? null}, total_amount),
+              payment_method = COALESCE(${reg.paymentMethod || null}, payment_method),
+              status = ${updatedStatus},
+              updated_at = ${now}
+            WHERE ticket_id = ${canonicalTicketId} OR id = ${canonicalId};
+          `;
+
+          const updatedReg = {
+            ...reg,
+            id: canonicalId,
+            ticketId: canonicalTicketId,
+            qrCodeUrl,
+            status: updatedStatus
+          };
+
+          try {
+            const store = getStore();
+            const filtered = (store.registrations || []).filter(
+              item => (item.email || '').trim().toLowerCase() !== cleanEmail && item.ticketId !== canonicalTicketId && item.id !== canonicalId
+            );
+            filtered.unshift(updatedReg);
+            store.registrations = filtered;
+            saveStore(store);
+          } catch (storeErr) {
+            console.warn('[DB] Error updating local file store:', storeErr);
+          }
+
+          return updatedReg;
+        }
+      }
+
+      const ticketId = reg.ticketId || ('GUJ27-DEL-' + Math.random().toString(36).substring(2, 8).toUpperCase());
+      const id = reg.id || ticketId;
+      const qrCodeUrl = reg.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GUJCORR2027:${ticketId}`;
+
       await sql`
         INSERT INTO registrations (
           id, ticket_id, full_name, gender, designation, organization, department,
@@ -704,12 +819,51 @@ export async function dbInsertRegistration(reg: any): Promise<any> {
         )
         ON CONFLICT (ticket_id) DO NOTHING;
       `;
+
+      const newReg = {
+        ...reg,
+        id,
+        ticketId,
+        qrCodeUrl,
+        registrationDate: reg.registrationDate || now,
+        status: reg.status || 'Confirmed & Paid'
+      };
+
+      try {
+        const store = getStore();
+        const filtered = (store.registrations || []).filter(item => item.id !== id && item.ticketId !== ticketId);
+        filtered.unshift(newReg);
+        store.registrations = filtered;
+        saveStore(store);
+      } catch (storeErr) {
+        console.warn('[DB] Error updating local file store:', storeErr);
+      }
+
+      return newReg;
     } catch (err) {
       console.warn('[DB] Error inserting registration into DB:', err);
     }
   }
 
+  // Fallback for store only
   const store = getStore();
+  const existingStoreReg = cleanEmail ? (store.registrations || []).find(r => (r.email || '').trim().toLowerCase() === cleanEmail) : null;
+  if (existingStoreReg) {
+    const existingTicketId = existingStoreReg.ticketId || existingStoreReg.id;
+    const updated = {
+      ...existingStoreReg,
+      ...reg,
+      id: existingStoreReg.id,
+      ticketId: existingTicketId
+    };
+    store.registrations = store.registrations.map(r => (r.ticketId === existingTicketId || r.id === existingStoreReg.id ? updated : r));
+    saveStore(store);
+    return updated;
+  }
+
+  const ticketId = reg.ticketId || ('GUJ27-DEL-' + Math.random().toString(36).substring(2, 8).toUpperCase());
+  const id = reg.id || ticketId;
+  const qrCodeUrl = reg.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GUJCORR2027:${ticketId}`;
   const newReg = {
     ...reg,
     id,

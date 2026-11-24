@@ -333,6 +333,31 @@ export default function DelegateRegistrationSection({ onSuccess, defaultTierId }
         ) : (
           <div className="space-y-6">
             
+            {/* Existing Pass Notification */}
+            {user?.ticketId && (
+              <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs animate-in fade-in">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-amber-600 text-white rounded-xl flex items-center justify-center shrink-0">
+                    <UserCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <strong className="text-amber-950 block font-extrabold text-sm">
+                      Existing Pass Active: #{user.ticketId}
+                    </strong>
+                    <span className="text-amber-800">
+                      Each account is limited to one conference pass. Submitting will update your existing pass details.
+                    </span>
+                  </div>
+                </div>
+                <Link
+                  href="/masterhome"
+                  className="bg-amber-700 hover:bg-amber-800 text-white font-extrabold text-[11px] px-4 py-2 rounded-xl transition-colors shrink-0"
+                >
+                  View My Pass in Master Home &rarr;
+                </Link>
+              </div>
+            )}
+
             {/* Linked Research Paper Banner */}
             {linkedPaperId && (
               <div className="p-4 bg-teal-50 border-2 border-teal-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs animate-in fade-in">
