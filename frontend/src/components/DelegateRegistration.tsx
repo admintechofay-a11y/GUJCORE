@@ -136,26 +136,27 @@ export default function DelegateRegistrationSection({ onSuccess, defaultTierId }
       return;
     }
 
-    if (paymentOption === 'pay_now' && paymentMethod === 'Razorpay Online (UPI/Card/NetBanking)') {
-      setIsRazorpayOpen(true);
-    } else {
-      executeRegistration(form.transactionReference || 'UNPAID-PROVISIONAL');
+    if (paymentOption === 'pay_now') {
+      alert("Online Payment Gateway Notice: Online payment is currently in Demo mode and not active (Coming Soon). Please use 'Register Now & Pay Later'.\n\nYour pass will be safely created as \"Provisional / Unpaid (Pay Later)\".");
+      setPaymentOption('pay_later');
     }
+
+    executeRegistration(form.transactionReference || 'UNPAID-PROVISIONAL');
   };
 
-  const handleRazorpaySuccess = (result: RazorpayPaymentResult) => {
+  const handleRazorpaySuccess = () => {
     setIsRazorpayOpen(false);
-    executeRegistration(result.razorpay_payment_id, 'Confirmed & Paid (Razorpay)');
+    alert("Online Payment Gateway Notice: Online payment is currently in Demo mode and not active (Coming Soon). Please use 'Register Now & Pay Later'.\n\nYour pass will be safely created as \"Provisional / Unpaid (Pay Later)\".");
+    executeRegistration('UNPAID-PROVISIONAL');
   };
 
-  const executeRegistration = async (txnRef: string, statusOverride?: string) => {
+  const executeRegistration = async (txnRef: string) => {
     setIsProcessing(true);
     const cleanFirst = form.firstName.replace(/^(?:(?:Dr|Prof|Mr|Ms|Mrs|Er)\.?\s*)+/gi, '').trim();
     const cleanLast = form.lastName.replace(/^(?:(?:Dr|Prof|Mr|Ms|Mrs|Er)\.?\s*)+/gi, '').trim();
     const fullName = `${form.title} ${cleanFirst} ${cleanLast}`.trim();
 
     try {
-      const isPaid = paymentOption === 'pay_now' || statusOverride?.includes('Paid');
       const res = await api.registerDelegate({
         fullName: fullName,
         gender: form.gender,
@@ -173,9 +174,10 @@ export default function DelegateRegistrationSection({ onSuccess, defaultTierId }
         baseAmount: selectedTier.basePrice,
         gstAmount: selectedTier.gstAmount,
         totalAmount: selectedTier.totalPrice,
-        paymentMethod: isPaid ? (paymentMethod === 'Razorpay Online (UPI/Card/NetBanking)' ? 'Razorpay (UPI / Card / NetBanking)' : paymentMethod) : 'Pay Later / Pending Verification',
-        transactionReference: txnRef || (isPaid ? 'TXN-' + Math.floor(100000 + Math.random() * 900000) : 'UNPAID-PROVISIONAL'),
-        paymentProofFileName: paymentProofFile ? paymentProofFile.name : undefined
+        paymentMethod: form.transactionReference ? 'Bank Transfer / Remittance (Pending)' : 'Pay Later / Pending Verification',
+        transactionReference: txnRef || 'UNPAID-PROVISIONAL',
+        paymentProofFileName: paymentProofFile ? paymentProofFile.name : undefined,
+        status: 'Provisional / Unpaid (Pay Later)'
       });
 
       if (res.success) {
@@ -198,34 +200,18 @@ export default function DelegateRegistrationSection({ onSuccess, defaultTierId }
           passTier: selectedTier.name + ` (₹${selectedTier.totalPrice.toLocaleString()})`
         });
 
-        // Trigger appropriate email notification via Nodemailer
-        if (isPaid) {
-          api.sendNotificationEmail({
-            type: 'payment_success',
-            to: form.email,
-            data: {
-              ticketId: res.data.ticketId,
-              fullName: fullName,
-              email: form.email,
-              category: selectedTier.name,
-              amount: selectedTier.totalPrice,
-              transactionRef: txnRef || 'RZP-' + Math.random().toString(36).substring(2, 9).toUpperCase(),
-              paymentMethod: paymentMethod || 'Razorpay Online'
-            }
-          }).catch(err => console.warn('Email dispatch warning:', err));
-        } else {
-          api.sendNotificationEmail({
-            type: 'payment_pending',
-            to: form.email,
-            data: {
-              ticketId: res.data.ticketId,
-              fullName: fullName,
-              email: form.email,
-              category: selectedTier.name,
-              totalAmount: selectedTier.totalPrice
-            }
-          }).catch(err => console.warn('Email dispatch warning:', err));
-        }
+        // Trigger payment pending email notification with bank remittance instructions
+        api.sendNotificationEmail({
+          type: 'payment_pending',
+          to: form.email,
+          data: {
+            ticketId: res.data.ticketId,
+            fullName: fullName,
+            email: form.email,
+            category: selectedTier.name,
+            totalAmount: selectedTier.totalPrice
+          }
+        }).catch(err => console.warn('Email dispatch warning:', err));
 
         if (onSuccess) onSuccess(res.data);
       }
@@ -664,159 +650,124 @@ export default function DelegateRegistrationSection({ onSuccess, defaultTierId }
                     </div>
 
                     <div
-                      onClick={() => setPaymentOption('pay_now')}
-                      className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-                        paymentOption === 'pay_now'
-                          ? 'border-blue-600 bg-blue-50/50 shadow-xs'
-                          : 'border-slate-200 bg-white hover:border-slate-300'
-                      }`}
+                      onClick={() => {
+                        alert("Online Payment Gateway Notice: Online payment is currently in Demo mode and not active (Coming Soon). Please use 'Register Now & Pay Later'.\n\nYour pass will be safely created as \"Provisional / Unpaid (Pay Later)\".");
+                        setPaymentOption('pay_later');
+                      }}
+                      className="p-4 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/80 hover:bg-slate-100 transition-all cursor-pointer relative"
                     >
-                      <div className="flex items-center gap-2">
-                        <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                          paymentOption === 'pay_now' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300'
-                        }`}>
-                          {paymentOption === 'pay_now' && <Check className="w-2.5 h-2.5" />}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center text-slate-400">
+                          </span>
+                          <h4 className="font-extrabold text-slate-600 text-xs sm:text-sm">Pay Now Online (Razorpay)</h4>
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded border border-amber-300 shadow-2xs">
+                          Demo / Coming Soon
                         </span>
-                        <h4 className="font-extrabold text-slate-900 text-xs sm:text-sm">Pay Now Online (Razorpay)</h4>
                       </div>
                       <p className="text-[11px] text-slate-500 mt-1 pl-6">
-                        Instant checkout via UPI (GPay/PhonePe), Credit/Debit Card, or NetBanking.
+                        Online payment gateway is in Demo mode. Real online checkout coming soon.
                       </p>
                     </div>
                   </div>
 
-                  {paymentOption === 'pay_now' && (
-                    <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-200 space-y-3 animate-in fade-in duration-150">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 bg-blue-600 text-white rounded-lg flex items-center justify-center font-black text-xs">
-                            R
+                  {/* Official Bank Remittance Information Card */}
+                  <div className="space-y-4 pt-2">
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-3">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div>
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-red-700 bg-red-50 px-2 py-0.5 rounded">
+                            Official Remittance Account (Bank NEFT / RTGS)
+                          </span>
+                          <div className="text-xs font-bold text-slate-900 mt-1">
+                            {CONFERENCE_INFO.bankDetails.accountName}
                           </div>
-                          <span className="text-xs font-bold text-slate-900">Razorpay Secure Payment Gateway</span>
-                        </div>
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                          256-Bit SSL Encrypted
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        {['Razorpay Online (UPI/Card/NetBanking)', 'Bank Transfer / NEFT', 'UPI / QR'].map((method) => (
-                          <button
-                            key={method}
-                            type="button"
-                            onClick={() => setPaymentMethod(method as any)}
-                            className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                              paymentMethod === method
-                                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                                : 'bg-white text-slate-700 border-slate-200'
-                            }`}
-                          >
-                            {method === 'Razorpay Online (UPI/Card/NetBanking)' ? '⚡ Razorpay Instant' : method}
-                          </button>
-                        ))}
-                      </div>
-
-                      {paymentMethod !== 'Razorpay Online (UPI/Card/NetBanking)' && (
-                        <div className="space-y-4 pt-2 border-t border-blue-200">
-                          {/* Official Bank Information Card */}
-                          <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-3">
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                              <div>
-                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-red-700 bg-red-50 px-2 py-0.5 rounded">
-                                  Official Remittance Account
-                                </span>
-                                <div className="text-xs font-bold text-slate-900 mt-1">
-                                  {CONFERENCE_INFO.bankDetails.accountName}
-                                </div>
-                                <div className="text-[11px] text-slate-600">
-                                  {CONFERENCE_INFO.bankDetails.bankName}, {CONFERENCE_INFO.bankDetails.branch}
-                                </div>
-                              </div>
-
-                              {/* Payment QR Code */}
-                              <div className="text-center shrink-0">
-                                <img
-                                  src={CONFERENCE_INFO.bankDetails.qrCodeImage}
-                                  alt="Scan QR for Payment"
-                                  className="w-24 h-24 object-contain border-2 border-slate-300 rounded-lg mx-auto shadow-2xs"
-                                  onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
-                                />
-                                <span className="text-[9px] font-bold text-slate-600 block mt-1">
-                                  Scan QR for Payment
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] pt-2 border-t border-slate-100">
-                              <div>
-                                <span className="text-slate-400 block text-[9px] uppercase font-bold">A/C Number</span>
-                                <span className="font-mono font-bold text-slate-900">{CONFERENCE_INFO.bankDetails.accountNumber}</span>
-                              </div>
-                              <div>
-                                <span className="text-slate-400 block text-[9px] uppercase font-bold">IFSC Code</span>
-                                <span className="font-mono font-bold text-slate-900">{CONFERENCE_INFO.bankDetails.ifscCode}</span>
-                              </div>
-                              <div>
-                                <span className="text-slate-400 block text-[9px] uppercase font-bold">MICR Code</span>
-                                <span className="font-mono font-bold text-slate-900">{CONFERENCE_INFO.bankDetails.micrCode}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Transaction Reference Input */}
-                          <div>
-                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                              Transaction Reference / UTR Number *
-                            </label>
-                            <input
-                              type="text"
-                              required
-                              placeholder="e.g. UBIN1234567890 / UPI Ref ID"
-                              value={form.transactionReference}
-                              onChange={(e) => setForm({ ...form, transactionReference: e.target.value })}
-                              className="w-full py-2.5 px-3 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-mono text-slate-900 uppercase"
-                            />
-                          </div>
-
-                          {/* Payment Proof File Upload */}
-                          <div>
-                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                              Upload Payment Proof / Remittance Slip (PDF, PNG, JPG)
-                            </label>
-                            <input
-                              ref={paymentProofInputRef}
-                              type="file"
-                              accept=".pdf,.png,.jpg,.jpeg"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-                                  setPaymentProofFile({ name: file.name, size: `${sizeMb} MB` });
-                                  setForm(prev => ({ ...prev, paymentProofFileName: file.name }));
-                                }
-                              }}
-                              className="hidden"
-                            />
-                            <div 
-                              onClick={() => paymentProofInputRef.current?.click()}
-                              className="p-3 bg-white border-2 border-dashed border-slate-300 hover:border-red-400 rounded-xl text-center cursor-pointer transition-colors"
-                            >
-                              {paymentProofFile ? (
-                                <div className="flex items-center justify-between text-xs font-bold text-emerald-700 px-2">
-                                  <span className="truncate max-w-[200px]">{paymentProofFile.name} ({paymentProofFile.size})</span>
-                                  <span className="text-[10px] text-red-600 underline">Change</span>
-                                </div>
-                              ) : (
-                                <div className="text-xs text-slate-600 font-medium">
-                                  Click to upload payment screenshot or bank transfer receipt
-                                </div>
-                              )}
-                            </div>
+                          <div className="text-[11px] text-slate-600">
+                            {CONFERENCE_INFO.bankDetails.bankName}, {CONFERENCE_INFO.bankDetails.branch}
                           </div>
                         </div>
-                      )}
+
+                        {/* Payment QR Code */}
+                        <div className="text-center shrink-0">
+                          <img
+                            src={CONFERENCE_INFO.bankDetails.qrCodeImage}
+                            alt="Scan QR for Payment"
+                            className="w-24 h-24 object-contain border-2 border-slate-300 rounded-lg mx-auto shadow-2xs"
+                            onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+                          />
+                          <span className="text-[9px] font-bold text-slate-600 block mt-1">
+                            Scan QR for Remittance
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] pt-2 border-t border-slate-100">
+                        <div>
+                          <span className="text-slate-400 block text-[9px] uppercase font-bold">A/C Number</span>
+                          <span className="font-mono font-bold text-slate-900">{CONFERENCE_INFO.bankDetails.accountNumber}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[9px] uppercase font-bold">IFSC Code</span>
+                          <span className="font-mono font-bold text-slate-900">{CONFERENCE_INFO.bankDetails.ifscCode}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[9px] uppercase font-bold">MICR Code</span>
+                          <span className="font-mono font-bold text-slate-900">{CONFERENCE_INFO.bankDetails.micrCode}</span>
+                        </div>
+                      </div>
                     </div>
-                  )}
+
+                    {/* Optional Transaction Reference Input */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Transaction Reference / UTR Number (Optional if already transferred)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Leave blank if paying later, or enter UTR / NEFT Ref"
+                        value={form.transactionReference}
+                        onChange={(e) => setForm({ ...form, transactionReference: e.target.value })}
+                        className="w-full py-2.5 px-3 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-mono text-slate-900 uppercase"
+                      />
+                    </div>
+
+                    {/* Optional Payment Proof File Upload */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Upload Remittance Slip / Transfer Receipt (Optional)
+                      </label>
+                      <input
+                        ref={paymentProofInputRef}
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+                            setPaymentProofFile({ name: file.name, size: `${sizeMb} MB` });
+                            setForm(prev => ({ ...prev, paymentProofFileName: file.name }));
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <div 
+                        onClick={() => paymentProofInputRef.current?.click()}
+                        className="p-3 bg-white border-2 border-dashed border-slate-300 hover:border-red-400 rounded-xl text-center cursor-pointer transition-colors"
+                      >
+                        {paymentProofFile ? (
+                          <div className="flex items-center justify-between text-xs font-bold text-emerald-700 px-2">
+                            <span className="truncate max-w-[200px]">{paymentProofFile.name} ({paymentProofFile.size})</span>
+                            <span className="text-[10px] text-red-600 underline">Change</span>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-slate-600 font-medium">
+                            Click to upload bank transfer receipt (Optional)
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Total Summary */}
@@ -855,9 +806,7 @@ export default function DelegateRegistrationSection({ onSuccess, defaultTierId }
                     <span>Creating Account &amp; Issuing Credentials...</span>
                   ) : (
                     <>
-                      {paymentOption === 'pay_later' 
-                        ? `Complete Free Registration & Enter Master Home` 
-                        : `Pay ₹${selectedTier.totalPrice.toLocaleString('en-IN')} via Razorpay`} <ArrowRight className="w-5 h-5" />
+                      Complete Registration (Pay Later) <ArrowRight className="w-5 h-5" />
                     </>
                   )}
                 </button>

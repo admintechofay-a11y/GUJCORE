@@ -813,7 +813,7 @@ export async function dbInsertRegistration(reg: any): Promise<any> {
           ${reg.gstAmount || 0},
           ${reg.totalAmount || 0},
           ${reg.paymentMethod || 'Bank Transfer / NEFT'},
-          ${reg.status || 'Confirmed & Paid'},
+          ${reg.status || 'Provisional / Unpaid (Pay Later)'},
           ${qrCodeUrl},
           ${reg.registrationDate || now}
         )
@@ -826,7 +826,7 @@ export async function dbInsertRegistration(reg: any): Promise<any> {
         ticketId,
         qrCodeUrl,
         registrationDate: reg.registrationDate || now,
-        status: reg.status || 'Confirmed & Paid'
+        status: reg.status || 'Provisional / Unpaid (Pay Later)'
       };
 
       try {
@@ -870,7 +870,7 @@ export async function dbInsertRegistration(reg: any): Promise<any> {
     ticketId,
     qrCodeUrl,
     registrationDate: reg.registrationDate || now,
-    status: reg.status || 'Confirmed & Paid'
+    status: reg.status || 'Provisional / Unpaid (Pay Later)'
   };
   const filtered = store.registrations.filter(item => item.id !== id && item.ticketId !== ticketId);
   filtered.unshift(newReg);

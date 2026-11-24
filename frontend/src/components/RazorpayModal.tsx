@@ -94,36 +94,8 @@ export default function RazorpayModal({
   };
 
   const handlePay = () => {
-    setIsProcessing(true);
-    setProcessingStep('Connecting to Razorpay Secure Gateway...');
-
-    setTimeout(() => {
-      setProcessingStep('Authorizing payment with bank server...');
-    }, 700);
-
-    setTimeout(() => {
-      setProcessingStep('Generating payment token & GST receipt...');
-    }, 1400);
-
-    setTimeout(() => {
-      setIsProcessing(false);
-      setPaymentStatus('success');
-
-      const result: RazorpayPaymentResult = {
-        razorpay_payment_id: 'pay_rzp_' + Math.random().toString(36).substring(2, 10).toUpperCase(),
-        razorpay_order_id: 'order_GUJ27_' + Math.floor(100000 + Math.random() * 900000),
-        razorpay_signature: 'sig_' + Math.random().toString(36).substring(2, 14),
-        method: activeTab.toUpperCase(),
-        amount: amount,
-        currency: 'INR',
-        email: prefill?.email || 'iim.barodachapter@gmail.com',
-        contact: prefill?.contact || '+91 9988881674'
-      };
-
-      setTimeout(() => {
-        onSuccess(result);
-      }, 1200);
-    }, 2200);
+    alert("Online Payment Gateway Notice: Online payment is currently in Demo mode and not active (Coming Soon). Please use 'Register Now & Pay Later'.\n\nYour pass will be safely created as \"Provisional / Unpaid (Pay Later)\".");
+    onClose();
   };
 
   return (
@@ -133,6 +105,12 @@ export default function RazorpayModal({
         onClick={(e) => e.stopPropagation()}
       >
         
+        {/* Demo Mode Notice Banner */}
+        <div className="bg-amber-500 text-slate-950 px-4 py-3 text-xs font-black text-center flex items-center justify-center gap-2 border-b border-amber-600">
+          <AlertCircle className="w-5 h-5 text-slate-950 shrink-0" />
+          <span>Online Payment Gateway Notice: Online payment is currently in Demo mode and not active (Coming Soon). Please use &apos;Register Now &amp; Pay Later&apos;.</span>
+        </div>
+
         {/* Razorpay Brand Header */}
         <div className="bg-slate-900 text-white p-5 sm:p-6 relative">
           <button
@@ -385,10 +363,9 @@ export default function RazorpayModal({
               <button
                 type="button"
                 onClick={handlePay}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs sm:text-sm py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs sm:text-sm py-3.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
               >
-                <span>Pay ₹{amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                <ArrowRight className="w-4 h-4" />
+                <span>Demo Mode (Online Payment Coming Soon) — Use Pay Later</span>
               </button>
 
               <div className="text-center text-[10px] text-slate-400 pt-1">

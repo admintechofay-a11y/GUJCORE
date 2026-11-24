@@ -91,19 +91,15 @@ export default function ProformaInvoiceModal({ isOpen, onClose, initialData }: P
           </div>
 
           <div className="flex items-center gap-2">
-            {!isPaid ? (
-              <button
-                type="button"
-                onClick={() => setIsRazorpayOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-              >
-                <CreditCard className="w-3.5 h-3.5" /> Pay via Razorpay
-              </button>
-            ) : (
-              <span className="bg-emerald-100 text-emerald-800 text-xs font-black px-3 py-1.5 rounded-xl border border-emerald-300 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> PAID (Razorpay)
-              </span>
-            )}
+            <button
+              type="button"
+              onClick={() => {
+                alert("Online Payment Gateway Notice: Online payment is currently in Demo mode and not active (Coming Soon). Please use 'Register Now & Pay Later' / Bank Transfer (NEFT/RTGS) remittance using the bank details on this invoice.\n\nYour pass will be safely maintained as \"Provisional / Unpaid (Pay Later)\".");
+              }}
+              className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-xs font-bold px-4 py-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+            >
+              <CreditCard className="w-3.5 h-3.5 text-amber-700" /> Online Pay (Demo / Coming Soon)
+            </button>
 
             <button
               onClick={handlePrint}

@@ -187,7 +187,7 @@ export default function InteractiveFloorPlan() {
   const [booths, setBooths] = useState<BoothData[]>(INITIAL_BOOTHS);
   const [selectedBooth, setSelectedBooth] = useState<BoothData | null>(null);
   const [bookingStep, setBookingStep] = useState<'details' | 'form' | 'success'>('details');
-  const [paymentChoice, setPaymentChoice] = useState<'online' | 'wire'>('online');
+  const [paymentChoice, setPaymentChoice] = useState<'online' | 'wire'>('wire');
   const [filterType, setFilterType] = useState<string>('All');
   const [isRazorpayOpen, setIsRazorpayOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -270,7 +270,8 @@ export default function InteractiveFloorPlan() {
     if (!selectedBooth) return;
 
     if (paymentChoice === 'online') {
-      setIsRazorpayOpen(true);
+      alert("Online Payment Gateway Notice: Online payment is currently in Demo mode and not active (Coming Soon). Please use 'Register Now & Pay Later' / Bank Wire Transfer.\n\nYour reservation will be safely created as Pending Wire Transfer.");
+      finalizeBooking('Pending Wire Transfer (Proforma Issued)');
     } else {
       finalizeBooking('Pending Wire Transfer (Proforma Issued)');
     }
@@ -740,22 +741,24 @@ export default function InteractiveFloorPlan() {
                   <div className="pt-2">
                     <label className="block text-[11px] font-bold text-slate-700 mb-2">Select Payment Method:</label>
                     <div className="grid grid-cols-2 gap-3">
-                      <label className={`p-3 rounded-2xl border-2 cursor-pointer flex flex-col justify-between transition-all ${
-                        paymentChoice === 'online' ? 'border-red-600 bg-red-50/50' : 'border-slate-200 bg-white hover:bg-slate-50'
-                      }`}>
-                        <input
-                          type="radio"
-                          name="paymentChoice"
-                          className="sr-only"
-                          checked={paymentChoice === 'online'}
-                          onChange={() => setPaymentChoice('online')}
-                        />
-                        <div className="flex items-center gap-2">
-                          <CreditCard className="w-4 h-4 text-red-600" />
-                          <span className="text-xs font-extrabold text-slate-900">Instant Online</span>
+                      <div
+                        onClick={() => {
+                          alert("Online Payment Gateway Notice: Online payment is currently in Demo mode and not active (Coming Soon). Please use 'Register Now & Pay Later' / Bank Wire Transfer.\n\nYour reservation will be safely created as Pending Wire Transfer.");
+                          setPaymentChoice('wire');
+                        }}
+                        className="p-3 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/80 cursor-pointer flex flex-col justify-between transition-all"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="w-4 h-4 text-slate-400" />
+                            <span className="text-xs font-extrabold text-slate-600">Instant Online</span>
+                          </div>
+                          <span className="text-[9px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded border border-amber-300">
+                            Demo / Coming Soon
+                          </span>
                         </div>
-                        <span className="text-[10px] text-slate-500 mt-1">UPI / Cards / NetBanking</span>
-                      </label>
+                        <span className="text-[10px] text-slate-400 mt-1">Online checkout coming soon</span>
+                      </div>
 
                       <label className={`p-3 rounded-2xl border-2 cursor-pointer flex flex-col justify-between transition-all ${
                         paymentChoice === 'wire' ? 'border-red-600 bg-red-50/50' : 'border-slate-200 bg-white hover:bg-slate-50'

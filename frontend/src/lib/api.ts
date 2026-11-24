@@ -13,14 +13,14 @@ const STORAGE_KEYS = {
 
 export const api = {
   // 1. Submit Delegate Registration
-  async registerDelegate(data: Omit<DelegateRegistration, 'id' | 'registrationDate' | 'status' | 'ticketId'>): Promise<{ success: boolean; data: DelegateRegistration; message: string }> {
+  async registerDelegate(data: Omit<DelegateRegistration, 'id' | 'registrationDate' | 'status' | 'ticketId'> & { status?: string }): Promise<{ success: boolean; data: DelegateRegistration; message: string }> {
     const ticketId = 'GUJ27-DEL-' + Math.random().toString(36).substring(2, 8).toUpperCase();
     const newReg: DelegateRegistration = {
       ...data,
       id: ticketId,
       ticketId: ticketId,
       registrationDate: new Date().toISOString(),
-      status: 'Confirmed & Paid',
+      status: (data as any).status || 'Provisional / Unpaid (Pay Later)',
       qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GUJCORR2027:${ticketId}`
     };
 

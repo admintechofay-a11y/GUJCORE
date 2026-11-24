@@ -1144,7 +1144,9 @@ export default function DashboardPage() {
                       <div>
                         <span className="text-slate-400 block text-[10px]">Payment Status:</span>
                         <strong className="text-slate-900">
-                          {reg.paymentMethod.includes('Pay Later') ? 'Provisional / Unpaid' : 'Confirmed (₹' + reg.totalAmount?.toLocaleString() + ')'}
+                          {(reg.status || '').toLowerCase().includes('confirmed') && (reg.status || '').toLowerCase().includes('paid')
+                            ? 'Confirmed (₹' + reg.totalAmount?.toLocaleString() + ')'
+                            : 'Provisional / Unpaid (Pay Later)'}
                         </strong>
                       </div>
                       <div className="flex items-center gap-2">
