@@ -330,9 +330,29 @@ export default function DashboardPage() {
     }
   };
 
-  // Trigger Mock Template Download
+  // Trigger Official Template Download
   const downloadTemplate = (title: string, filename: string) => {
-    const sampleContent = `GUJCORR 2027 OFFICIAL TEMPLATE\nDocument: ${title}\nInternational Conference on Corrosion Science & Engineering (18-20 Feb 2027, Vadodara)\nOrganized by AMPP Gujarat & IIM Baroda Chapter\n\nPlease format your full paper according to the two-column guidelines provided in this template.`;
+    if (filename.includes('Abstract')) {
+      const link = document.createElement('a');
+      link.href = '/templates/GUJCORR_2027_Abstract_Template.docx';
+      link.setAttribute('download', 'GUJCORR 2027 Abstract Template.docx');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast(`Downloading: GUJCORR 2027 Abstract Template.docx`);
+      return;
+    }
+    if (filename.includes('FullPaper') || filename.includes('Full_Text') || filename.includes('Paper')) {
+      const link = document.createElement('a');
+      link.href = '/templates/GUJCORR_Template_Full_Text_Paper.docx';
+      link.setAttribute('download', 'GUJCORR Template Full Text Paper.docx');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast(`Downloading: GUJCORR Template Full Text Paper.docx`);
+      return;
+    }
+    const sampleContent = `GUJCORR 2027 OFFICIAL TEMPLATE\nDocument: ${title}\nInternational Conference on Corrosion Science & Engineering (18-20 Feb 2027, Vadodara)\nOrganized by AMPP Gujarat & IIM Baroda Chapter\n\nPlease format your document according to the guidelines provided in this template.`;
     const blob = new Blob([sampleContent], { type: 'text/plain;charset=utf-8' });
     const link = document.createElement('a');
     link.href = window.URL.createObjectURL(blob);

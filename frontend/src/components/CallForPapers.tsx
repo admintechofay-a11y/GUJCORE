@@ -1132,6 +1132,92 @@ export default function CallForPapers({ preselectedSymposiumId }: CallForPapersP
 
                 </div>
 
+                {/* Official Author Templates & Guidelines Download Section */}
+                <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4 sm:p-5 space-y-3 shadow-2xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pb-2 border-b border-slate-200/70">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-red-100 text-red-700 flex items-center justify-center shrink-0 shadow-2xs">
+                        <Download className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                          <span>Official Document Formats &amp; Templates</span>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                            DOCX Downloadable
+                          </span>
+                        </h4>
+                        <p className="text-[11px] text-slate-500">
+                          Please prepare your files according to the official GUJCORR 2027 formats before uploading.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                    {/* Abstract Template Card */}
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 hover:border-red-400 transition-all flex flex-col justify-between gap-3 shadow-2xs group">
+                      <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0 border border-red-100 group-hover:scale-105 transition-transform">
+                          <FileText className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-[9px] font-extrabold text-red-700 bg-red-50 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                              Abstract Format
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium">DOCX &bull; 27 KB</span>
+                          </div>
+                          <div className="font-extrabold text-xs sm:text-sm text-slate-900 mt-1 truncate">
+                            Abstract Template
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                            Structured 200–250 words format for background, methodology &amp; results.
+                          </p>
+                        </div>
+                      </div>
+                      <a
+                        href="/templates/GUJCORR_2027_Abstract_Template.docx"
+                        download="GUJCORR 2027 Abstract Template.docx"
+                        className="w-full bg-slate-900 hover:bg-red-700 text-white text-xs font-bold py-2.5 px-3 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs text-center"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download Abstract Template (.docx)</span>
+                      </a>
+                    </div>
+
+                    {/* Full Paper Template Card */}
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 hover:border-teal-400 transition-all flex flex-col justify-between gap-3 shadow-2xs group">
+                      <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 border border-teal-100 group-hover:scale-105 transition-transform">
+                          <FileCheck className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-[9px] font-extrabold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                              Full Paper Format
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium">DOCX &bull; 117 KB</span>
+                          </div>
+                          <div className="font-extrabold text-xs sm:text-sm text-slate-900 mt-1 truncate">
+                            Full Text Paper Template
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                            Two-column proceedings style with figures, equations &amp; reference guides.
+                          </p>
+                        </div>
+                      </div>
+                      <a
+                        href="/templates/GUJCORR_Template_Full_Text_Paper.docx"
+                        download="GUJCORR Template Full Text Paper.docx"
+                        className="w-full bg-slate-900 hover:bg-teal-700 text-white text-xs font-bold py-2.5 px-3 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs text-center"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download Full Paper Template (.docx)</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Presenting Author Confirmation Checkbox */}
                 <div 
                   onClick={() => setFormData({ ...formData, isPresentingAuthor: !formData.isPresentingAuthor })}
